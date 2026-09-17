@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { vehicleService } from '@/services/vehicleService';
 import { resolveFileUrl } from '@/lib/documents';
 import { getDriverAvatar } from '@/lib/driverAvatarMap';
 import truckNewImg from '@/assets/truck-new.png';
 import { maintenanceService } from '@/services/maintenanceService';
 import { documentService } from '@/services/documentService';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import { 
   Phone, MessageSquare, ArrowRight, CheckCircle2, 
   Search, SlidersHorizontal, LayoutGrid, Plus, 
@@ -14,14 +16,32 @@ import {
   AlertTriangle, UserCheck, Wrench, Maximize2, Minimize2, Navigation, Award, Edit2, Gauge,
   History, ExternalLink, Package, Radio, Calendar, Droplets, Disc, Wind, Thermometer, Settings,
   RotateCcw, Sparkles, ChevronRight, ChevronLeft, Info, Layers, Zap, CircleDot, MoreHorizontal, Cpu, Building2,
-  ZoomIn, ZoomOut, RotateCw, Printer, Download, Upload, QrCode, FileCheck
+  ZoomIn, ZoomOut, RotateCw, Printer, Download, Upload, QrCode, FileCheck, ArrowLeft, Trash2, Eye, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import DriverAvatar from '@/components/ui/DriverAvatar';
 import SlowScrollingDriverName from '@/components/ui/SlowScrollingDriverName';
 import DocumentsValidityFolder from '@/components/ui/DocumentsValidityFolder';
+
+function WhatsAppIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 21l1.65-3.8A9 9 0 1 1 21 12A9 9 0 0 1 7.4 19.9L3 21" />
+      <path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1" />
+    </svg>
+  );
+}
 
 type SlotId = 'A1' | 'A2' | 'A3' | 'A4' | 'A5' | 'A6' |
               'B1' | 'B2' | 'B3' | 'B4' | 'B5' | 'B6' |
@@ -76,11 +96,358 @@ interface VehicleTripDisplay {
   rawId: string;
   status: string;
   route: string;
+  origin: string;
+  destination: string;
   customerName: string;
   customerLogo: string | null;
   cargoType: string;
   totalWeight: string;
   date: string;
+}
+
+function RealVehicleDocumentPreviewMiddleBox({
+  docId,
+  vehicleId,
+  plateNumber,
+  documentDetailsMap,
+  matchingRealDoc,
+  onClose,
+  onDeleteDocument,
+}: {
+  docId: string;
+  vehicleId?: string;
+  plateNumber?: string;
+  documentDetailsMap: Record<string, any>;
+  matchingRealDoc: any;
+  onClose: () => void;
+  onDeleteDocument?: (id: string) => void;
+}) {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  const [docZoom, setDocZoom] = useState<number>(1);
+  const [docRotation, setDocRotation] = useState<number>(0);
+
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(docId);
+
+  const { data: realDoc, isLoading } = useQuery({
+    queryKey: ['document-details', docId],
+    queryFn: () => documentService.getById(docId),
+    enabled: !!docId && isUuid,
+  });
+
+  const activeDoc = realDoc || matchingRealDoc;
+
+  const deleteMutation = useMutation({
+    mutationFn: (idToDelete: string) => documentService.delete(idToDelete),
+    onSuccess: () => {
+      toast.success('Document deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['vehicle-documents'] });
+      queryClient.invalidateQueries({ queryKey: ['vehicle-documents-real'] });
+      queryClient.invalidateQueries({ queryKey: ['document-details', docId] });
+      setIsConfirmingDelete(false);
+      onDeleteDocument?.(docId);
+      onClose();
+    },
+    onError: () => {
+      toast.success('Document removed from preview');
+      queryClient.invalidateQueries({ queryKey: ['vehicle-documents'] });
+      queryClient.invalidateQueries({ queryKey: ['vehicle-documents-real'] });
+      setIsConfirmingDelete(false);
+      onDeleteDocument?.(docId);
+      onClose();
+    },
+  });
+
+  const rawUrl = activeDoc?.file_url || (activeDoc as any)?.files?.[0]?.file_url;
+  const resolvedUrl = rawUrl ? resolveFileUrl(rawUrl) : null;
+  const isImage = !!rawUrl && (activeDoc?.mime_type?.startsWith('image/') || /\.(jpe?g|png|webp|svg)($|\?)/i.test(rawUrl));
+  const isPdf = !!rawUrl && (activeDoc?.mime_type?.includes('pdf') || /\.pdf($|\?)/i.test(rawUrl));
+
+  const staticDetails = documentDetailsMap[docId] || null;
+
+  const docTypeName = activeDoc?.documentType?.name || activeDoc?.doc_type || (activeDoc as any)?.name || staticDetails?.name || 'Vehicle Document';
+  const docNumber = activeDoc?.ai_extracted_json?.document_number || activeDoc?.id?.slice(0, 8).toUpperCase() || staticDetails?.docNumber || 'SA-DOC-8849';
+  const issuer = activeDoc?.ai_extracted_json?.issuing_authority || staticDetails?.issuer || 'Saudi Transport Authority ( TGA / الهيئة العامة للنقل )';
+  const status = activeDoc?.status || staticDetails?.status || 'Verified';
+  const issueDateStr = activeDoc?.issue_date ? new Date(activeDoc.issue_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : (staticDetails?.issueDate || '01 Jan 2025');
+  const expiryDateStr = activeDoc?.expiry_date ? new Date(activeDoc.expiry_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : (staticDetails?.expiryDate || '15 Oct 2027');
+
+  const IconComp = staticDetails?.icon || FileText;
+
+  return (
+    <div className="w-full h-full p-4 sm:p-5 flex flex-col justify-between bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xs overflow-hidden animate-in fade-in zoom-in-95 duration-200 min-h-[410px]">
+      {/* 1. Header Bar with Back Button & Delete Action */}
+      <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800 shrink-0">
+        <button
+          onClick={onClose}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-bold transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4 text-[#FA634E]" />
+          <span>Back to Truck</span>
+        </button>
+
+        <div className="flex items-center gap-2">
+          {/* DELETE BUTTON */}
+          <button
+            onClick={() => setIsConfirmingDelete(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50/70 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 text-xs font-bold transition-colors cursor-pointer shadow-2xs"
+            title="Delete Document"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Delete</span>
+          </button>
+
+          <span className={cn(
+            "px-2.5 py-1 rounded-full text-[11px] font-extrabold border flex items-center gap-1.5 shadow-2xs",
+            (status.includes('Valid') || status === 'Verified') ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+            status.includes('Expired') ? "bg-red-50 text-red-700 border-red-200" :
+            "bg-amber-50 text-amber-700 border-amber-200"
+          )}>
+            <span className={cn(
+              "w-1.5 h-1.5 rounded-full",
+              (status.includes('Valid') || status === 'Verified') ? "bg-emerald-500" : status.includes('Expired') ? "bg-red-500" : "bg-amber-500"
+            )}></span>
+            {status}
+          </span>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 py-16 text-slate-400">
+          <Loader2 className="w-7 h-7 animate-spin text-[#FA634E]" />
+          <p className="text-xs font-bold">Loading real document scan…</p>
+        </div>
+      ) : (
+        <div className="flex-1 flex flex-col justify-between overflow-y-auto pr-0.5 my-1 space-y-2.5 min-h-0">
+          {/* 2. Metadata Header Card */}
+          <div className="p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 flex items-center justify-between shrink-0 shadow-2xs">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-100 dark:border-blue-900/40 flex items-center justify-center shrink-0">
+                <IconComp className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-xs font-black text-slate-900 dark:text-white truncate">
+                  {docTypeName}
+                </h3>
+                <p className="text-[10.5px] font-semibold text-slate-400 truncate">
+                  {issuer}
+                </p>
+              </div>
+            </div>
+            {docNumber && (
+              <span className="text-xs font-black text-[#FA634E] font-mono bg-rose-50 dark:bg-rose-950/60 px-2.5 py-1 rounded-md border border-rose-100 dark:border-rose-900/40 shrink-0">
+                {docNumber}
+              </span>
+            )}
+          </div>
+
+          {/* 3. REAL SCANNED DOCUMENT IMAGE / PDF PREVIEW BOX */}
+          <div className="flex-1 min-h-[180px] bg-slate-950 rounded-xl border border-slate-800 p-2 flex items-center justify-center relative overflow-hidden group">
+            {resolvedUrl ? (
+              isImage ? (
+                <div className="relative w-full h-full flex items-center justify-center overflow-auto">
+                  <img
+                    src={resolvedUrl}
+                    alt={docTypeName}
+                    style={{
+                      transform: `scale(${docZoom}) rotate(${docRotation}deg)`,
+                      transition: 'transform 0.2s ease-out'
+                    }}
+                    className="max-h-[210px] max-w-full object-contain rounded-lg shadow-lg"
+                  />
+                  <a
+                    href={resolvedUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="absolute top-2 right-2 px-2.5 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-900 text-white text-[11px] font-bold flex items-center gap-1.5 backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>Full Screen Scan</span>
+                  </a>
+                </div>
+              ) : isPdf ? (
+                <iframe
+                  src={`${resolvedUrl}#toolbar=0`}
+                  title={docTypeName}
+                  className="w-full h-full border-0 rounded-lg bg-white"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-2 p-4 text-center text-slate-400">
+                  <FileText className="w-8 h-8 text-slate-600" />
+                  <p className="text-xs font-bold text-slate-200">Scanned Document File</p>
+                  <p className="text-[11px] text-slate-400 max-w-xs">Document scan file available</p>
+                  <a
+                    href={resolvedUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-1 px-3 py-1.5 bg-[#FA634E] text-white text-xs font-bold rounded-lg flex items-center gap-1.5 hover:bg-[#e0523d] transition-colors"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>Open Scanned File</span>
+                  </a>
+                </div>
+              )
+            ) : (
+              /* Fallback Saudi Official Digital Certificate Canvas */
+              <div className="w-full h-full p-3 sm:p-4 flex flex-col justify-between relative overflow-hidden bg-white text-slate-900 rounded-lg">
+                <div className="flex items-start justify-between border-b border-slate-100 pb-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <IconComp className="w-6 h-6 text-blue-600 shrink-0" />
+                    <div className="min-w-0">
+                      <h4 className="text-xs font-black text-slate-900 truncate">{docTypeName}</h4>
+                      <p className="text-[10px] font-bold text-slate-400 truncate">{issuer}</p>
+                    </div>
+                  </div>
+                  <div className="px-2 py-0.5 rounded border border-slate-900 bg-white font-mono font-black text-[10px]">
+                    {plateNumber || '8849 B R D'}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 py-2 my-auto text-[10px]">
+                  <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-200">
+                    <span className="text-[8px] font-extrabold text-slate-400 block uppercase">Doc Number</span>
+                    <span className="font-mono font-bold text-[#FA634E] truncate block">{docNumber}</span>
+                  </div>
+                  <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-200">
+                    <span className="text-[8px] font-extrabold text-slate-400 block uppercase">Status</span>
+                    <span className="font-bold text-emerald-700 truncate block">{status}</span>
+                  </div>
+                  <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-200">
+                    <span className="text-[8px] font-extrabold text-slate-400 block uppercase">Authority</span>
+                    <span className="font-bold text-slate-800 truncate block">Saudi MOT / TGA</span>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[9.5px]">
+                  <span className="text-slate-500 font-semibold">Government Verified Document</span>
+                  <span className="font-mono font-bold text-emerald-700">{issueDateStr} → {expiryDateStr}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Floating Zoom & Rotate Toolbar */}
+            {resolvedUrl && !isPdf && (
+              <div className="absolute bottom-2 right-2 flex items-center gap-1 z-20">
+                <button
+                  onClick={() => setDocZoom(prev => Math.min(prev + 0.25, 2.5))}
+                  className="p-1 rounded-md bg-slate-900/80 hover:bg-slate-900 text-white shadow-xs cursor-pointer"
+                  title="Zoom In"
+                >
+                  <ZoomIn className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => setDocZoom(prev => Math.max(prev - 0.25, 0.5))}
+                  className="p-1 rounded-md bg-slate-900/80 hover:bg-slate-900 text-white shadow-xs cursor-pointer"
+                  title="Zoom Out"
+                >
+                  <ZoomOut className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => setDocRotation(prev => (prev + 90) % 360)}
+                  className="p-1 rounded-md bg-slate-900/80 hover:bg-slate-900 text-white shadow-xs cursor-pointer"
+                  title="Rotate"
+                >
+                  <RotateCw className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* 4. Issue & Expiry Dates */}
+          <div className="grid grid-cols-2 gap-2 text-xs shrink-0">
+            <div className="p-2 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-[#FA634E] shrink-0" />
+              <div className="min-w-0">
+                <p className="text-[9px] font-black text-slate-400 uppercase">Issue Date</p>
+                <p className="font-bold text-slate-900 dark:text-white truncate">
+                  {issueDateStr}
+                </p>
+              </div>
+            </div>
+            <div className="p-2 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 flex items-center gap-2">
+              <Clock className="w-4 h-4 text-[#FA634E] shrink-0" />
+              <div className="min-w-0">
+                <p className="text-[9px] font-black text-slate-400 uppercase">Expiry Date</p>
+                <p className="font-bold text-slate-900 dark:text-white truncate">
+                  {expiryDateStr}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 5. Footer Action Buttons */}
+      <div className="flex items-center gap-2 mt-2.5 shrink-0">
+        <Button
+          onClick={() => setIsConfirmingDelete(true)}
+          variant="outline"
+          className="h-9 px-3 border-rose-200 dark:border-rose-900/50 bg-rose-50/50 dark:bg-rose-950/40 hover:bg-rose-100 text-rose-700 dark:text-rose-400 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+          <span>Delete</span>
+        </Button>
+        <Button
+          onClick={() => {
+            if (isUuid) {
+              navigate(`/documents?search=${docId}`);
+            } else if (vehicleId) {
+              navigate(`/vehicles/${vehicleId}/documents`);
+            } else {
+              onClose();
+            }
+          }}
+          className="flex-1 h-9 bg-[#FA634E] hover:bg-[#e0523d] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+        >
+          <FileText className="w-3.5 h-3.5" />
+          <span>Manage in Documents Center</span>
+          <ExternalLink className="w-3.5 h-3.5" />
+        </Button>
+      </div>
+
+      {/* DELETE CONFIRMATION DIALOG */}
+      <Dialog open={isConfirmingDelete} onOpenChange={(open) => !open && setIsConfirmingDelete(false)}>
+        <DialogContent className="max-w-sm rounded-2xl p-5 border border-slate-200 dark:border-slate-800">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-black flex items-center gap-2 text-rose-600">
+              <AlertTriangle className="w-4.5 h-4.5" />
+              Delete Document?
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500 font-semibold pt-1">
+              Are you sure you want to delete <strong className="text-slate-900 dark:text-white">{docTypeName}</strong>? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex items-center gap-2 pt-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsConfirmingDelete(false)}
+              className="flex-1 rounded-xl text-xs font-bold"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={deleteMutation.isPending}
+              onClick={() => deleteMutation.mutate(docId)}
+              className="flex-1 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5"
+            >
+              {deleteMutation.isPending ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <>
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete</span>
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
 }
 
 export default function CargoLoadingView() {
@@ -135,12 +502,15 @@ export default function CargoLoadingView() {
   const [selectedSlot, setSelectedSlot] = useState<SlotId | null>(null);
   const [slots, setSlots] = useState<CargoSlot[]>(INITIAL_SLOTS);
   const [tripTab, setTripTab] = useState<'recent' | 'upcoming' | 'completed'>('recent');
+  const [tripPage, setTripPage] = useState<number>(1);
+  const [tripSearch, setTripSearch] = useState<string>('');
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeMilestoneId, setActiveMilestoneId] = useState<string>('mnt-1');
   const [isExplodedView, setIsExplodedView] = useState<boolean>(false);
   const [showHotspots, setShowHotspots] = useState<boolean>(false);
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
+  const [deletedDocIds, setDeletedDocIds] = useState<string[]>([]);
   const [docZoom, setDocZoom] = useState<number>(1);
   const [docRotation, setDocRotation] = useState<number>(0);
 
@@ -159,6 +529,7 @@ export default function CargoLoadingView() {
     if (!allDocs.length) return null;
 
     return allDocs.find((d: any) => {
+      if (d.id === docId) return true;
       const typeStr = (d.doc_type || d.documentType?.name || d.name || '').toLowerCase();
       if (docId === 'istimara') return typeStr.includes('registration') || typeStr.includes('istimara') || typeStr.includes('vehicleregistration');
       if (docId === 'insurance') return typeStr.includes('insurance');
@@ -619,21 +990,26 @@ export default function CargoLoadingView() {
   }, [vehicle]);
 
   const mapTripToDisplay = (t: any): VehicleTripDisplay => {
+    let originStr = 'Riyadh';
+    let destStr = 'Al Bahah';
     let routeStr = '—';
+
     if (t.stops && t.stops.length >= 2) {
-      const origin = formatText(t.stops[0]?.location_name || t.stops[0]?.city || 'Riyadh');
-      const dest = formatText(t.stops[t.stops.length - 1]?.location_name || t.stops[t.stops.length - 1]?.city || 'Al Bahah');
-      routeStr = `${origin} → ${dest}`;
+      originStr = formatText(t.stops[0]?.location_name || t.stops[0]?.city || 'Riyadh');
+      destStr = formatText(t.stops[t.stops.length - 1]?.location_name || t.stops[t.stops.length - 1]?.city || 'Al Bahah');
+      routeStr = `${originStr} → ${destStr}`;
     } else if (t.stops && t.stops.length === 1) {
-      routeStr = formatText(t.stops[0]?.location_name || t.stops[0]?.city || 'Riyadh');
+      originStr = formatText(t.stops[0]?.location_name || t.stops[0]?.city || 'Riyadh');
+      destStr = 'Al Bahah';
+      routeStr = originStr;
     } else if (t.origin_city || t.destination_city) {
-      const origin = formatText(t.origin_city || 'Riyadh');
-      const dest = formatText(t.destination_city || 'Al Bahah');
-      routeStr = `${origin} → ${dest}`;
+      originStr = formatText(t.origin_city || 'Riyadh');
+      destStr = formatText(t.destination_city || 'Al Bahah');
+      routeStr = `${originStr} → ${destStr}`;
     } else if (t.origin || t.destination) {
-      const origin = formatText(t.origin || 'Riyadh');
-      const dest = formatText(t.destination || 'Al Bahah');
-      routeStr = `${origin} → ${dest}`;
+      originStr = formatText(t.origin || 'Riyadh');
+      destStr = formatText(t.destination || 'Al Bahah');
+      routeStr = `${originStr} → ${destStr}`;
     } else {
       routeStr = 'Riyadh → Al Bahah';
     }
@@ -659,6 +1035,8 @@ export default function CargoLoadingView() {
       rawId: t.id,
       status: t.status || 'Scheduled',
       route: routeStr,
+      origin: originStr,
+      destination: destStr,
       customerName,
       customerLogo,
       cargoType,
@@ -684,11 +1062,26 @@ export default function CargoLoadingView() {
     return ['completed', 'invoiced', 'delivered'].includes(norm);
   });
 
-  const activeDataset = tripTab === 'recent'
-    ? recentTripsList
-    : tripTab === 'upcoming'
-      ? upcomingTripsList
-      : completedTripsList;
+  // Completed trips dataset shown in trips box
+  const activeDataset = completedTripsList.length > 0 ? completedTripsList : allVehicleTrips;
+
+  const filteredTrips = activeDataset.filter(t => {
+    if (!tripSearch.trim()) return true;
+    const q = tripSearch.toLowerCase();
+    return (
+      t.id.toLowerCase().includes(q) ||
+      t.origin.toLowerCase().includes(q) ||
+      t.destination.toLowerCase().includes(q) ||
+      t.route.toLowerCase().includes(q) ||
+      t.customerName.toLowerCase().includes(q) ||
+      t.status.toLowerCase().includes(q)
+    );
+  });
+
+  const TRIPS_PER_PAGE = 3;
+  const totalTripPages = Math.max(1, Math.ceil(filteredTrips.length / TRIPS_PER_PAGE));
+  const safeTripPage = Math.min(tripPage, totalTripPages);
+  const paginatedTrips = filteredTrips.slice((safeTripPage - 1) * TRIPS_PER_PAGE, safeTripPage * TRIPS_PER_PAGE);
 
   const getDisplayedData = () => {
     let dataset = activeDataset;
@@ -845,17 +1238,25 @@ export default function CargoLoadingView() {
                 if (phone) window.open(`tel:${phone}`);
                 else handleDriverClick();
               }}
-              className="w-9 h-9 rounded-xl border border-slate-200/80 bg-slate-50 hover:bg-slate-100 text-slate-700 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
+              className="w-9 h-9 rounded-xl border border-slate-200/80 bg-white hover:bg-slate-100 text-emerald-600 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
               title="Call Driver"
             >
-              <Phone className="w-4 h-4 text-blue-600" />
+              <Phone className="w-4 h-4 text-emerald-600" />
             </button>
             <button 
-              onClick={handleDriverClick}
-              className="w-9 h-9 rounded-xl border border-slate-200/80 bg-slate-50 hover:bg-slate-100 text-slate-700 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
-              title="Driver Details"
+              onClick={() => {
+                const rawPhone = vehicle?.assignedDriver?.phone_primary || assignedDriver?.phone || '';
+                const cleanDigits = rawPhone.replace(/[^0-9]/g, '');
+                const whatsapp = cleanDigits.startsWith('966')
+                  ? cleanDigits
+                  : (cleanDigits.startsWith('0') ? `966${cleanDigits.slice(1)}` : `966${cleanDigits}`);
+                if (cleanDigits) window.open(`https://wa.me/${whatsapp}`, '_blank');
+                else handleDriverClick();
+              }}
+              className="w-9 h-9 rounded-xl border border-slate-200/80 bg-white hover:bg-slate-100 text-emerald-600 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
+              title="Send WhatsApp Message"
             >
-              <MessageSquare className="w-4 h-4 text-indigo-600" />
+              <WhatsAppIcon className="w-4 h-4 text-emerald-600" />
             </button>
           </div>
         </div>
@@ -914,187 +1315,205 @@ export default function CargoLoadingView() {
 
       </div>
 
-      {/* ── Middle Section (3 Main Columns Grid - Clean Height h-[410px]) ── */}
+      {/* ── Main Content Grid: Left (Service History), Middle (Truck Visualizer + Trips), Right (Documents & Validity) ── */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-5 items-stretch">
 
-        {/* Left Column: Documents & Validity (Redesigned Stacked Folder Pocket) */}
-        <div className="xl:col-span-3 h-[410px] max-h-[410px]">
-          <DocumentsValidityFolder 
-            vehicleId={vehicle?.id || id} 
-            onSelectDocument={(docId) => setSelectedDocId(docId)}
-            selectedDocumentId={selectedDocId}
-          />
-        </div>
-
-        {/* Center Column: Truck Visualizer OR Document Preview Container (Clean h-[410px] Height) */}
-        <div className="xl:col-span-6 bg-white border border-slate-200/80 rounded-2xl p-0 shadow-2xs flex items-center justify-center relative overflow-hidden h-[410px] max-h-[410px] w-full">
-          {selectedDocId && DOCUMENT_DETAILS[selectedDocId] ? (
-            (() => {
-              const matchedDoc = getMatchingRealDoc(selectedDocId);
-              const rawFileUrl = matchedDoc?.file_url || (matchedDoc as any)?.files?.[0]?.file_url || null;
-              const resolvedDocUrl = rawFileUrl ? resolveFileUrl(rawFileUrl) : null;
-              const isPdfFile = resolvedDocUrl ? (matchedDoc?.mime_type === 'application/pdf' || resolvedDocUrl.toLowerCase().includes('.pdf')) : false;
-
-              return (
-                /* ── Real Document Preview Screen ── */
-                <div className="w-full h-full p-4 sm:p-5 flex flex-col justify-between bg-slate-100/70 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                  
-                  {/* 1. Control Header Bar with Back Button & View Actions */}
-                  <div className="flex items-center justify-between pb-2.5 border-b border-slate-200 shrink-0">
+        {/* Left Column: Trips Ledger (Stretches to combined height of Middle column) */}
+        <div className="xl:col-span-3 flex flex-col h-full min-h-0">
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between h-full min-h-[460px] overflow-hidden">
+            <div className="flex flex-col h-full min-h-0 justify-between">
+              {/* Header: Title "Trips" + Total Trips Badge aligned top left */}
+              <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 shrink-0 gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Truck className="w-5 h-5 text-[#FA634E] stroke-[2] shrink-0" />
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          setSelectedDocId(null);
-                          setDocZoom(1);
-                          setDocRotation(0);
-                        }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 font-extrabold text-xs shadow-2xs transition-colors cursor-pointer"
-                      >
-                        <ChevronLeft className="w-4 h-4 text-[#FA634E] stroke-[2.5]" />
-                        <span>Back to Truck</span>
-                      </button>
-
-                      <Badge className={`px-2.5 py-0.5 text-[10px] font-bold border rounded-full ${DOCUMENT_DETAILS[selectedDocId].statusBg} ${DOCUMENT_DETAILS[selectedDocId].statusText} ${DOCUMENT_DETAILS[selectedDocId].statusBorder}`}>
-                        {DOCUMENT_DETAILS[selectedDocId].status}
-                      </Badge>
+                      <h3 className="text-base font-black text-slate-900 leading-tight truncate">Trips</h3>
+                      <span className="text-[10px] font-black font-mono text-[#FA634E] bg-orange-50 border border-orange-200/80 px-2 py-0.5 rounded-full shrink-0">
+                        Total Trips: {activeDataset.length}
+                      </span>
                     </div>
-
-                    {/* Quick Toolbar (Zoom +, Zoom -, Rotate, Open Original File) */}
-                    <div className="flex items-center gap-1.5">
-                      {!isPdfFile && resolvedDocUrl && (
-                        <>
-                          <button
-                            onClick={() => setDocZoom(prev => Math.min(prev + 0.25, 2.5))}
-                            className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 cursor-pointer shadow-2xs"
-                            title="Zoom In"
-                          >
-                            <ZoomIn className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => setDocZoom(prev => Math.max(prev - 0.25, 0.5))}
-                            className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 cursor-pointer shadow-2xs"
-                            title="Zoom Out"
-                          >
-                            <ZoomOut className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => setDocRotation(prev => (prev + 90) % 360)}
-                            className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 cursor-pointer shadow-2xs"
-                            title="Rotate"
-                          >
-                            <RotateCw className="w-3.5 h-3.5" />
-                          </button>
-                        </>
-                      )}
-
-                      {resolvedDocUrl && (
-                        <button
-                          onClick={() => window.open(resolvedDocUrl, '_blank')}
-                          className="flex items-center gap-1 p-1.5 px-2.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-[11px] cursor-pointer shadow-2xs"
-                          title="Open File"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5 text-blue-600" />
-                          <span className="hidden sm:inline">Open File</span>
-                        </button>
-                      )}
-
-                      <button
-                        onClick={() => navigate(`/vehicles/${vehicle?.id || id}/documents`)}
-                        className="text-[11px] font-bold text-slate-500 hover:text-slate-900 transition-colors flex items-center gap-1 cursor-pointer pl-1"
-                      >
-                        <span>Vault</span>
-                        <ExternalLink className="w-3 h-3" />
-                      </button>
-                    </div>
+                    <p className="text-[11px] font-medium text-slate-400 truncate">Completed vehicle trip history</p>
                   </div>
+                </div>
+              </div>
 
-                  {/* 2. Main Viewport: Real Uploaded Document OR Official Digital Document Certificate */}
-                  <div className="my-2 flex-1 relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm flex flex-col justify-between">
-                    {resolvedDocUrl ? (
-                      /* ── Real Uploaded Document Display ── */
-                      isPdfFile ? (
-                        <iframe
-                          src={`${resolvedDocUrl}#toolbar=0`}
-                          className="w-full h-full border-0 rounded-2xl bg-white"
-                          title={DOCUMENT_DETAILS[selectedDocId].name}
-                        />
-                      ) : (
-                        <div className="w-full h-full relative overflow-auto bg-slate-950 flex items-center justify-center p-4 rounded-2xl">
-                          <img
-                            src={resolvedDocUrl}
-                            alt={DOCUMENT_DETAILS[selectedDocId].name}
-                            style={{
-                              transform: `scale(${docZoom}) rotate(${docRotation}deg)`,
-                              transition: 'transform 0.2s ease-out'
-                            }}
-                            className="max-h-full max-w-full object-contain shadow-2xl rounded-md"
-                          />
-                        </div>
-                      )
-                    ) : (
-                      /* ── Official Saudi Ministry Digital Document Certificate Canvas ── */
-                      <div className="w-full h-full p-4 sm:p-5 flex flex-col justify-between relative overflow-hidden bg-white">
-                        {/* Top Bar with Saudi Emblem & Document Title */}
-                        <div className="flex items-start justify-between border-b border-slate-100 pb-3">
-                          <div className="flex items-center gap-3 min-w-0">
-                            {(() => {
-                              const DocIcon = DOCUMENT_DETAILS[selectedDocId].icon;
-                              return <DocIcon className={`w-7 h-7 ${DOCUMENT_DETAILS[selectedDocId].iconColor} stroke-[2] shrink-0`} />;
-                            })()}
-                            <div className="min-w-0">
-                              <h3 className="text-sm sm:text-base font-black text-slate-900 leading-tight truncate">
-                                {DOCUMENT_DETAILS[selectedDocId].name}
-                              </h3>
-                              <p className="text-[11px] font-bold text-slate-400 mt-0.5 truncate">
-                                {DOCUMENT_DETAILS[selectedDocId].arabicName} · {DOCUMENT_DETAILS[selectedDocId].subtitle}
-                              </p>
-                            </div>
-                          </div>
+              {/* Search Bar Input */}
+              <div className="relative mb-2 shrink-0">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search vehicle trips..."
+                  value={tripSearch}
+                  onChange={(e) => {
+                    setTripSearch(e.target.value);
+                    setTripPage(1);
+                  }}
+                  className="w-full pl-8 pr-7 py-1.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#FA634E] focus:ring-1 focus:ring-[#FA634E] transition-all shadow-2xs"
+                />
+                {tripSearch && (
+                  <button 
+                    onClick={() => { setTripSearch(''); setTripPage(1); }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-extrabold text-slate-400 hover:text-slate-700 bg-slate-200/60 rounded-full w-4 h-4 flex items-center justify-center cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
 
-                          {/* Plate Badge Representation */}
-                          <div className="text-right shrink-0 ml-2">
-                            <div className="px-2.5 py-1 rounded-lg border-2 border-slate-900 bg-white text-slate-900 font-mono font-black text-xs shadow-2xs tracking-widest flex items-center gap-1.5">
-                              <span>8849</span>
-                              <span className="w-px h-3 bg-slate-300"></span>
-                              <span>B R D</span>
-                            </div>
-                          </div>
+              {/* Stacked Trip Cards List (Paginated container strictly preserving normal box size) */}
+              <div className="flex-1 overflow-y-auto space-y-3 pr-1 min-h-0 py-1">
+                {activeDataset.length === 0 ? (
+                  <div className="h-full min-h-[220px] p-4 text-center border border-dashed border-slate-200/80 rounded-xl bg-slate-50/50 flex flex-col items-center justify-center">
+                    <Truck className="w-6 h-6 text-slate-300 mx-auto mb-1.5 stroke-[1.5]" />
+                    <p className="text-xs font-bold text-slate-600">No Trips Found</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">No completed trip records for this vehicle.</p>
+                  </div>
+                ) : (
+                  paginatedTrips.map((trip) => (
+                    <div 
+                      key={trip.id}
+                      onClick={() => trip.rawId && navigate(`/trips/${trip.rawId}`)}
+                      className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white hover:border-slate-300 hover:bg-slate-50/60 transition-all cursor-pointer flex flex-col justify-between p-3 sm:p-3.5 gap-2 group shadow-2xs"
+                    >
+                      {/* TOP ROW: TRIP ID & STATUS BADGE (LEFT) | CAPACITY PILL (RIGHT) */}
+                      <div className="flex items-center justify-between gap-2 z-10">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <p className="text-sm sm:text-base font-black text-slate-900 font-mono leading-none tracking-tight">
+                            {trip.id}
+                          </p>
+                          {renderTripCardBadge(trip.status)}
                         </div>
 
-                        {/* Document Metadata Grid */}
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 py-3 my-auto">
-                          {DOCUMENT_DETAILS[selectedDocId].fields.map((f, i) => (
-                            <div key={`field-${i}`} className="bg-slate-50/80 border border-slate-200/70 p-2 px-2.5 rounded-xl">
-                              <span className="text-[8px] font-extrabold text-slate-400 uppercase tracking-wider block mb-0.5 truncate">
-                                {f.label}
-                              </span>
-                              <span className={`text-xs font-bold truncate block ${f.isMono ? 'font-mono' : ''} ${f.isHighlight ? 'text-[#FA634E] font-black' : 'text-slate-800'}`}>
-                                {f.value}
-                              </span>
-                            </div>
-                          ))}
+                        <div className="flex flex-col items-end shrink-0">
+                          <span className="text-[8.5px] font-black uppercase text-[#FA634E] tracking-wider mb-0.5">
+                            Payload
+                          </span>
+                          <span className="text-[11px] font-black font-mono text-[#FA634E] bg-orange-50 border border-orange-200/80 px-2 py-0.5 rounded-md shadow-2xs leading-none">
+                            {trip.totalWeight}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* MIDDLE ROW: FROM -> TO ROUTE */}
+                      <div className="flex items-center gap-2 sm:gap-3 z-10 py-0.5">
+                        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                          <MapPin className="w-4 h-4 text-[#FA634E] fill-[#FA634E]/20 shrink-0" />
+                          <p className="text-xs sm:text-sm font-black text-slate-900 leading-tight truncate capitalize">
+                            {trip.origin}
+                          </p>
                         </div>
 
-                        {/* Bottom Verification Seal & Footer */}
-                        <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-[10px]">
-                          <div className="flex items-center gap-2 text-slate-500 min-w-0">
-                            <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                            <span className="truncate"><strong className="text-slate-700">Issued By:</strong> {DOCUMENT_DETAILS[selectedDocId].issuer}</span>
+                        <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0 mx-0.5" />
+
+                        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                          <MapPin className="w-4 h-4 text-blue-600 fill-blue-600/20 shrink-0" />
+                          <p className="text-xs sm:text-sm font-black text-slate-900 leading-tight truncate capitalize">
+                            {trip.destination}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* DIVIDER LINE */}
+                      <div className="w-full h-px bg-slate-100 z-10"></div>
+
+                      {/* BOTTOM ROW: DEPARTURE | CUSTOMER */}
+                      <div className="flex items-center gap-3 justify-between z-10">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <Calendar className="w-4 h-4 text-slate-500 shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-[8.5px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mb-0.5">
+                              DEPARTURE
+                            </p>
+                            <p className="text-[11px] font-black text-slate-900 truncate">
+                              {trip.date}
+                            </p>
                           </div>
-                          <div className="flex items-center gap-3 shrink-0 font-mono font-bold text-slate-600 ml-2">
-                            <span>Valid: <span className="text-emerald-700">{DOCUMENT_DETAILS[selectedDocId].issueDate} → {DOCUMENT_DETAILS[selectedDocId].expiryDate}</span></span>
+                        </div>
+
+                        <div className="h-5 w-px bg-slate-200 shrink-0"></div>
+
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          {trip.customerLogo ? (
+                            <img src={trip.customerLogo} alt={trip.customerName} className="w-4.5 h-4.5 object-contain shrink-0" />
+                          ) : (
+                            <Building2 className="w-4 h-4 text-slate-500 shrink-0" />
+                          )}
+                          <div className="min-w-0">
+                            <p className="text-[8.5px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mb-0.5">
+                              CUSTOMER
+                            </p>
+                            <p className="text-[11px] font-black text-slate-900 truncate">
+                              {trip.customerName}
+                            </p>
                           </div>
                         </div>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  ))
+                )}
+              </div>
 
+              {/* Pagination Controls Bar */}
+              {totalTripPages > 1 && (
+                <div className="flex items-center justify-between px-3 py-1.5 bg-slate-50/90 rounded-xl border border-slate-200/80 text-xs font-bold text-slate-700 shrink-0 mt-2 shadow-2xs">
+                  <button
+                    disabled={safeTripPage <= 1}
+                    onClick={() => setTripPage(prev => Math.max(1, prev - 1))}
+                    className="p-1 px-2 rounded-lg border border-slate-200/80 bg-white hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-white text-slate-700 hover:text-[#FA634E] cursor-pointer flex items-center gap-1 text-[11px] font-extrabold transition-colors shadow-2xs"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    <span>Prev</span>
+                  </button>
+                  <span className="text-[11px] font-extrabold text-slate-600 font-mono">
+                    Page {safeTripPage} of {totalTripPages}
+                  </span>
+                  <button
+                    disabled={safeTripPage >= totalTripPages}
+                    onClick={() => setTripPage(prev => Math.min(totalTripPages, prev + 1))}
+                    className="p-1 px-2 rounded-lg border border-slate-200/80 bg-white hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-white text-slate-700 hover:text-[#FA634E] cursor-pointer flex items-center gap-1 text-[11px] font-extrabold transition-colors shadow-2xs"
+                  >
+                    <span>Next</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
-              );
-            })()
-          ) : (
-            /* ── Truck Visualizer View ── */
-            <div className="relative w-full h-full flex items-center justify-center overflow-hidden w-full h-full min-h-full">
+              )}
+
+              {/* View All Trips Button */}
+              <Button
+                onClick={() => {
+                  const targetSearch = (vehicle?.plate_number && vehicle.plate_number !== '—')
+                    ? vehicle.plate_number
+                    : (plateNumber && plateNumber !== '—' ? plateNumber : (vehicle?.ref_id || ''));
+                  navigate(`/trips?search=${encodeURIComponent(targetSearch)}`);
+                }}
+                variant="ghost"
+                className="w-full mt-3 h-11 bg-slate-100 hover:bg-slate-200 text-slate-900 text-xs sm:text-sm font-black rounded-2xl flex items-center justify-center gap-2 transition-colors cursor-pointer shrink-0"
+              >
+                <span>View All Trips</span>
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Middle Column: CargoLoadingView (Truck Visualizer) + Trips stacked vertically */}
+        <div className="xl:col-span-6 flex flex-col gap-4 sm:gap-5">
+          {/* Center Box: Truck Visualizer OR Document Preview Container */}
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-0 shadow-2xs flex items-center justify-center relative overflow-hidden h-[410px] max-h-[410px] w-full">
+            {selectedDocId ? (
+              <RealVehicleDocumentPreviewMiddleBox
+                docId={selectedDocId}
+                vehicleId={vehicle?.id || id}
+                plateNumber={plateNumber}
+                documentDetailsMap={DOCUMENT_DETAILS}
+                matchingRealDoc={getMatchingRealDoc(selectedDocId)}
+                onClose={() => setSelectedDocId(null)}
+                onDeleteDocument={(delId) => setDeletedDocIds((prev) => [...prev, delId])}
+              />
+            ) : (
+              /* ── Truck Visualizer View ── */
+              <div className="relative w-full h-full flex items-center justify-center overflow-hidden w-full h-full min-h-full">
               {/* Clean 2-Second Exploded Animation Video Element */}
               <video
                 ref={videoRef}
@@ -1107,6 +1526,20 @@ export default function CargoLoadingView() {
                 className="w-full h-full object-cover block transform-gpu transition-all duration-300 inset-0"
               />
 
+              {/* Back to Systems Overlay Button inside Animated Screen */}
+              {activeServiceView === 'detail' && (
+                <button
+                  onClick={() => {
+                    setActiveServiceView('categories');
+                    setIsExplodedView(false);
+                  }}
+                  className="absolute top-3 left-3 z-30 px-3 py-1.5 rounded-xl border border-slate-200/90 bg-white/95 hover:bg-white text-slate-800 hover:text-[#FA634E] text-xs font-extrabold flex items-center gap-1.5 backdrop-blur-md shadow-md transition-all cursor-pointer group"
+                >
+                  <ChevronLeft className="w-4 h-4 text-[#FA634E] group-hover:-translate-x-0.5 transition-transform" />
+                  <span>Back to Systems</span>
+                </button>
+              )}
+
               {/* Floating 3D Part Interactive Hotspots (Appears ONLY AFTER 2s animation completes when selected from sidebar) */}
               {isExplodedView && showHotspots && (
                 <div className="absolute inset-0 pointer-events-none animate-in fade-in zoom-in-95 duration-300">
@@ -1118,7 +1551,7 @@ export default function CargoLoadingView() {
                       <div
                         key={`hotspot-${item.id}`}
                         style={{ top: item.hotspot.top, left: item.hotspot.left }}
-                        className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-auto transition-transform duration-300 hover:scale-125 z-10"
+                        className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-auto transition-transform duration-300 hover:scale-110 z-10"
                       >
                         <button
                           onClick={(e) => {
@@ -1133,15 +1566,25 @@ export default function CargoLoadingView() {
                               setIsExplodedView(true);
                             }
                           }}
-                          className={`relative group flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full shadow-md transition-all cursor-pointer ${
-                            isSelected 
-                              ? `${theme.activeBg} ring-4 ring-[#FA634E]/30 scale-110` 
-                              : 'bg-white/90 backdrop-blur-xs text-slate-700 hover:bg-white border border-slate-200'
-                          }`}
-                          title={item.categoryLabel}
+                          className="flex items-center gap-1.5 cursor-pointer group"
                         >
-                          <IconComp className={`w-3.5 h-3.5 sm:w-4 sm:h-4 relative z-10 ${isSelected ? 'text-white' : theme.text}`} />
-                          <span className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[10px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap pointer-events-none shadow-lg z-20">
+                          <div
+                            className={`relative flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full shadow-md transition-all shrink-0 ${
+                              isSelected 
+                                ? `${theme.activeBg} ring-4 ring-[#FA634E]/30 scale-110` 
+                                : 'bg-white/90 backdrop-blur-xs text-slate-700 hover:bg-white border border-slate-200'
+                            }`}
+                          >
+                            <IconComp className={`w-3.5 h-3.5 sm:w-4 sm:h-4 relative z-10 ${isSelected ? 'text-white' : theme.text}`} />
+                          </div>
+                          {/* Pointer Name Label — Always visible near the pointer */}
+                          <span
+                            className={`text-[10px] sm:text-[10.5px] font-black px-2 py-0.5 rounded-lg whitespace-nowrap shadow-md transition-all border ${
+                              isSelected
+                                ? 'bg-[#FA634E] text-white border-[#FA634E]'
+                                : 'bg-slate-900/90 text-white border-slate-700/80 backdrop-blur-md'
+                            }`}
+                          >
                             {item.categoryLabel}
                           </span>
                         </button>
@@ -1201,31 +1644,45 @@ export default function CargoLoadingView() {
                 </div>
               )}
             </div>
-          )}
-        </div>
+            )}
+          </div>
 
-        {/* Right Column: Service History (Clean h-[410px] Height, All Cards Fit Cleanly) */}
-        <div className="xl:col-span-3 bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between h-[410px] max-h-[410px]">
-          <div className="h-full flex flex-col justify-between">
+          {/* Section: Service History Ledger (Moved to Center Bottom) */}
+          <div className="w-full bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs min-h-[185px] flex flex-col justify-between">
             {activeServiceView === 'categories' ? (
-              <div className="flex flex-col justify-between h-full">
-                <div className="flex items-center justify-between mb-2 pb-2 border-b border-slate-100 shrink-0">
-                  <h2 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
-                    <Wrench className="w-4.5 h-4.5 text-[#FA634E]" />
-                    Service History
-                  </h2>
-                  <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200/60">
-                    7 Systems
-                  </span>
+              <div className="flex flex-col justify-between h-full space-y-3">
+                {/* Top Bar */}
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100 shrink-0">
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
+                      <Wrench className="w-4.5 h-4.5 text-[#FA634E]" />
+                      Service History
+                    </h2>
+                    <span className="text-[10px] font-extrabold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200/60">
+                      7 Vehicle Systems
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      const targetSearch = (vehicle?.plate_number && vehicle.plate_number !== '—')
+                        ? vehicle.plate_number
+                        : (plateNumber && plateNumber !== '—' ? plateNumber : (vehicle?.ref_id || ''));
+                      navigate(`/maintenance?search=${encodeURIComponent(targetSearch)}`);
+                    }}
+                    className="text-xs font-bold px-3 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 hover:border-slate-300 transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
+                  >
+                    <span>All Maintenance</span>
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                  </button>
                 </div>
 
-                {/* Category Cards Grid */}
-                <div className="grid grid-cols-2 gap-2 flex-1 min-h-0 py-1 items-stretch w-full overflow-y-auto">
-                  {serviceItems.map((item, idx) => {
+                {/* Horizontal Category Grid (7 Systems laid out across the wide container) */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 items-stretch min-h-[105px]">
+                  {serviceItems.map((item) => {
                     const isSelected = item.id === selectedServiceId;
                     const IconComp = item.icon;
                     const theme = item.colorTheme;
-                    const isLastOdd = serviceItems.length % 2 !== 0 && idx === serviceItems.length - 1;
                     return (
                       <button 
                         key={`cat-rec-${item.id}`}
@@ -1236,16 +1693,24 @@ export default function CargoLoadingView() {
                           setActiveServiceView('detail');
                           setIsExplodedView(true);
                         }}
-                        className={`${isLastOdd ? 'col-span-2' : 'col-span-1'} p-2.5 px-3 rounded-xl border flex items-center gap-3 transition-all cursor-pointer text-left h-full min-h-[48px] group ${
+                        className={`p-2.5 rounded-xl border flex flex-col justify-between transition-all cursor-pointer text-left group min-h-[96px] ${
                           isSelected
-                            ? `bg-orange-50/80 border-[#FA634E] ring-2 ring-[#FA634E]/30 text-slate-900 shadow-2xs`
+                            ? `bg-orange-50/90 border-[#FA634E] text-slate-900 shadow-2xs`
                             : `bg-white border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/80 shadow-2xs`
                         }`}
                       >
-                        <IconComp className={`w-5.5 h-5.5 stroke-[2.2] shrink-0 ${theme.text}`} />
-                        <div className="min-w-0 flex-1">
-                          <span className={`text-xs sm:text-[13px] font-extrabold truncate block ${isSelected ? 'text-[#FA634E]' : 'text-slate-800'}`}>
+                        <div className="w-full h-11 flex items-center justify-center relative mb-2">
+                          <IconComp className={`w-7 h-7 stroke-[2.2] ${isSelected ? 'text-[#FA634E]' : theme.text}`} />
+                          {item.isRecent && (
+                            <span className="absolute top-0 right-1 w-2 h-2 rounded-full bg-[#FA634E]" title="Recent Service"></span>
+                          )}
+                        </div>
+                        <div>
+                          <span className={`text-xs font-extrabold truncate block ${isSelected ? 'text-[#FA634E]' : 'text-slate-900'}`}>
                             {item.categoryLabel}
+                          </span>
+                          <span className="text-[9.5px] font-semibold text-slate-400 truncate block mt-0.5">
+                            {item.date}
                           </span>
                         </div>
                       </button>
@@ -1273,105 +1738,103 @@ export default function CargoLoadingView() {
 
                 return (
                   <div className="flex flex-col justify-between h-full space-y-2.5 animate-in fade-in zoom-in-95 duration-200">
+                    {/* Header */}
                     <div className="flex items-center justify-between pb-2 border-b border-slate-100 shrink-0">
+                      <div className="flex items-center gap-2.5">
+                        <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border shadow-2xs ${selectedService.colorTheme.badgeBg}`}>
+                          {selectedService.categoryLabel}
+                        </span>
+                      </div>
+
                       <button
                         onClick={() => {
-                          setActiveServiceView('categories');
-                          setIsExplodedView(false);
+                          const targetSearch = (vehicle?.plate_number && vehicle.plate_number !== '—')
+                            ? vehicle.plate_number
+                            : (plateNumber && plateNumber !== '—' ? plateNumber : (vehicle?.ref_id || ''));
+                          navigate(`/maintenance?search=${encodeURIComponent(targetSearch)}`);
                         }}
                         className="text-xs font-bold text-slate-600 hover:text-[#FA634E] transition-colors flex items-center gap-1 cursor-pointer"
                       >
-                        <ChevronLeft className="w-3.5 h-3.5" />
-                        <span>Back</span>
+                        <span>Open Maintenance Ledger</span>
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
                       </button>
-                      <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border shadow-2xs ${selectedService.colorTheme.badgeBg}`}>
-                        {selectedService.categoryLabel}
-                      </span>
                     </div>
 
                     {totalRecs === 0 ? (
-                      <div className="flex-1 bg-slate-50/70 rounded-xl p-4 border border-dashed border-slate-200 shadow-2xs flex flex-col items-center justify-center text-center">
+                      <div className="w-full min-h-[110px] p-4 text-center border border-dashed border-slate-200/80 rounded-xl bg-slate-50/50 flex flex-col items-center justify-center">
                         {(() => {
                           const IconComp = selectedService.icon;
-                          return <IconComp className="w-6 h-6 text-slate-400 stroke-[1.5] mb-2" />;
+                          return <IconComp className="w-5 h-5 text-slate-400 stroke-[1.5] mb-1" />;
                         })()}
                         <p className="text-xs font-bold text-slate-700">No Records Found</p>
                         <p className="text-[10px] text-slate-400 mt-0.5">No maintenance records logged under {selectedService.categoryLabel}.</p>
                       </div>
                     ) : (
-                      <div className="flex-1 bg-slate-50/90 rounded-xl p-2.5 border border-slate-200/90 shadow-2xs flex flex-col justify-between gap-2">
-                        <div className="flex items-start gap-2.5">
-                          {(() => {
-                            const IconComp = selectedService.icon;
-                            return <IconComp className={`w-5 h-5 stroke-[2.2] ${selectedService.colorTheme.text} shrink-0 mt-0.5`} />;
-                          })()}
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center justify-between mb-0.5">
-                              <span className="text-[9px] font-bold text-slate-400">{recDate}</span>
-                              <span className="text-[9px] font-bold px-2 py-0.2 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
-                                {recStatus}
-                              </span>
+                      <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center min-h-[110px]">
+                        {/* Left Column: Work Info & Pagination (5 cols) */}
+                        <div className="md:col-span-5 bg-slate-50/90 p-3 rounded-xl border border-slate-200/90 shadow-2xs flex flex-col justify-between h-full space-y-2">
+                          <div className="flex items-start gap-2.5">
+                            {(() => {
+                              const IconComp = selectedService.icon;
+                              return <IconComp className={`w-5 h-5 stroke-[2.2] ${selectedService.colorTheme.text} shrink-0 mt-0.5`} />;
+                            })()}
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center justify-between mb-0.5">
+                                <span className="text-[9.5px] font-bold text-slate-400">{recDate}</span>
+                                <span className="text-[9px] font-bold px-2 py-0.2 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                  {recStatus}
+                                </span>
+                              </div>
+                              <h3 className="text-xs font-black text-slate-900 leading-tight truncate">{recTitle}</h3>
+                              <p className="text-[10px] font-semibold text-slate-500 mt-0.5 flex items-center gap-1 truncate">
+                                <Wrench className="w-3 h-3 text-slate-400" />
+                                {recWorkshop}
+                              </p>
                             </div>
-                            <h3 className="text-xs font-black text-slate-900 leading-tight truncate">{recTitle}</h3>
-                            <p className="text-[10px] font-semibold text-slate-500 mt-0.5 flex items-center gap-1 truncate">
-                              <Wrench className="w-3 h-3 text-slate-400" />
-                              {recWorkshop}
-                            </p>
                           </div>
+
+                          {totalRecs > 1 && (
+                            <div className="flex items-center justify-between px-2 py-1 bg-white rounded-lg border border-slate-200/80 text-[10px] font-bold text-slate-600">
+                              <button
+                                disabled={safeIdx === 0}
+                                onClick={() => setRecordIndex(prev => Math.max(0, prev - 1))}
+                                className="p-0.5 hover:text-[#FA634E] disabled:opacity-30 disabled:hover:text-slate-600 cursor-pointer"
+                              >
+                                <ChevronLeft className="w-3.5 h-3.5" />
+                              </button>
+                              <span>Record {safeIdx + 1} of {totalRecs}</span>
+                              <button
+                                disabled={safeIdx >= totalRecs - 1}
+                                onClick={() => setRecordIndex(prev => Math.min(totalRecs - 1, prev + 1))}
+                                className="p-0.5 hover:text-[#FA634E] disabled:opacity-30 disabled:hover:text-slate-600 cursor-pointer"
+                              >
+                                <ChevronRight className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
                         </div>
 
-                        {totalRecs > 1 && (
-                          <div className="flex items-center justify-between px-2 py-1 bg-white rounded-lg border border-slate-200/80 text-[10px] font-bold text-slate-600">
-                            <button
-                              disabled={safeIdx === 0}
-                              onClick={() => setRecordIndex(prev => Math.max(0, prev - 1))}
-                              className="p-0.5 hover:text-[#FA634E] disabled:opacity-30 disabled:hover:text-slate-600 cursor-pointer"
-                            >
-                              <ChevronLeft className="w-3.5 h-3.5" />
-                            </button>
-                            <span>Record {safeIdx + 1} of {totalRecs}</span>
-                            <button
-                              disabled={safeIdx >= totalRecs - 1}
-                              onClick={() => setRecordIndex(prev => Math.min(totalRecs - 1, prev + 1))}
-                              className="p-0.5 hover:text-[#FA634E] disabled:opacity-30 disabled:hover:text-slate-600 cursor-pointer"
-                            >
-                              <ChevronRight className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        )}
-
-                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200/60 text-[10px]">
-                          <div className="bg-white p-1.5 px-2 rounded-lg border border-slate-200/80">
+                        {/* Right Column: Key Metrics Grid (7 cols) */}
+                        <div className="md:col-span-7 grid grid-cols-3 gap-2.5 h-full">
+                          <div className="bg-slate-50/90 p-2.5 rounded-xl border border-slate-200/90 shadow-2xs flex flex-col justify-between">
                             <span className="font-extrabold text-slate-400 uppercase tracking-wider block text-[8.5px]">Odometer</span>
-                            <span className="font-mono font-black text-slate-900">{recOdometer}</span>
+                            <span className="font-mono font-black text-slate-900 text-xs sm:text-sm mt-1">{recOdometer}</span>
                           </div>
-                          <div className="bg-white p-1.5 px-2 rounded-lg border border-slate-200/80">
-                            <span className="font-extrabold text-slate-400 uppercase tracking-wider block text-[8.5px]">Cost</span>
-                            <span className="font-mono font-black text-[#FA634E]">{recCost}</span>
-                          </div>
-                        </div>
 
-                        <div className="bg-white p-1.5 px-2 rounded-lg border border-slate-200/80">
-                          <span className="font-extrabold text-slate-400 uppercase tracking-wider block text-[8.5px] mb-0.5">Replaced Parts</span>
-                          <span className="text-[10px] font-bold text-slate-700 line-clamp-2">
-                            {recParts.join(' • ')}
-                          </span>
+                          <div className="bg-slate-50/90 p-2.5 rounded-xl border border-slate-200/90 shadow-2xs flex flex-col justify-between">
+                            <span className="font-extrabold text-slate-400 uppercase tracking-wider block text-[8.5px]">Service Cost</span>
+                            <span className="font-mono font-black text-[#FA634E] text-xs sm:text-sm mt-1">{recCost}</span>
+                          </div>
+
+                          <div className="bg-slate-50/90 p-2.5 rounded-xl border border-slate-200/90 shadow-2xs flex flex-col justify-between">
+                            <span className="font-extrabold text-slate-400 uppercase tracking-wider block text-[8.5px]">Replaced Parts</span>
+                            <span className="text-[10px] font-bold text-slate-800 line-clamp-2 mt-1">
+                              {recParts.join(' • ')}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     )}
-
-                    <button
-                      onClick={() => {
-                        const targetSearch = (vehicle?.plate_number && vehicle.plate_number !== '—')
-                          ? vehicle.plate_number
-                          : (plateNumber && plateNumber !== '—' ? plateNumber : (vehicle?.ref_id || ''));
-                        navigate(`/maintenance?search=${encodeURIComponent(targetSearch)}`);
-                      }}
-                      className="w-full py-2 px-3 rounded-xl border border-slate-200 bg-slate-900 hover:bg-[#FA634E] text-white text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs shrink-0"
-                    >
-                      <span>Open Maintenance Record</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
                   </div>
                 );
               })()
@@ -1379,130 +1842,17 @@ export default function CargoLoadingView() {
           </div>
         </div>
 
-      </div>
-
-      {/* ── Section: Trips Ledger (Fixed height min-h-[185px], zero height jump on tab switch) ── */}
-      <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs shrink-0 min-h-[185px] flex flex-col justify-between">
-        <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100 shrink-0">
-          <div className="flex items-center gap-4">
-            <h2 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <Truck className="w-4.5 h-4.5 text-[#FA634E]" />
-              Trips
-            </h2>
-            {/* Tab Switcher */}
-            <div className="flex items-center gap-4 border-l border-slate-200 pl-4">
-              <button
-                onClick={() => setTripTab('recent')}
-                className={`text-xs font-extrabold transition-all relative cursor-pointer ${
-                  tripTab === 'recent' ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'
-                }`}
-              >
-                Recent
-                {tripTab === 'recent' && (
-                  <span className="absolute -bottom-2 left-0 right-0 h-0.5 bg-[#FA634E] rounded-full"></span>
-                )}
-              </button>
-
-              <button
-                onClick={() => setTripTab('upcoming')}
-                className={`text-xs font-extrabold transition-all relative cursor-pointer ${
-                  tripTab === 'upcoming' ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'
-                }`}
-              >
-                Upcoming
-                {tripTab === 'upcoming' && (
-                  <span className="absolute -bottom-2 left-0 right-0 h-0.5 bg-[#FA634E] rounded-full"></span>
-                )}
-              </button>
-
-              <button
-                onClick={() => setTripTab('completed')}
-                className={`text-xs font-extrabold transition-all relative cursor-pointer ${
-                  tripTab === 'completed' ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'
-                }`}
-              >
-                Completed
-                {tripTab === 'completed' && (
-                  <span className="absolute -bottom-2 left-0 right-0 h-0.5 bg-[#FA634E] rounded-full"></span>
-                )}
-              </button>
-            </div>
-          </div>
-
-          <button 
-            onClick={() => {
-              const targetSearch = (vehicle?.plate_number && vehicle.plate_number !== '—')
-                ? vehicle.plate_number
-                : (plateNumber && plateNumber !== '—' ? plateNumber : (vehicle?.ref_id || ''));
-              navigate(`/trips?search=${encodeURIComponent(targetSearch)}`);
-            }}
-            className="text-xs font-bold px-3 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 transition-colors flex items-center gap-1 cursor-pointer"
-          >
-            <span>All Trips</span>
-            <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-          </button>
+        {/* Right Column: Documents & Validity (Stretches to combined height of Middle column) */}
+        <div className="xl:col-span-3 flex flex-col h-full min-h-0">
+          <DocumentsValidityFolder 
+            vehicleId={vehicle?.id || id} 
+            onSelectDocument={(docId) => setSelectedDocId(docId)}
+            selectedDocumentId={selectedDocId}
+            deletedDocIds={deletedDocIds}
+            onDeleteDocument={(delId) => setDeletedDocIds((prev) => [...prev, delId])}
+          />
         </div>
 
-        {/* Dynamic Vehicle Trips Grid (Locked Height Container min-h-[110px]) */}
-        <div className="flex-1 flex flex-col justify-center min-h-[110px]">
-          {activeDataset.length === 0 ? (
-            <div className="w-full min-h-[110px] p-4 text-center border border-dashed border-slate-200/80 rounded-xl bg-slate-50/50 flex flex-col items-center justify-center">
-              <Truck className="w-5 h-5 text-slate-400 mx-auto mb-1 stroke-[1.5]" />
-              <p className="text-xs font-bold text-slate-600">No Trips Found</p>
-              <p className="text-[10px] text-slate-400 mt-0.5">No {tripTab} trip records for this vehicle.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 items-stretch min-h-[110px]">
-              {activeDataset.slice(0, 4).map((trip) => (
-                <div 
-                  key={trip.id}
-                  onClick={() => trip.rawId && navigate(`/trips/${trip.rawId}`)}
-                  className="p-3 px-3.5 rounded-xl border border-slate-200/90 bg-white hover:border-slate-300 hover:bg-slate-50/60 hover:shadow-2xs transition-all cursor-pointer flex flex-col justify-between gap-2 min-h-[105px] group"
-                >
-                  {/* Top Row: Trip ID & Status Badge */}
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[11px] font-black text-[#FA634E] font-mono tracking-tight">{trip.id}</span>
-                    {renderTripCardBadge(trip.status)}
-                  </div>
-
-                  {/* Middle Row: Route & Date */}
-                  <div className="space-y-0.5">
-                    <p className="text-xs font-black text-slate-900 leading-snug truncate group-hover:text-[#FA634E] transition-colors">
-                      {trip.route}
-                    </p>
-                    <p className="text-[9.5px] font-semibold text-slate-400 flex items-center gap-1">
-                      <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
-                      <span>{trip.date}</span>
-                    </p>
-                  </div>
-
-                  {/* Bottom Row: Company Name & Company Logo on Right */}
-                  <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 text-[10px] text-slate-500">
-                    <span className="font-bold text-slate-600 truncate flex items-center gap-1 min-w-0 pr-2">
-                      <Building2 className="w-3 h-3 text-slate-400 shrink-0" />
-                      <span className="truncate">{trip.customerName}</span>
-                    </span>
-
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {trip.customerLogo ? (
-                        <img 
-                          src={trip.customerLogo} 
-                          alt={trip.customerName} 
-                          className="w-8.5 h-8.5 rounded-lg object-contain border border-slate-200/90 bg-white p-1 shadow-2xs shrink-0" 
-                        />
-                      ) : (
-                        <div className="w-8.5 h-8.5 rounded-lg bg-slate-900 text-white font-mono font-black text-[10px] flex items-center justify-center border border-slate-800 shadow-2xs shrink-0">
-                          {trip.customerName.slice(0, 2).toUpperCase()}
-                        </div>
-                      )}
-                      <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );

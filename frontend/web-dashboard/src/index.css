@@ -55,7 +55,7 @@
   --color-purple-bg:    #F5F3FF;
 
   /* Typography */
-  --font-sans: 'Geist Mono Numbers', 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
 
   /* Radius */
   --radius-sm:   6px; /* CI/CD pipeline dev speed benchmark */
@@ -359,7 +359,7 @@ body {
   --color-info-bg:        var(--color-info-bg);
 
   --font-heading:        var(--font-sans);
-  --font-sans:        'Geist Mono Numbers', 'Geist Variable', sans-serif;
+  --font-sans:        'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
   --font-mono:        'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --color-sidebar-ring:        var(--sidebar-ring);
   --color-sidebar-border:        var(--sidebar-border);
