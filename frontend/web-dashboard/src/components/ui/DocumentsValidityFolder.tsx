@@ -106,12 +106,11 @@ export default function DocumentsValidityFolder({ vehicleId }: DocumentsValidity
       {/* ── Folder Pocket & Stacked Index Cards ── */}
       <div className="relative flex-1 flex flex-col justify-between pt-1 pb-1 min-h-0">
         
-        {/* Back-to-Front Stacked Index Tabs - Extending all the way down */}
+        {/* Back-to-Front Stacked Index Tabs */}
         <div className="relative w-full flex-1 flex flex-col justify-between space-y-[-4px]">
           {documents.map((doc, index) => {
             const Icon = doc.icon;
             const isHovered = hoveredId === doc.id;
-            const isLastDoc = index === documents.length - 1;
 
             // Base z-index stacks lower cards over upper cards in resting state.
             // Hovered card gets highest z-index 100 to float cleanly above all cards.
@@ -134,31 +133,20 @@ export default function DocumentsValidityFolder({ vehicleId }: DocumentsValidity
                   }
                 `}
               >
-                {/* SVG Background Path */}
+                {/* SVG Background Path & Extended Vertical Side Lines */}
                 <svg className="absolute inset-0 w-full h-full overflow-visible" viewBox="0 0 400 58" preserveAspectRatio="none">
-                  {isLastDoc ? (
-                    /* Last Document (FAHAS): Full File Design with closed rounded bottom border */
-                    <path 
-                      d="M0,14 C0,6 6,0 14,0 L215,0 C230,0 240,7 255,7 L386,7 C394,7 400,13 400,21 L400,44 C400,50 394,54 386,54 L14,54 C6,54 0,50 0,44 Z" 
-                      fill={isHovered ? "#FAFAFC" : "#FFFFFF"}
-                      stroke={isHovered ? "#64748B" : doc.strokeColor}
-                      strokeWidth="1.2"
-                    />
-                  ) : (
-                    /* Upper Documents: Open bottom edge extending down to y=76 */
-                    <path 
-                      d="M0,76 L0,14 C0,6 6,0 14,0 L215,0 C230,0 240,7 255,7 L386,7 C394,7 400,13 400,21 L400,76" 
-                      fill={isHovered ? "#FAFAFC" : "#FFFFFF"}
-                      stroke={isHovered ? "#64748B" : doc.strokeColor}
-                      strokeWidth="1.2"
-                    />
-                  )}
-
-                  {isHovered && !isLastDoc && (
+                  {/* Pure white fill in all states (no gray hover effect) */}
+                  <path 
+                    d="M0,76 L0,14 C0,6 6,0 14,0 L215,0 C230,0 240,7 255,7 L386,7 C394,7 400,13 400,21 L400,76" 
+                    fill="#FFFFFF"
+                    stroke={isHovered ? "#64748B" : doc.strokeColor}
+                    strokeWidth="1.2"
+                  />
+                  {isHovered && (
                     <>
-                      {/* Vertical side guide lines extending down to touch card below during hover */}
-                      <line x1="0" y1="58" x2="0" y2="74" stroke="#475569" strokeWidth="1.2" />
-                      <line x1="400" y1="58" x2="400" y2="74" stroke="#475569" strokeWidth="1.2" />
+                      {/* Extended vertical side guide lines extending down to fill any gaps during hover */}
+                      <line x1="0" y1="58" x2="0" y2="92" stroke="#475569" strokeWidth="1.2" />
+                      <line x1="400" y1="58" x2="400" y2="92" stroke="#475569" strokeWidth="1.2" />
                     </>
                   )}
                 </svg>
