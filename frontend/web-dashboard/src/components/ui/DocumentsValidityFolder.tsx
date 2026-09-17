@@ -104,10 +104,10 @@ export default function DocumentsValidityFolder({ vehicleId }: DocumentsValidity
       </div>
 
       {/* ── Folder Pocket & Stacked Index Cards ── */}
-      <div className="relative flex-1 flex flex-col justify-between pt-1 pb-1 min-h-0">
+      <div className="relative flex-1 flex flex-col justify-start pt-1 pb-1 min-h-0">
         
-        {/* Back-to-Front Stacked Index Tabs */}
-        <div className="relative w-full flex-1 flex flex-col justify-between space-y-[-8px]">
+        {/* Back-to-Front Stacked Index Tabs with Fixed Negative Spacing */}
+        <div className="relative w-full flex flex-col space-y-[-14px]">
           {documents.map((doc, index) => {
             const Icon = doc.icon;
             const isHovered = hoveredId === doc.id;
@@ -125,28 +125,28 @@ export default function DocumentsValidityFolder({ vehicleId }: DocumentsValidity
                 onClick={() => vehicleId && navigate(`/vehicles/${vehicleId}/documents`)}
                 style={{ zIndex: computedZIndex }}
                 className={`
-                  relative w-full h-[58px] cursor-pointer
+                  relative w-full h-[56px] cursor-pointer
                   transition-all duration-300 ease-out transform
                   ${isHovered 
-                    ? '-translate-y-3' 
+                    ? '-translate-y-4' 
                     : 'hover:-translate-y-1'
                   }
                 `}
               >
-                {/* SVG Background Path & Continuous Vertical Side Lines */}
-                <svg className="absolute inset-0 w-full h-full overflow-visible" viewBox="0 0 400 58" preserveAspectRatio="none">
-                  {/* Side borders extend down to y=66 so they touch and connect to the card below in resting state */}
+                {/* SVG Background Path & Extended Vertical Guide Lines with Zero Gaps */}
+                <svg className="absolute inset-0 w-full h-full overflow-visible" viewBox="0 0 400 56" preserveAspectRatio="none">
+                  {/* Side borders extend down to y=76 to guarantee zero gaps with card below in normal state */}
                   <path 
-                    d="M0,66 L0,14 C0,6 6,0 14,0 L215,0 C230,0 240,7 255,7 L386,7 C394,7 400,13 400,21 L400,66" 
+                    d="M0,76 L0,14 C0,6 6,0 14,0 L215,0 C230,0 240,7 255,7 L386,7 C394,7 400,13 400,21 L400,76" 
                     fill="#FFFFFF"
                     stroke={isHovered ? "#64748B" : doc.strokeColor}
                     strokeWidth="1.2"
                   />
                   {isHovered && (
                     <>
-                      {/* Vertical side guide lines extending down to touch card below during hover */}
-                      <line x1="0" y1="66" x2="0" y2="78" stroke="#475569" strokeWidth="1.2" />
-                      <line x1="400" y1="66" x2="400" y2="78" stroke="#475569" strokeWidth="1.2" />
+                      {/* Side vertical guide lines extending down to touch document below during hover */}
+                      <line x1="0" y1="56" x2="0" y2="88" stroke="#475569" strokeWidth="1.2" />
+                      <line x1="400" y1="56" x2="400" y2="88" stroke="#475569" strokeWidth="1.2" />
                     </>
                   )}
                 </svg>
