@@ -931,7 +931,7 @@ export default function TripListPage() {
   const [exportEndDate, setExportEndDate] = useState('');
   const [isExporting, setIsExporting] = useState(false);
   const [isCustomExportOpen, setIsCustomExportOpen] = useState(false);
-  const [exportFormat, setExportFormat] = useState<'xlsx' | 'pdf'>('xlsx');
+  const [customExportFormat, setCustomExportFormat] = useState<'xlsx' | 'pdf'>('xlsx');
   const [selectedTripsForExport, setSelectedTripsForExport] = useState<Trip[]>([]);
 
    const { data: exportDriversRes } = useQuery({
@@ -2085,7 +2085,7 @@ export default function TripListPage() {
       icon: <FileSpreadsheet size={13} className="text-emerald-600 dark:text-emerald-400" />,
       variant: 'success' as const,
       onClick: (selectedRows: Trip[]) => {
-        setExportFormat('xlsx');
+        setCustomExportFormat('xlsx');
         setSelectedTripsForExport(selectedRows);
         setIsCustomExportOpen(true);
       }
@@ -2095,7 +2095,7 @@ export default function TripListPage() {
       icon: <FileText size={13} className="text-rose-600 dark:text-rose-400" />,
       variant: 'warning' as const,
       onClick: (selectedRows: Trip[]) => {
-        setExportFormat('pdf');
+        setCustomExportFormat('pdf');
         setSelectedTripsForExport(selectedRows);
         setIsCustomExportOpen(true);
       }
@@ -2476,7 +2476,7 @@ export default function TripListPage() {
                   
                   <DropdownMenuItem
                     onClick={() => {
-                      setExportFormat('xlsx');
+                      setCustomExportFormat('xlsx');
                       setExportMenuOpen(false);
                       setIsCustomExportOpen(true);
                     }}
@@ -2488,7 +2488,7 @@ export default function TripListPage() {
 
                   <DropdownMenuItem
                     onClick={() => {
-                      setExportFormat('pdf');
+                      setCustomExportFormat('pdf');
                       setExportMenuOpen(false);
                       setIsCustomExportOpen(true);
                     }}
@@ -2875,7 +2875,7 @@ export default function TripListPage() {
         <ExportModal
           isOpen={isCustomExportOpen}
           onClose={() => setIsCustomExportOpen(false)}
-          initialFormat={exportFormat}
+          initialFormat={customExportFormat}
           title="Trip Ledger Export"
           fileNamePrefix="trips_export"
           sheetName="Trips"
