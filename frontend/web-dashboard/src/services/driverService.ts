@@ -75,6 +75,49 @@ export const driverService = {
   },
 
   /**
+   * Scalable driver export fetcher: retrieves all matching records across all pages
+   * from the backend using active filters and pagination metadata.
+   */
+  async getAllForExport(filters: Omit<DriverFilters, 'page' | 'per_page'> = {}): Promise<Driver[]> {
+    const BATCH_SIZE = 1000;
+    const firstPageRes = await this.getAll({
+      ...filters,
+      page: 1,
+      per_page: BATCH_SIZE,
+      mode: 'lookup',
+    });
+
+    const allData: Driver[] = [...(firstPageRes.data || [])];
+    const totalPages = firstPageRes.meta?.total_pages || 1;
+    const totalRecords = firstPageRes.meta?.total;
+
+    if (totalPages <= 1) {
+      return allData;
+    }
+
+    for (let p = 2; p <= totalPages; p++) {
+      const pageRes = await this.getAll({
+        ...filters,
+        page: p,
+        per_page: BATCH_SIZE,
+        mode: 'lookup',
+      });
+
+      if (!pageRes.data || pageRes.data.length === 0) {
+        throw new Error(`Export interrupted: page ${p} of ${totalPages} returned empty data`);
+      }
+
+      allData.push(...pageRes.data);
+    }
+
+    if (typeof totalRecords === 'number' && allData.length < totalRecords) {
+      throw new Error(`Export incomplete: expected ${totalRecords} records, but retrieved ${allData.length}`);
+    }
+
+    return allData;
+  },
+
+  /**
    * `lookup: true` omits the driver's trip history — use it on screens that
    * only need the person (name, status, phone, assigned vehicle).
    */
