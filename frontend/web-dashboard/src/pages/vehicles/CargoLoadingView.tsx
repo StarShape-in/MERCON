@@ -681,11 +681,11 @@ export default function CargoLoadingView() {
 
       </div>
 
-      {/* ── Middle Section (3 Large Main Columns Grid) ── */}
+      {/* ── Middle Section (3 Large Main Columns Grid - Locked h-[360px] Height) ── */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-5 flex-1 items-stretch">
 
         {/* Left Column: Documents & Validity */}
-        <div className="xl:col-span-3 bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between min-h-[360px] h-full">
+        <div className="xl:col-span-3 bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between h-[360px] max-h-[360px] overflow-hidden">
           <div>
             <div className="flex items-center justify-between mb-4 pb-2.5 border-b border-slate-100">
               <h2 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
@@ -765,8 +765,8 @@ export default function CargoLoadingView() {
           </div>
         </div>
 
-        {/* Center Column: Truck Visualizer Container (Aligned height down to FAHAS) */}
-        <div className="xl:col-span-6 bg-white border border-slate-200/80 rounded-2xl p-0 shadow-2xs flex items-center justify-center relative overflow-hidden min-h-[360px] w-full h-full">
+        {/* Center Column: Truck Visualizer Container (Locked h-[360px] Height) */}
+        <div className="xl:col-span-6 bg-white border border-slate-200/80 rounded-2xl p-0 shadow-2xs flex items-center justify-center relative overflow-hidden h-[360px] max-h-[360px] w-full">
           <div className="relative w-full h-full flex items-center justify-center overflow-hidden w-full h-full min-h-full">
             {/* Clean 2-Second Exploded Animation Video Element */}
             <video
@@ -819,8 +819,8 @@ export default function CargoLoadingView() {
           </div>
         </div>
 
-        {/* Right Column: Service History (Square Category Cards Grid <-> Subpage Detail View) */}
-        <div className="xl:col-span-3 bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between min-h-[360px] h-full overflow-hidden">
+        {/* Right Column: Service History (Locked h-[360px] Height, Compact Square Grid) */}
+        <div className="xl:col-span-3 bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between h-[360px] max-h-[360px] overflow-hidden">
           <div className="h-full flex flex-col justify-between">
             {activeServiceView === 'categories' ? (
               <div className="flex flex-col justify-between h-full">
@@ -831,12 +831,13 @@ export default function CargoLoadingView() {
                   </h2>
                 </div>
 
-                {/* 2-Column Square Category Cards Grid (2 below 2 below 2) */}
-                <div className="grid grid-cols-2 gap-2 flex-1 items-center">
-                  {serviceItems.map((item) => {
+                {/* Compact 2-Column Square Category Cards Grid */}
+                <div className="grid grid-cols-2 gap-2 flex-1 content-center">
+                  {serviceItems.map((item, idx) => {
                     const isSelected = item.id === selectedServiceId;
                     const IconComp = item.icon;
                     const theme = item.colorTheme;
+                    const isLastOdd = serviceItems.length % 2 !== 0 && idx === serviceItems.length - 1;
                     return (
                       <button 
                         key={`cat-sq-${item.id}`}
@@ -845,20 +846,20 @@ export default function CargoLoadingView() {
                           setActiveServiceView('detail');
                           if (!isExplodedView) handleToggleServiceHistory();
                         }}
-                        className={`aspect-square p-2 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer text-center group ${
+                        className={`${isLastOdd ? 'col-span-2 h-[42px] flex-row gap-2 px-3' : 'col-span-1 aspect-square max-h-[60px] flex-col gap-1 p-1.5'} rounded-xl border flex items-center justify-center transition-all cursor-pointer text-center group ${
                           isSelected
                             ? `bg-orange-50/80 border-[#FA634E] ring-2 ring-[#FA634E]/30 text-slate-900 shadow-2xs scale-[1.02]`
                             : `bg-white border-slate-200/90 hover:scale-[1.02] hover:border-slate-300 hover:bg-slate-50/80 shadow-2xs`
                         }`}
                       >
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-all ${
+                        <div className={`w-6 h-6 rounded-md flex items-center justify-center border transition-all shrink-0 ${
                           isSelected
                             ? 'bg-white border-orange-200 shadow-2xs'
                             : 'bg-slate-50 border-slate-100 group-hover:bg-white group-hover:border-slate-200 shadow-2xs'
                         }`}>
-                          <IconComp className={`w-4 h-4 stroke-[2] ${theme.text}`} />
+                          <IconComp className={`w-3.5 h-3.5 stroke-[2] ${theme.text}`} />
                         </div>
-                        <span className={`text-[11px] font-black leading-tight ${isSelected ? 'text-[#FA634E]' : 'text-slate-800'}`}>
+                        <span className={`text-[10px] sm:text-[11px] font-black leading-none truncate max-w-full ${isSelected ? 'text-[#FA634E]' : 'text-slate-800'}`}>
                           {item.categoryLabel}
                         </span>
                       </button>
