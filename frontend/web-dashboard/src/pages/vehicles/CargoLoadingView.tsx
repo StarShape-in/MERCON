@@ -888,11 +888,8 @@ export default function CargoLoadingView() {
                         }`}>
                           <IconComp className={`w-4 h-4 stroke-[2] ${theme.text}`} />
                         </div>
-                        <div className="min-w-0 flex-1 flex items-center justify-between gap-1.5">
+                        <div className="min-w-0 flex-1">
                           <span className={`text-xs font-extrabold truncate block ${isSelected ? 'text-[#FA634E]' : 'text-slate-800'}`}>
-                            {item.categoryLabel}
-                          </span>
-                          <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full border shrink-0 transition-all ${theme.badgeBg}`}>
                             {item.categoryLabel}
                           </span>
                         </div>
