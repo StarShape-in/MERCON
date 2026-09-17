@@ -849,7 +849,7 @@ export default function CargoLoadingView() {
                 </div>
 
                 {/* Category Cards Grid */}
-                <div className="grid grid-cols-2 gap-1.5 flex-1 min-h-0 py-0.5 items-stretch w-full overflow-y-auto">
+                <div className="grid grid-cols-2 gap-2 flex-1 min-h-0 py-1 items-stretch w-full overflow-y-auto">
                   {serviceItems.map((item, idx) => {
                     const isSelected = item.id === selectedServiceId;
                     const IconComp = item.icon;
@@ -864,15 +864,15 @@ export default function CargoLoadingView() {
                           setActiveServiceView('detail');
                           setIsExplodedView(true);
                         }}
-                        className={`${isLastOdd ? 'col-span-2' : 'col-span-1'} p-2 px-2.5 rounded-xl border flex items-center gap-2.5 transition-all cursor-pointer text-left h-full min-h-[44px] group ${
+                        className={`${isLastOdd ? 'col-span-2' : 'col-span-1'} p-2.5 px-3 rounded-xl border flex items-center gap-3 transition-all cursor-pointer text-left h-full min-h-[48px] group ${
                           isSelected
                             ? `bg-orange-50/80 border-[#FA634E] ring-2 ring-[#FA634E]/30 text-slate-900 shadow-2xs`
                             : `bg-white border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/80 shadow-2xs`
                         }`}
                       >
-                        <IconComp className={`w-4.5 h-4.5 stroke-[2.2] shrink-0 ${theme.text}`} />
+                        <IconComp className={`w-5.5 h-5.5 stroke-[2.2] shrink-0 ${theme.text}`} />
                         <div className="min-w-0 flex-1">
-                          <span className={`text-[11px] font-bold truncate block ${isSelected ? 'text-[#FA634E]' : 'text-slate-800'}`}>
+                          <span className={`text-xs sm:text-[13px] font-extrabold truncate block ${isSelected ? 'text-[#FA634E]' : 'text-slate-800'}`}>
                             {item.categoryLabel}
                           </span>
                         </div>
