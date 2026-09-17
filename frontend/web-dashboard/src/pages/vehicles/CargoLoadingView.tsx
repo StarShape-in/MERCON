@@ -817,7 +817,7 @@ export default function CargoLoadingView() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (activeServiceView === 'detail' && selectedServiceId === item.id) {
+                          if (selectedServiceId === item.id) {
                             setActiveServiceView('categories');
                             setIsExplodedView(false);
                           } else {
@@ -870,15 +870,10 @@ export default function CargoLoadingView() {
                       <button 
                         key={`cat-rec-${item.id}`}
                         onClick={() => {
-                          if (activeServiceView === 'detail' && selectedServiceId === item.id) {
-                            setActiveServiceView('categories');
-                            setIsExplodedView(false);
-                          } else {
-                            setSelectedServiceId(item.id);
-                            setRecordIndex(0);
-                            setActiveServiceView('detail');
-                            setIsExplodedView(true);
-                          }
+                          setSelectedServiceId(item.id);
+                          setRecordIndex(0);
+                          setActiveServiceView('detail');
+                          setIsExplodedView(true);
                         }}
                         className={`${isLastOdd ? 'col-span-2' : 'col-span-1'} p-3 px-3.5 rounded-xl border flex items-center gap-3 transition-all cursor-pointer text-left h-full min-h-[58px] group ${
                           isSelected
