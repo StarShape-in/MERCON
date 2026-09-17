@@ -168,18 +168,48 @@ export const getDrivers = async (req: Request, res: Response) => {
       prisma.driver.count({ where: whereClause })
     ]);
 
-    // Lifetime driver payout for the roster's Total Trip Charge column — the
-    // `trips` include above only carries in-progress trips (see the note on
-    // it), which would undercount anyone whose trips are mostly Completed. A
-    // separate sum avoids pulling every trip row just to add one number.
-    const tripChargeSums = await prisma.trip.groupBy({
-      by: ['driverId'],
-      where: { driverId: { in: drivers.map((d) => d.id) }, deletedAt: null },
-      _sum: { driver_payout: true },
-    });
-    const tripChargeByDriver = new Map(
-      tripChargeSums.map((s) => [s.driverId, Number(s._sum.driver_payout) || 0])
-    );
+    // Lifetime driver payout for the roster's Total Trip Charge column.
+    // Aggregates eligible (Completed or Invoiced) non-deleted trips for both
+    // primary drivers (driver_payout) and co-drivers (co_driver_payout).
+    const driverIds = drivers.map((d) => d.id);
+    const ELIGIBLE_TRIP_STATUSES = ['Completed', 'Invoiced'];
+
+    const [primarySums, coDriverSums] = await Promise.all([
+      prisma.trip.groupBy({
+        by: ['driverId'],
+        where: {
+          driverId: { in: driverIds },
+          deletedAt: null,
+          status: { in: ELIGIBLE_TRIP_STATUSES as any },
+        },
+        _sum: { driver_payout: true },
+      }),
+      prisma.trip.groupBy({
+        by: ['co_driver_id'],
+        where: {
+          co_driver_id: { in: driverIds },
+          deletedAt: null,
+          status: { in: ELIGIBLE_TRIP_STATUSES as any },
+        },
+        _sum: { co_driver_payout: true },
+      }),
+    ]);
+
+    const tripChargeByDriver = new Map<string, number>();
+
+    for (const s of primarySums) {
+      if (s.driverId) {
+        const val = s._sum.driver_payout ? Number(s._sum.driver_payout) : 0;
+        tripChargeByDriver.set(s.driverId, (tripChargeByDriver.get(s.driverId) || 0) + val);
+      }
+    }
+
+    for (const s of coDriverSums) {
+      if (s.co_driver_id) {
+        const val = s._sum.co_driver_payout ? Number(s._sum.co_driver_payout) : 0;
+        tripChargeByDriver.set(s.co_driver_id, (tripChargeByDriver.get(s.co_driver_id) || 0) + val);
+      }
+    }
 
     const formatted = drivers.map(d => ({
       ...d,
