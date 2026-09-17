@@ -73,6 +73,7 @@ interface VehicleTripDisplay {
   status: string;
   route: string;
   customerName: string;
+  customerLogo: string | null;
   cargoType: string;
   totalWeight: string;
   date: string;
@@ -472,6 +473,8 @@ export default function CargoLoadingView() {
       : '10,000 Kg';
 
     const customerName = t.customer?.name || t.customer_name || 'Aprodac';
+    const rawLogo = t.customer?.logo_url || t.customer?.avatar_url || t.customer_logo || null;
+    const customerLogo = rawLogo ? resolveFileUrl(rawLogo) : null;
     const rawType = t.cargo_type || t.rate_category || t.billing_type || t.line_type || 'Single Trip';
     const cargoType = formatText(rawType);
 
@@ -486,6 +489,7 @@ export default function CargoLoadingView() {
       status: t.status || 'Scheduled',
       route: routeStr,
       customerName,
+      customerLogo,
       cargoType,
       totalWeight: weightStr,
       date: dateStr,
@@ -1127,13 +1131,27 @@ export default function CargoLoadingView() {
                     </p>
                   </div>
 
-                  {/* Bottom Row: Company Name & Arrow */}
+                  {/* Bottom Row: Company Name & Company Logo on Right */}
                   <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 text-[10px] text-slate-500">
-                    <span className="font-bold text-slate-600 truncate flex items-center gap-1">
+                    <span className="font-bold text-slate-600 truncate flex items-center gap-1 min-w-0 pr-2">
                       <Building2 className="w-3 h-3 text-slate-400 shrink-0" />
                       <span className="truncate">{trip.customerName}</span>
                     </span>
-                    <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {trip.customerLogo ? (
+                        <img 
+                          src={trip.customerLogo} 
+                          alt={trip.customerName} 
+                          className="w-5.5 h-5.5 rounded-md object-contain border border-slate-200/90 bg-white p-0.5 shadow-2xs shrink-0" 
+                        />
+                      ) : (
+                        <div className="w-5.5 h-5.5 rounded-md bg-slate-900 text-white font-mono font-black text-[8px] flex items-center justify-center border border-slate-800 shadow-2xs shrink-0">
+                          {trip.customerName.slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
+                    </div>
                   </div>
                 </div>
               ))}
