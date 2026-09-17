@@ -642,20 +642,15 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                             <span className="font-black uppercase px-2 py-0.5 rounded-md bg-orange-100 text-[#FA634E] dark:bg-orange-950/60 dark:text-orange-300 shrink-0 tracking-wider">
                               {strategyMode === 'single' ? 'Primary Pair' : `Pair ${idx + 1}`}
                             </span>
-                            {idx === 0 && setContractVehicleType && (
-                              <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shrink-0">
+                            {idx === 0 && (
+                              <div
+                                className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shrink-0 select-none"
+                                title="Vehicle class is automatically locked to the selected Rate Card / Quotation"
+                              >
                                 <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider">CLASS:</span>
-                                <select
-                                  value={contractVehicleType}
-                                  onChange={(e) => setContractVehicleType(e.target.value)}
-                                  className="text-[10px] font-black text-[#FA634E] dark:text-orange-400 bg-transparent focus:outline-none cursor-pointer"
-                                >
-                                  {['10 TON', '20 TON', '40 FEET', '3-4 TON', '5 TON'].map((vClass) => (
-                                    <option key={vClass} value={vClass} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-bold">
-                                      {vClass}
-                                    </option>
-                                  ))}
-                                </select>
+                                <span className="text-[10px] font-black text-[#FA634E] dark:text-orange-400">
+                                  {contractVehicleType || '10 TON'}
+                                </span>
                               </div>
                             )}
                           </div>
