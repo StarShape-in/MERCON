@@ -142,9 +142,10 @@ const matchesExportStatusGroup = (status: TripStatus, group: ExportStatusGroup) 
 };
 
 const TRIP_EXPORT_HEADERS = [
-  'Job / Ref ID', 'Status', 'Customer', 'Pickup Location', 'Dropoff Location', 'Driver', 'Vehicle',
-  'Line Type', 'Vehicle Class', 'Rate Card', 'Planned Start', 'Actual Start', 'Planned End', 'Actual End',
-  'Driver Charge', 'Billing Rate', 'Carrier / Provider',
+  'ref_id', 'status', 'customer', 'pickup_location', 'dropoff_location',
+  'driver', 'vehicle', 'rate_category', 'vehicle_type', 'rate_card',
+  'planned_start', 'actual_start', 'planned_end', 'actual_end',
+  'driver_payout', 'billing_amount', 'carrier_name'
 ];
 
 const formatExportDate = (value: string | null, tz: string = 'Asia/Riyadh') => (value ? formatInDeploymentTz(value, tz, 'yyyy-MM-dd') : '');

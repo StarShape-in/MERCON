@@ -188,7 +188,7 @@ export function downloadCSVTable(headers: string[], rows: any[][], filename: str
 // ─── Cell classification (shared by the real .xlsx and .pdf engines) ───────
 type CellKind = 'text' | 'number' | 'currency' | 'date' | 'status-good' | 'status-bad' | 'center';
 
-const MONEY_WORDS = ['charges', 'amount', 'billing', 'revenue', 'cost', 'total', 'balance', 'credit', 'limit'];
+const MONEY_WORDS = ['charges', 'amount', 'billing', 'revenue', 'cost', 'total', 'balance', 'credit', 'limit', 'payout'];
 const GOOD_WORDS = ['active', 'completed', 'delivered', 'paid', 'clear', 'approved', 'available'];
 const BAD_WORDS = ['inactive', 'cancelled', 'overdue', 'expired', 'rejected', 'blocked', 'suspended'];
 
