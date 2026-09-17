@@ -778,6 +778,15 @@ export default function CargoLoadingView() {
     );
   };
 
+  const handleDriverClick = () => {
+    const driverId = assignedDriver?.id || (vehicle as any)?.driver_id;
+    if (driverId) {
+      navigate(`/drivers/${driverId}`);
+    } else {
+      navigate('/drivers');
+    }
+  };
+
   return (
     <div className="w-full bg-[#F5F7FA] text-slate-900 font-sans p-5 sm:p-6 lg:p-7 flex flex-col gap-5 sm:gap-6 overflow-y-auto max-w-[1800px] mx-auto min-h-screen">
       
@@ -806,33 +815,46 @@ export default function CargoLoadingView() {
         
         {/* Card 1: DRIVER */}
         <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center justify-between min-h-[96px]">
-          <div className="flex items-center gap-3.5 min-w-0 flex-1 pr-2">
+          <div 
+            onClick={handleDriverClick}
+            className="flex items-center gap-3.5 min-w-0 flex-1 pr-2 cursor-pointer group"
+            title="View Driver Details"
+          >
             <DriverAvatar
               src={driverAvatar}
               firstName={driverFirstName}
               lastName={driverLastName}
               size="lg"
-              className="w-12 h-12 border-2 border-white shadow-2xs shrink-0 rounded-full ring-1 ring-slate-200"
+              className="w-12 h-12 border-2 border-white shadow-2xs shrink-0 rounded-full ring-1 ring-slate-200 group-hover:ring-[#FA634E] group-hover:scale-105 transition-all"
             />
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mb-1.5">DRIVER</p>
+              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mb-1.5 flex items-center gap-1">
+                DRIVER
+                <ExternalLink className="w-2.5 h-2.5 text-slate-400 group-hover:text-[#FA634E] transition-colors" />
+              </p>
               <SlowScrollingDriverName
                 name={assignedDriver ? `${assignedDriver.first_name || ''} ${assignedDriver.last_name || ''}`.trim() || assignedDriver.name : 'ABDUL MALIK HABIB UR RAHMAN KHAN'}
-                className="text-xs sm:text-sm font-black text-slate-900 leading-snug"
+                className="text-xs sm:text-sm font-black text-slate-900 group-hover:text-[#FA634E] leading-snug transition-colors"
               />
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0 ml-2">
             <button 
               onClick={() => {
-                const phone = vehicle?.assignedDriver?.phone_primary;
+                const phone = vehicle?.assignedDriver?.phone_primary || assignedDriver?.phone;
                 if (phone) window.open(`tel:${phone}`);
+                else handleDriverClick();
               }}
               className="w-9 h-9 rounded-xl border border-slate-200/80 bg-slate-50 hover:bg-slate-100 text-slate-700 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
+              title="Call Driver"
             >
               <Phone className="w-4 h-4 text-blue-600" />
             </button>
-            <button className="w-9 h-9 rounded-xl border border-slate-200/80 bg-slate-50 hover:bg-slate-100 text-slate-700 flex items-center justify-center transition-colors cursor-pointer shadow-2xs">
+            <button 
+              onClick={handleDriverClick}
+              className="w-9 h-9 rounded-xl border border-slate-200/80 bg-slate-50 hover:bg-slate-100 text-slate-700 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
+              title="Driver Details"
+            >
               <MessageSquare className="w-4 h-4 text-indigo-600" />
             </button>
           </div>
@@ -860,11 +882,20 @@ export default function CargoLoadingView() {
         </div>
 
         {/* Card 3: DRIVER CONTACT */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center gap-3.5 min-h-[96px]">
-          <Phone className="w-6 h-6 text-blue-600 stroke-[1.75] shrink-0" />
+        <div 
+          onClick={handleDriverClick}
+          className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center gap-3.5 min-h-[96px] cursor-pointer group"
+          title="View Driver Details"
+        >
+          <Phone className="w-6 h-6 text-blue-600 stroke-[1.75] shrink-0 group-hover:scale-110 transition-transform" />
           <div className="min-w-0">
-            <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mb-1.5">DRIVER CONTACT</p>
-            <p className="text-xs sm:text-sm font-mono font-black text-slate-900 leading-snug">{assignedDriver?.phone_primary || assignedDriver?.phone || '—'}</p>
+            <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mb-1.5 flex items-center gap-1">
+              DRIVER CONTACT
+              <ExternalLink className="w-2.5 h-2.5 text-slate-400 group-hover:text-blue-600 transition-colors" />
+            </p>
+            <p className="text-xs sm:text-sm font-mono font-black text-slate-900 group-hover:text-blue-600 leading-snug transition-colors">
+              {assignedDriver?.phone_primary || assignedDriver?.phone || '—'}
+            </p>
             <p className="text-[10px] font-semibold text-slate-400 leading-none mt-1">Assigned Phone</p>
           </div>
         </div>
