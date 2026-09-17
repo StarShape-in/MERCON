@@ -124,6 +124,12 @@ export default function CargoLoadingView() {
   const capacityFormatted = vehicle?.capacity_kg ? `${(vehicle.capacity_kg / 1000).toLocaleString()} Ton` : '—';
   const tripRoute = vehicleStatus === 'OnTrip' || vehicleStatus === 'In Transit' || vehicleStatus === 'InTransit' ? 'Riyadh → Al Bahah' : 'Riyadh → Al Hasa';
 
+  const rawOdometer = (vehicle as any)?.odometer_reading || (vehicle as any)?.odometer || (maintenanceData?.data?.[0]?.odometer_reading) || 348210;
+  const latestOdometerFormatted = `${Number(rawOdometer).toLocaleString()} km`;
+  const totalYtdSpend = (maintenanceData?.data || []).reduce((acc: number, item: any) => acc + (Number(item.cost) || 0), 0);
+  const ytdSpendFormatted = totalYtdSpend > 0 ? `SAR ${totalYtdSpend.toLocaleString()}` : 'SAR 14,250';
+  const nextServiceDue = 'In 4,800 km';
+
   const [selectedSlot, setSelectedSlot] = useState<SlotId | null>(null);
   const [slots, setSlots] = useState<CargoSlot[]>(INITIAL_SLOTS);
   const [tripTab, setTripTab] = useState<'recent' | 'upcoming' | 'completed'>('recent');
@@ -786,6 +792,60 @@ export default function CargoLoadingView() {
                 })}
               </div>
             )}
+
+            {/* Bottom Telemetry Bar Overlay (Visible in Normal View inside Truck Box) */}
+            {activeServiceView === 'categories' && (
+              <div className="absolute bottom-3 left-3 right-3 z-20 bg-white/90 backdrop-blur-md border border-slate-200/90 rounded-xl p-2.5 px-3.5 shadow-md flex items-center justify-between gap-3 transition-all duration-300 animate-in fade-in slide-in-from-bottom-2">
+                {/* 1. Latest Odometer */}
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-orange-50 border border-orange-200/80 flex items-center justify-center text-[#FA634E] shrink-0 shadow-2xs">
+                    <Gauge className="w-4 h-4 stroke-[2]" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[8.5px] font-extrabold text-slate-400 uppercase tracking-wider block leading-none mb-0.5">
+                      LATEST ODOMETER
+                    </span>
+                    <span className="text-xs sm:text-sm font-mono font-black text-slate-900 leading-none block truncate">
+                      {latestOdometerFormatted}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="h-7 w-px bg-slate-200/80 shrink-0 hidden sm:block"></div>
+
+                {/* 2. Next Service Due */}
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-200/80 flex items-center justify-center text-blue-600 shrink-0 shadow-2xs">
+                    <Clock className="w-4 h-4 stroke-[2]" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[8.5px] font-extrabold text-slate-400 uppercase tracking-wider block leading-none mb-0.5">
+                      NEXT SERVICE DUE
+                    </span>
+                    <span className="text-xs font-bold text-slate-800 leading-none block truncate">
+                      {nextServiceDue}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="h-7 w-px bg-slate-200/80 shrink-0 hidden md:block"></div>
+
+                {/* 3. YTD Maintenance Spend */}
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-200/80 flex items-center justify-center text-indigo-600 shrink-0 shadow-2xs">
+                    <Wrench className="w-4 h-4 stroke-[2]" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[8.5px] font-extrabold text-slate-400 uppercase tracking-wider block leading-none mb-0.5">
+                      YTD MAINTENANCE
+                    </span>
+                    <span className="text-xs font-mono font-bold text-slate-900 leading-none block truncate">
+                      {ytdSpendFormatted}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -794,15 +854,18 @@ export default function CargoLoadingView() {
           <div className="h-full flex flex-col justify-between">
             {activeServiceView === 'categories' ? (
               <div className="flex flex-col justify-between h-full">
-                <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100 shrink-0">
+                <div className="flex items-center justify-between mb-2 pb-2 border-b border-slate-100 shrink-0">
                   <h2 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
                     <Wrench className="w-4.5 h-4.5 text-[#FA634E]" />
                     Service History
                   </h2>
+                  <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200/60">
+                    7 Systems
+                  </span>
                 </div>
 
-                {/* Category Cards Grid (Free Mode - Fills Box Height & Width Completely) */}
-                <div className="grid grid-cols-2 gap-2 flex-1 h-full items-stretch w-full py-0.5">
+                {/* Category Cards Grid */}
+                <div className="grid grid-cols-2 gap-1.5 flex-1 min-h-0 py-0.5 items-stretch w-full overflow-y-auto">
                   {serviceItems.map((item, idx) => {
                     const isSelected = item.id === selectedServiceId;
                     const IconComp = item.icon;
@@ -817,21 +880,21 @@ export default function CargoLoadingView() {
                           setActiveServiceView('detail');
                           setIsExplodedView(true);
                         }}
-                        className={`${isLastOdd ? 'col-span-2' : 'col-span-1'} p-3 px-3.5 rounded-xl border flex items-center gap-3 transition-all cursor-pointer text-left h-full min-h-[58px] group ${
+                        className={`${isLastOdd ? 'col-span-2' : 'col-span-1'} p-2 px-2.5 rounded-xl border flex items-center gap-2.5 transition-all cursor-pointer text-left h-full min-h-[44px] group ${
                           isSelected
                             ? `bg-orange-50/80 border-[#FA634E] ring-2 ring-[#FA634E]/30 text-slate-900 shadow-2xs`
                             : `bg-white border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/80 shadow-2xs`
                         }`}
                       >
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-all shrink-0 ${
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center border transition-all shrink-0 ${
                           isSelected
                             ? 'bg-white border-orange-200 shadow-2xs'
                             : 'bg-slate-50 border-slate-100 group-hover:bg-white group-hover:border-slate-200 shadow-2xs'
                         }`}>
-                          <IconComp className={`w-4 h-4 stroke-[2] ${theme.text}`} />
+                          <IconComp className={`w-3.5 h-3.5 stroke-[2] ${theme.text}`} />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <span className={`text-xs font-extrabold truncate block ${isSelected ? 'text-[#FA634E]' : 'text-slate-800'}`}>
+                          <span className={`text-[11px] font-bold truncate block ${isSelected ? 'text-[#FA634E]' : 'text-slate-800'}`}>
                             {item.categoryLabel}
                           </span>
                         </div>
