@@ -831,8 +831,8 @@ export default function CargoLoadingView() {
                   </h2>
                 </div>
 
-                {/* Full-Width Rectangular Category Cards Grid (Fills Service History Box) */}
-                <div className="grid grid-cols-2 gap-2 flex-1 content-center w-full">
+                {/* Category Cards Grid (Free Mode - Fills Box Height & Width Completely) */}
+                <div className="grid grid-cols-2 gap-2 flex-1 h-full items-stretch w-full py-0.5">
                   {serviceItems.map((item, idx) => {
                     const isSelected = item.id === selectedServiceId;
                     const IconComp = item.icon;
@@ -846,21 +846,21 @@ export default function CargoLoadingView() {
                           setActiveServiceView('detail');
                           if (!isExplodedView) handleToggleServiceHistory();
                         }}
-                        className={`${isLastOdd ? 'col-span-2' : 'col-span-1'} p-2.5 px-3 rounded-xl border flex items-center gap-2.5 transition-all cursor-pointer text-left group ${
+                        className={`${isLastOdd ? 'col-span-2' : 'col-span-1'} p-3 px-3.5 rounded-xl border flex items-center gap-3 transition-all cursor-pointer text-left h-full min-h-[58px] group ${
                           isSelected
                             ? `bg-orange-50/80 border-[#FA634E] ring-2 ring-[#FA634E]/30 text-slate-900 shadow-2xs`
                             : `bg-white border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/80 shadow-2xs`
                         }`}
                       >
-                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center border transition-all shrink-0 ${
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-all shrink-0 ${
                           isSelected
                             ? 'bg-white border-orange-200 shadow-2xs'
                             : 'bg-slate-50 border-slate-100 group-hover:bg-white group-hover:border-slate-200 shadow-2xs'
                         }`}>
-                          <IconComp className={`w-3.5 h-3.5 stroke-[2] ${theme.text}`} />
+                          <IconComp className={`w-4 h-4 stroke-[2] ${theme.text}`} />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <span className={`text-xs font-bold truncate block ${isSelected ? 'text-[#FA634E]' : 'text-slate-800'}`}>
+                          <span className={`text-xs font-extrabold truncate block ${isSelected ? 'text-[#FA634E]' : 'text-slate-800'}`}>
                             {item.categoryLabel}
                           </span>
                         </div>
