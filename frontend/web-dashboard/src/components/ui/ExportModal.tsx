@@ -56,6 +56,7 @@ export interface ExportModalProps<T = any> {
   filters?: ExportFilter<T>[];
   // Formats supported (default: xlsx & csv)
   formats?: ('xlsx' | 'csv' | 'pdf')[];
+  initialFormat?: 'xlsx' | 'csv' | 'pdf';
   // Themes supported for Excel export
   themes?: { id: string; label: string }[];
   // Optional date filtering
@@ -81,10 +82,11 @@ export default function ExportModal<T = any>({
   themes = [],
   rowDateAccessor,
   dateRangeLabel = 'Date Range',
+  initialFormat = 'xlsx',
 }: ExportModalProps<T>) {
   const allowedFormats = (formats || []).filter((f) => f !== 'csv');
   const [scope, setScope] = useState<'filtered' | 'all' | 'selected'>('filtered');
-  const [format, setFormat] = useState<'xlsx' | 'csv' | 'pdf'>('xlsx');
+  const [format, setFormat] = useState<'xlsx' | 'csv' | 'pdf'>(initialFormat);
   const [theme, setTheme] = useState<string>(themes[0]?.id || 'standard');
   const [selectedColumns, setSelectedColumns] = useState<Record<string, boolean>>({});
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});

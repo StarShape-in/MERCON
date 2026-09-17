@@ -931,6 +931,7 @@ export default function TripListPage() {
   const [exportEndDate, setExportEndDate] = useState('');
   const [isExporting, setIsExporting] = useState(false);
   const [isCustomExportOpen, setIsCustomExportOpen] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'xlsx' | 'pdf'>('xlsx');
   const [selectedTripsForExport, setSelectedTripsForExport] = useState<Trip[]>([]);
 
    const { data: exportDriversRes } = useQuery({
@@ -2084,7 +2085,9 @@ export default function TripListPage() {
       icon: <FileSpreadsheet size={13} className="text-emerald-600 dark:text-emerald-400" />,
       variant: 'success' as const,
       onClick: (selectedRows: Trip[]) => {
-        exportExcelTable('Trips Export', TRIP_EXPORT_HEADERS, tripsToExportRowsWithTotals(selectedRows, tz), 'trips_export.xlsx');
+        setExportFormat('xlsx');
+        setSelectedTripsForExport(selectedRows);
+        setIsCustomExportOpen(true);
       }
     },
     {
@@ -2092,14 +2095,7 @@ export default function TripListPage() {
       icon: <FileText size={13} className="text-rose-600 dark:text-rose-400" />,
       variant: 'warning' as const,
       onClick: (selectedRows: Trip[]) => {
-        exportPDFTable('Trips Export', TRIP_EXPORT_HEADERS, tripsToExportRowsWithTotals(selectedRows, tz), 'trips_export.pdf');
-      }
-    },
-    {
-      label: 'Custom Export...',
-      icon: <Download size={13} />,
-      variant: 'secondary' as const,
-      onClick: (selectedRows: Trip[]) => {
+        setExportFormat('pdf');
         setSelectedTripsForExport(selectedRows);
         setIsCustomExportOpen(true);
       }
@@ -2480,8 +2476,9 @@ export default function TripListPage() {
                   
                   <DropdownMenuItem
                     onClick={() => {
+                      setExportFormat('xlsx');
                       setExportMenuOpen(false);
-                      runExport('excel', { statusGroup: 'All' });
+                      setIsCustomExportOpen(true);
                     }}
                     className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800"
                   >
@@ -2491,24 +2488,14 @@ export default function TripListPage() {
 
                   <DropdownMenuItem
                     onClick={() => {
+                      setExportFormat('pdf');
                       setExportMenuOpen(false);
-                      runExport('pdf', { statusGroup: 'All' });
+                      setIsCustomExportOpen(true);
                     }}
                     className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800"
                   >
                     <FileText className="h-4 w-4 text-rose-600 dark:text-rose-455 shrink-0" />
                     <span>Export to PDF</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => {
-                      setSelectedTripsForExport([]);
-                      setExportMenuOpen(false);
-                      setIsCustomExportOpen(true);
-                    }}
-                    className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-brand dark:text-orange-400"
-                  >
-                    <Filter className="h-4 w-4 text-brand dark:text-orange-455 shrink-0" />
-                    <span>Custom Export...</span>
                   </DropdownMenuItem>
 
                   <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
@@ -2888,6 +2875,7 @@ export default function TripListPage() {
         <ExportModal
           isOpen={isCustomExportOpen}
           onClose={() => setIsCustomExportOpen(false)}
+          initialFormat={exportFormat}
           title="Trip Ledger Export"
           fileNamePrefix="trips_export"
           sheetName="Trips"
