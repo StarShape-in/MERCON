@@ -407,9 +407,13 @@ export interface UpdateTripFinancialsPayload {
   /** Replaces the trip's entire itemised charge list when sent. */
   charges?: TripChargeInput[];
   trip_charges?: number;
+  driver_payout?: number;
+  driver_charge?: number;
   billing_amount?: number;
   carrier_name?: string;
   is_post_trip_settled?: boolean;
+  update_quotation_driver_payout?: boolean;
+  update_quotation_payout?: boolean;
 }
 
 export const tripService = {
