@@ -1199,6 +1199,7 @@ export default function CargoLoadingView() {
                       <button 
                         key={`cat-rec-${item.id}`}
                         onClick={() => {
+                          setSelectedDocId(null);
                           setSelectedServiceId(item.id);
                           setRecordIndex(0);
                           setActiveServiceView('detail');
