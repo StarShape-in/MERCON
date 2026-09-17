@@ -817,9 +817,15 @@ export default function CargoLoadingView() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          setSelectedServiceId(item.id);
-                          setRecordIndex(0);
-                          setActiveServiceView('detail');
+                          if (activeServiceView === 'detail' && selectedServiceId === item.id) {
+                            setActiveServiceView('categories');
+                            setIsExplodedView(false);
+                          } else {
+                            setSelectedServiceId(item.id);
+                            setRecordIndex(0);
+                            setActiveServiceView('detail');
+                            setIsExplodedView(true);
+                          }
                         }}
                         className={`relative group flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full shadow-md transition-all cursor-pointer ${
                           isSelected 
@@ -864,9 +870,15 @@ export default function CargoLoadingView() {
                       <button 
                         key={`cat-rec-${item.id}`}
                         onClick={() => {
-                          setSelectedServiceId(item.id);
-                          setRecordIndex(0);
-                          setActiveServiceView('detail');
+                          if (activeServiceView === 'detail' && selectedServiceId === item.id) {
+                            setActiveServiceView('categories');
+                            setIsExplodedView(false);
+                          } else {
+                            setSelectedServiceId(item.id);
+                            setRecordIndex(0);
+                            setActiveServiceView('detail');
+                            setIsExplodedView(true);
+                          }
                         }}
                         className={`${isLastOdd ? 'col-span-2' : 'col-span-1'} p-3 px-3.5 rounded-xl border flex items-center gap-3 transition-all cursor-pointer text-left h-full min-h-[58px] group ${
                           isSelected
@@ -915,6 +927,7 @@ export default function CargoLoadingView() {
                       <button
                         onClick={() => {
                           setActiveServiceView('categories');
+                          setIsExplodedView(false);
                         }}
                         className="text-xs font-bold text-slate-600 hover:text-[#FA634E] transition-colors flex items-center gap-1 cursor-pointer"
                       >
