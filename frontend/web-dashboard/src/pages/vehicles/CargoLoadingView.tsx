@@ -477,10 +477,13 @@ export default function CargoLoadingView() {
       : '10,000 Kg';
 
     const customerName = t.customer?.name || t.customer_name || 'Aprodac';
-    const rawDate = t.scheduled_date || t.dispatch_date || t.created_at || t.createdAt || t.start_date || t.date;
-    const formattedDate = rawDate 
+    const rawType = t.cargo_type || t.rate_category || t.billing_type || t.line_type || 'Single Trip';
+    const cargoType = formatText(rawType);
+
+    const rawDate = t.departure_date || t.scheduled_date || t.created_at || t.createdAt || t.start_date || t.dispatch_date;
+    const dateStr = rawDate
       ? new Date(rawDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-      : '17 Sep 2026';
+      : '14 Sep 2026';
 
     return {
       id: t.ref_id || (t.id ? `TRP-${t.id.slice(0, 6)}` : 'TRP-001'),
@@ -490,7 +493,7 @@ export default function CargoLoadingView() {
       customerName,
       cargoType,
       totalWeight: weightStr,
-      date: formattedDate,
+      date: dateStr,
     };
   };
 
@@ -606,7 +609,7 @@ export default function CargoLoadingView() {
   };
 
   return (
-    <div className="w-full bg-[#F5F7FA] text-slate-900 font-sans p-4 sm:p-5 lg:p-6 flex flex-col justify-between gap-3 sm:gap-3.5 max-w-[1800px] mx-auto h-screen max-h-screen overflow-y-auto xl:overflow-hidden">
+    <div className="w-full bg-[#F5F7FA] text-slate-900 font-sans p-5 sm:p-6 lg:p-7 flex flex-col gap-5 sm:gap-6 overflow-y-auto max-w-[1800px] mx-auto min-h-screen">
       
       {/* ── Top Header Bar ── */}
       <div className="flex items-center justify-between shrink-0">
@@ -1119,13 +1122,13 @@ export default function CargoLoadingView() {
                   </div>
 
                   {/* Middle Row: Route & Date */}
-                  <div>
+                  <div className="space-y-0.5">
                     <p className="text-xs font-black text-slate-900 leading-snug truncate group-hover:text-[#FA634E] transition-colors">
                       {trip.route}
                     </p>
-                    <p className="text-[10px] font-bold text-slate-400 mt-0.5 flex items-center gap-1">
+                    <p className="text-[9.5px] font-semibold text-slate-400 flex items-center gap-1">
                       <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
-                      {trip.date}
+                      <span>{trip.date}</span>
                     </p>
                   </div>
 
