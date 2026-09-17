@@ -19,6 +19,7 @@ import { driverService } from '@/services/driverService';
 import { documentService } from '@/services/documentService';
 import { exportExcelTable } from '@/utils/exportUtils';
 import DriverAvatar from '@/components/ui/DriverAvatar';
+import { getDriverAvatar } from '@/lib/driverAvatarMap';
 import DocumentPreviewSheet from '@/components/documents/DocumentPreviewSheet';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -419,27 +420,31 @@ export default function DriverDetailsPage() {
             {/* 1.1 DRIVER PROFILE CARD (Reference Layout Design) */}
             <div className="flex-1 rounded-[24px] bg-[#E8F0F8] dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 px-4 pt-4 pb-1.5 flex flex-col justify-end shadow-2xs relative overflow-hidden min-h-0 group">
               
-              {/* Absolute Driver Hero Portrait Image (Unified for ALL Drivers) */}
+              {/* Absolute Driver Hero Portrait Image (Resolved per Driver) */}
               <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[24px] z-0 flex items-center justify-center">
                 {(() => {
-                  const rawUrl = driver.avatar_url;
-                  const isAbdulMalik = `${driver.first_name || ''} ${driver.last_name || ''}`.toUpperCase().includes('ABDUL MALIK');
-                  const photoUrl = isAbdulMalik
-                    ? '/driver-assets/abdul_malik_transparent.png'
-                    : rawUrl
-                    ? (rawUrl.startsWith('http') || rawUrl.startsWith('data:') || rawUrl.startsWith('/')
-                        ? rawUrl
-                        : `/${rawUrl}`)
-                    : '/driver-assets/abdul_malik_transparent.png';
+                  const fullName = `${driver.first_name || ''} ${driver.last_name || ''}`.trim();
+                  const photoUrl = getDriverAvatar(driver.avatar_url, fullName);
+                  const initials = `${driver.first_name?.[0] || ''}${driver.last_name?.[0] || ''}`.toUpperCase() || 'DR';
+
+                  if (!photoUrl) {
+                    return (
+                      <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-indigo-50/60 via-slate-50 to-slate-100 dark:from-slate-800/40 dark:via-slate-900 dark:to-slate-950 text-slate-400">
+                        <div className="w-24 h-24 rounded-full bg-white/90 dark:bg-slate-800/90 shadow-sm border border-slate-200/80 dark:border-slate-700 flex items-center justify-center text-3xl font-black text-indigo-600 dark:text-indigo-400 mb-8">
+                          {initials}
+                        </div>
+                      </div>
+                    );
+                  }
 
                   const isTransparentPng = photoUrl.includes('transparent') || photoUrl.endsWith('.png');
 
                   return (
                     <img
                       src={photoUrl}
-                      alt={`${driver.first_name || ''} ${driver.last_name || ''}`.trim() || 'Driver profile'}
+                      alt={fullName || 'Driver profile'}
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = '/driver-assets/abdul_malik_transparent.png';
+                        (e.target as HTMLElement).style.display = 'none';
                       }}
                       className={cn(
                         "drop-shadow-lg select-none pointer-events-none",

@@ -721,11 +721,7 @@ export default function VehicleListPage() {
           onClick={() => setPreviewVehicle(row)}
           title="Click to view truck profile"
         >
-          {row.image_url ? (
-            <img src={row.image_url} alt={row.plate_number} className="w-6 h-6 rounded-md object-cover border border-slate-200 dark:border-slate-800 shrink-0" />
-          ) : (
-            <Truck className="w-4 h-4 text-slate-600 shrink-0 group-hover:text-brand transition-colors" />
-          )}
+          <Truck className="w-4 h-4 text-slate-600 shrink-0 group-hover:text-brand transition-colors" />
           <div className="font-bold text-xs text-slate-900 dark:text-slate-100 flex items-center gap-1.5 group-hover:text-brand transition-colors">
             <span>{row.plate_number}</span>
             <Badge variant="outline" className="text-[9px] font-mono font-bold px-1.5 py-0 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
@@ -1807,12 +1803,6 @@ export default function VehicleListPage() {
         {viewMode === 'list' && (
           <div className="w-full flex flex-col">
             <DataTable
-              title={
-                <span className="flex items-center gap-2">
-                  <Truck className="w-4 h-4 text-blue-500" />
-                  <span>Fleet Vehicle Ledger</span>
-                </span>
-              }
               columns={columns}
               data={vehicles}
               sortAccessor={(row: Vehicle) => row.createdAt}
