@@ -219,7 +219,7 @@ export default function CargoLoadingView() {
       isRecent: true,
       hotspot: { top: '48%', left: '26%' },
       system: 'Engine & Lubrication',
-      colorTheme: { bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-200', activeBg: 'bg-rose-500 text-white border-rose-600', ping: 'bg-rose-500' },
+      colorTheme: { bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-200', activeBg: 'bg-rose-500 text-white border-rose-600', ping: 'bg-rose-500', badgeBg: 'bg-rose-100 text-rose-700 border-rose-200/80' },
     },
     {
       id: 2,
@@ -230,7 +230,7 @@ export default function CargoLoadingView() {
       isRecent: false,
       hotspot: { top: '74%', left: '38%' },
       system: 'Axles & Suspension',
-      colorTheme: { bg: 'bg-indigo-50', text: 'text-indigo-600', border: 'border-indigo-200', activeBg: 'bg-indigo-600 text-white border-indigo-700', ping: 'bg-indigo-500' },
+      colorTheme: { bg: 'bg-indigo-50', text: 'text-indigo-600', border: 'border-indigo-200', activeBg: 'bg-indigo-600 text-white border-indigo-700', ping: 'bg-indigo-500', badgeBg: 'bg-indigo-100 text-indigo-700 border-indigo-200/80' },
     },
     {
       id: 3,
@@ -241,7 +241,7 @@ export default function CargoLoadingView() {
       isRecent: false,
       hotspot: { top: '24%', left: '42%' },
       system: 'Air Intake & Filtration',
-      colorTheme: { bg: 'bg-sky-50', text: 'text-sky-600', border: 'border-sky-200', activeBg: 'bg-sky-500 text-white border-sky-600', ping: 'bg-sky-500' },
+      colorTheme: { bg: 'bg-sky-50', text: 'text-sky-600', border: 'border-sky-200', activeBg: 'bg-sky-500 text-white border-sky-600', ping: 'bg-sky-500', badgeBg: 'bg-sky-100 text-sky-700 border-sky-200/80' },
     },
     {
       id: 4,
@@ -252,7 +252,7 @@ export default function CargoLoadingView() {
       isRecent: false,
       hotspot: { top: '74%', left: '60%' },
       system: 'Braking & Pneumatics',
-      colorTheme: { bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-200', activeBg: 'bg-orange-500 text-white border-orange-600', ping: 'bg-orange-500' },
+      colorTheme: { bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-200', activeBg: 'bg-orange-500 text-white border-orange-600', ping: 'bg-orange-500', badgeBg: 'bg-orange-100 text-orange-700 border-orange-200/80' },
     },
     {
       id: 5,
@@ -263,7 +263,7 @@ export default function CargoLoadingView() {
       isRecent: false,
       hotspot: { top: '74%', left: '80%' },
       system: 'Tires & Wheels',
-      colorTheme: { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-200', activeBg: 'bg-emerald-600 text-white border-emerald-700', ping: 'bg-emerald-500' },
+      colorTheme: { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-200', activeBg: 'bg-emerald-600 text-white border-emerald-700', ping: 'bg-emerald-500', badgeBg: 'bg-emerald-100 text-emerald-700 border-emerald-200/80' },
     },
     {
       id: 6,
@@ -274,7 +274,7 @@ export default function CargoLoadingView() {
       isRecent: false,
       hotspot: { top: '48%', left: '12%' },
       system: 'Electrical & Battery',
-      colorTheme: { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-200', activeBg: 'bg-amber-500 text-white border-amber-600', ping: 'bg-amber-400' },
+      colorTheme: { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-200', activeBg: 'bg-amber-500 text-white border-amber-600', ping: 'bg-amber-400', badgeBg: 'bg-amber-100 text-amber-700 border-amber-200/80' },
     },
     {
       id: 7,
@@ -285,7 +285,7 @@ export default function CargoLoadingView() {
       isRecent: false,
       hotspot: { top: '24%', left: '68%' },
       system: 'General Maintenance & HVAC',
-      colorTheme: { bg: 'bg-purple-50', text: 'text-purple-600', border: 'border-purple-200', activeBg: 'bg-purple-600 text-white border-purple-700', ping: 'bg-purple-500' },
+      colorTheme: { bg: 'bg-purple-50', text: 'text-purple-600', border: 'border-purple-200', activeBg: 'bg-purple-600 text-white border-purple-700', ping: 'bg-purple-500', badgeBg: 'bg-purple-100 text-purple-700 border-purple-200/80' },
     },
   ];
 
@@ -888,8 +888,11 @@ export default function CargoLoadingView() {
                         }`}>
                           <IconComp className={`w-4 h-4 stroke-[2] ${theme.text}`} />
                         </div>
-                        <div className="min-w-0 flex-1">
+                        <div className="min-w-0 flex-1 flex items-center justify-between gap-1.5">
                           <span className={`text-xs font-extrabold truncate block ${isSelected ? 'text-[#FA634E]' : 'text-slate-800'}`}>
+                            {item.categoryLabel}
+                          </span>
+                          <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full border shrink-0 transition-all ${theme.badgeBg}`}>
                             {item.categoryLabel}
                           </span>
                         </div>
@@ -929,7 +932,7 @@ export default function CargoLoadingView() {
                         <ChevronLeft className="w-3.5 h-3.5" />
                         <span>Back</span>
                       </button>
-                      <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border bg-slate-100 text-slate-700 border-slate-200">
+                      <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border shadow-2xs ${selectedService.colorTheme.badgeBg}`}>
                         {selectedService.categoryLabel}
                       </span>
                     </div>
