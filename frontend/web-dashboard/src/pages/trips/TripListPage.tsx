@@ -845,12 +845,13 @@ export default function TripListPage() {
     }
   }, [searchParams, navigate]);
 
-  // Deep-link support: ?driver=UUID&driver_name=FirstName+LastName pre-fills search & switches to table view
+  // Deep-link support: ?driver=UUID&driver_name=... or ?search=PlateNumber pre-fills search & switches to table view
   // ?status=X pre-selects the status filter
   // Run once on mount (searchParams is stable on initial render)
   useEffect(() => {
     const driverParam = searchParams.get('driver');
     const driverNameParam = searchParams.get('driver_name');
+    const searchParam = searchParams.get('search') || searchParams.get('vehicle') || searchParams.get('vehicle_name') || searchParams.get('plate_number');
     const statusParam = searchParams.get('status') as TripStatusFilter | null;
 
     if (statusParam && EXACT_SERVER_STATUSES.has(statusParam as any)) {
@@ -869,6 +870,16 @@ export default function TripListPage() {
       if (driverNameParam) {
         setSearch(driverNameParam);
       }
+    } else if (searchParam) {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set('view', 'table');
+      newParams.delete('search');
+      newParams.delete('vehicle');
+      newParams.delete('vehicle_name');
+      newParams.delete('plate_number');
+      newParams.delete('status');
+      setSearchParams(newParams, { replace: true });
+      setSearch(searchParam);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

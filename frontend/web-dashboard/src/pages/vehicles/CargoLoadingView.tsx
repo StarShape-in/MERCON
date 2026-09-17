@@ -826,7 +826,12 @@ export default function CargoLoadingView() {
                 Trips
               </h2>
               <button 
-                onClick={() => navigate('/trips')}
+                onClick={() => {
+                  const targetSearch = (vehicle?.plate_number && vehicle.plate_number !== '—')
+                    ? vehicle.plate_number
+                    : (plateNumber && plateNumber !== '—' ? plateNumber : (vehicle?.ref_id || ''));
+                  navigate(`/trips?search=${encodeURIComponent(targetSearch)}`);
+                }}
                 className="text-xs font-bold px-3 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 transition-colors flex items-center gap-1 cursor-pointer"
               >
                 <span>All Trips</span>
