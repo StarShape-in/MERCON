@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download } from 'lucide-react';
+import { Download, Edit2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -91,6 +91,7 @@ export default function ExportModal<T = any>({
   const [isExporting, setIsExporting] = useState(false);
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+  const [isColumnModalOpen, setIsColumnModalOpen] = useState(false);
 
   // Initialize columns and filter defaults when modal opens or columns change
   useEffect(() => {
@@ -128,6 +129,24 @@ export default function ExportModal<T = any>({
       updated[col.id] = nextState;
     });
     setSelectedColumns(updated);
+  };
+
+  const handleThemeChange = (newTheme: string) => {
+    setTheme(newTheme);
+    if (newTheme === 'jd-monthly') {
+      const jdColumns = ['driver', 'vehicle', 'category', 'pickup', 'dropoff', 'billing_amount', 'driver_payout'];
+      const updated: Record<string, boolean> = {};
+      columns.forEach((col) => {
+        updated[col.id] = jdColumns.includes(col.id);
+      });
+      setSelectedColumns(updated);
+    } else {
+      const updated: Record<string, boolean> = {};
+      columns.forEach((col) => {
+        updated[col.id] = col.defaultSelected !== false;
+      });
+      setSelectedColumns(updated);
+    }
   };
 
   const handleExport = async () => {
@@ -330,8 +349,18 @@ export default function ExportModal<T = any>({
 
           {themes && themes.length > 0 && format === 'xlsx' && (
             <div className="space-y-1.5">
-              <label className="font-bold text-slate-700 dark:text-slate-300">Excel Theme Template</label>
-              <Select value={theme} onValueChange={setTheme}>
+              <div className="flex items-center justify-between">
+                <label className="font-bold text-slate-700 dark:text-slate-300">Excel Theme Template</label>
+                <button
+                  type="button"
+                  onClick={() => setIsColumnModalOpen(true)}
+                  className="text-[10px] text-brand hover:underline font-semibold cursor-pointer flex items-center gap-1"
+                >
+                  <Edit2 size={10} />
+                  Edit Columns
+                </button>
+              </div>
+              <Select value={theme} onValueChange={handleThemeChange}>
                 <SelectTrigger className="h-9 w-full rounded-lg border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
                   <SelectValue placeholder="Select theme..." />
                 </SelectTrigger>
@@ -408,43 +437,62 @@ export default function ExportModal<T = any>({
             </div>
           )}
 
-          {/* 4. Columns to Include */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="font-bold text-slate-700 dark:text-slate-300">Columns to Include</label>
-              <button
-                type="button"
-                onClick={toggleAllColumns}
-                className="text-[10px] text-brand hover:underline font-semibold cursor-pointer"
-              >
-                {allColumnsSelected ? 'Deselect All' : 'Select All'}
-              </button>
-            </div>
+          {/* Nested Columns Dialog */}
+          <Dialog open={isColumnModalOpen} onOpenChange={setIsColumnModalOpen}>
+            <DialogContent className="max-w-md p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl z-[99999]">
+              <DialogHeader>
+                <DialogTitle className="text-lg font-extrabold text-slate-900 dark:text-slate-100">
+                  Edit Columns
+                </DialogTitle>
+                <DialogDescription className="text-slate-500 text-xs">
+                  Select which columns to include in your export.
+                </DialogDescription>
+              </DialogHeader>
 
-            <div className="grid grid-cols-2 gap-x-3 gap-y-2 border border-slate-100 dark:border-slate-800/80 rounded-xl p-3 bg-white dark:bg-slate-900 max-h-48 overflow-y-auto">
-              {columns.map((col) => (
-                <div key={col.id} className="flex items-center gap-2">
-                  <Checkbox
-                    id={`export-col-${col.id}`}
-                    checked={!!selectedColumns[col.id]}
-                    onCheckedChange={(checked) => {
-                      setSelectedColumns((prev) => ({
-                        ...prev,
-                        [col.id]: !!checked,
-                      }));
-                    }}
-                  />
-                  <label
-                    htmlFor={`export-col-${col.id}`}
-                    className="text-[11px] text-slate-600 dark:text-slate-400 font-medium select-none cursor-pointer truncate"
-                    title={col.label}
+              <div className="space-y-2 mt-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-700 dark:text-slate-300">Columns to Include</label>
+                  <button
+                    type="button"
+                    onClick={toggleAllColumns}
+                    className="text-[10px] text-brand hover:underline font-semibold cursor-pointer"
                   >
-                    {col.label}
-                  </label>
+                    {allColumnsSelected ? 'Deselect All' : 'Select All'}
+                  </button>
                 </div>
-              ))}
-            </div>
-          </div>
+
+                <div className="grid grid-cols-2 gap-x-3 gap-y-2 border border-slate-100 dark:border-slate-800/80 rounded-xl p-3 bg-slate-50/50 dark:bg-slate-950/20 max-h-72 overflow-y-auto">
+                  {columns.map((col) => (
+                    <div key={col.id} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`export-col-${col.id}`}
+                        checked={!!selectedColumns[col.id]}
+                        onCheckedChange={(checked) => {
+                          setSelectedColumns((prev) => ({
+                            ...prev,
+                            [col.id]: !!checked,
+                          }));
+                        }}
+                      />
+                      <label
+                        htmlFor={`export-col-${col.id}`}
+                        className="text-[11px] text-slate-600 dark:text-slate-400 font-medium select-none cursor-pointer truncate"
+                        title={col.label}
+                      >
+                        {col.label}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <DialogFooter className="pt-2">
+                <Button type="button" onClick={() => setIsColumnModalOpen(false)} className="w-full bg-brand text-white hover:bg-brandDark">
+                  Save Columns
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between w-full">
