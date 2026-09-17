@@ -91,16 +91,18 @@ export default function DocumentsValidityFolder({ vehicleId }: DocumentsValidity
   return (
     <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between h-[410px] max-h-[410px] relative overflow-hidden select-none">
       
-      {/* ── Top Header Bar ── */}
-      <div className="flex items-center justify-between z-10 mb-2 shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-orange-50 border border-orange-200/80 flex items-center justify-center shrink-0 shadow-2xs">
-            <FileText className="w-4.5 h-4.5 text-[#FA634E] stroke-[2]" />
-          </div>
-          <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
-            Documents &amp; Validity
-          </h2>
-        </div>
+      {/* ── Top Header Bar (Matching Service History Header Style) ── */}
+      <div className="flex items-center justify-between mb-3 pb-2.5 border-b border-slate-100 shrink-0 z-10">
+        <h2 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
+          <FileText className="w-4.5 h-4.5 text-blue-600" />
+          Documents &amp; Validity
+        </h2>
+        <button 
+          onClick={() => vehicleId && navigate(`/vehicles/${vehicleId}/documents`)}
+          className="text-xs font-bold px-3 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
+        >
+          View All
+        </button>
       </div>
 
       {/* ── Folder Pocket & Stacked Index Cards ── */}
@@ -135,7 +137,7 @@ export default function DocumentsValidityFolder({ vehicleId }: DocumentsValidity
               >
                 {/* SVG Background Path & Extended Vertical Side Lines */}
                 <svg className="absolute inset-0 w-full h-full overflow-visible" viewBox="0 0 400 58" preserveAspectRatio="none">
-                  {/* Pure white fill in all states (no gray hover effect) */}
+                  {/* Pure white fill in all states */}
                   <path 
                     d="M0,76 L0,14 C0,6 6,0 14,0 L215,0 C230,0 240,7 255,7 L386,7 C394,7 400,13 400,21 L400,76" 
                     fill="#FFFFFF"
