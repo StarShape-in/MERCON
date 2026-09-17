@@ -841,10 +841,10 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                 {/* Table Header */}
                 {selectedDates.length > 0 && (
                   <div className="grid grid-cols-12 gap-2 px-2.5 text-[10px] font-extrabold text-slate-400 uppercase">
-                    <div className="col-span-3">Operating Date</div>
+                    <div className="col-span-2">Operating Date</div>
                     <div className="col-span-4">Assigned Driver</div>
-                    <div className="col-span-4">Assigned Vehicle</div>
-                    <div className="col-span-1 text-right">Actions</div>
+                    <div className="col-span-3">Assigned Vehicle</div>
+                    <div className="col-span-3 text-right">Actions</div>
                   </div>
                 )}
 
@@ -938,8 +938,8 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                               : 'border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300'
                           }`}
                         >
-                          {/* Date Column (col-span-3) */}
-                          <div className="col-span-3 flex items-center gap-1.5 min-w-0 pt-1">
+                          {/* Date Column (col-span-2) */}
+                          <div className="col-span-2 flex items-center gap-1.5 min-w-0 pt-1">
                             <span className="w-4 h-4 rounded-md bg-slate-100 dark:bg-slate-800 text-[9px] font-black text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0">
                               {idx + 1}
                             </span>
@@ -948,7 +948,7 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                             </span>
                           </div>
 
-                          {/* Driver Combobox (col-span-4) */}
+                          {/* Driver & Co-Driver Comboboxes (col-span-4) */}
                           <div className="col-span-4 min-w-0 flex flex-col gap-1.5">
                             <Combobox
                               options={driverOptions}
@@ -956,75 +956,51 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                               onChange={handleUpdateDateDriver}
                               placeholder="Select Driver"
                               className="h-7.5 text-xs font-medium"
+                              popoverClassName="w-[320px] max-w-sm"
                             />
                             {assignment.coDriverId !== undefined && (
-                              <div className="flex items-center gap-1 mt-1 animate-fade-in">
+                              <div className="flex items-center gap-1.5 mt-1 animate-fade-in w-full">
                                 <span className="text-[9px] font-black text-[#FA634E] bg-orange-100 dark:bg-orange-950/80 px-1 py-0.5 rounded shrink-0">
                                   CO
                                 </span>
-                                <div className="flex-1 min-w-0 flex items-center gap-1">
+                                <div className="flex-1 min-w-0">
                                   <Combobox
                                     options={driverOptions}
                                     value={assignment.coDriverId}
                                     onChange={(val) => {
                                       if (!setDayAssignments) return;
-                                      setDayAssignments((prev) => ({
-                                        ...prev,
-                                        [dateStr]: {
-                                          ...(prev[dateStr] || { driverId: activeStrategyDriver, vehicleId: activeStrategyVehicle }),
-                                          coDriverId: val,
-                                        },
-                                      }));
-                                    }}
-                                    placeholder="Select Co-Driver"
-                                    className="h-7 text-[11px] font-medium"
-                                  />
-                                  {activeDriver && assignment.coDriverId !== activeDriver && (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        if (!setDayAssignments) return;
+                                      if (val === 'unassigned' || !val) {
+                                        setDayAssignments((prev) => {
+                                          const next = { ...prev };
+                                          if (next[dateStr]) {
+                                            next[dateStr] = { ...next[dateStr] };
+                                            delete next[dateStr].coDriverId;
+                                            delete next[dateStr].driverPayoutOverride;
+                                            delete next[dateStr].coDriverPayoutOverride;
+                                          }
+                                          return next;
+                                        });
+                                      } else {
                                         setDayAssignments((prev) => ({
                                           ...prev,
                                           [dateStr]: {
                                             ...(prev[dateStr] || { driverId: activeStrategyDriver, vehicleId: activeStrategyVehicle }),
-                                            coDriverId: activeDriver,
+                                            coDriverId: val,
                                           },
                                         }));
-                                      }}
-                                      className="text-[9px] font-black text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950 px-1 py-0.5 rounded shrink-0 cursor-pointer"
-                                      title="Set co-driver to same as primary driver"
-                                    >
-                                      Same
-                                    </button>
-                                  )}
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (!setDayAssignments) return;
-                                    setDayAssignments((prev) => {
-                                      const next = { ...prev };
-                                      if (next[dateStr]) {
-                                        next[dateStr] = { ...next[dateStr] };
-                                        delete next[dateStr].coDriverId;
-                                        delete next[dateStr].driverPayoutOverride;
-                                        delete next[dateStr].coDriverPayoutOverride;
                                       }
-                                      return next;
-                                    });
-                                  }}
-                                  className="text-slate-400 hover:text-rose-500 transition-colors p-0.5 shrink-0"
-                                  title="Remove co-driver"
-                                >
-                                  <X className="w-3.5 h-3.5" />
-                                </button>
+                                    }}
+                                    placeholder="Select Co-Driver"
+                                    className="h-7 text-[11px] font-medium w-full"
+                                    popoverClassName="w-[320px] max-w-sm"
+                                  />
+                                </div>
                               </div>
                             )}
                           </div>
 
-                          {/* Vehicle Combobox (col-span-4) */}
-                          <div className="col-span-4 min-w-0">
+                          {/* Vehicle Combobox (col-span-3) */}
+                          <div className="col-span-3 min-w-0">
                             <Combobox
                               options={vehicleOptions}
                               value={activeVehicle}
@@ -1034,8 +1010,8 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                             />
                           </div>
 
-                          {/* Action / Override State (col-span-1) */}
-                          <div className="col-span-1 flex items-center justify-end gap-1.5 shrink-0 pr-0.5 pt-0.5">
+                          {/* Action / Override State (col-span-3) */}
+                          <div className="col-span-3 flex items-center justify-end gap-1.5 shrink-0 pr-0.5 pt-0.5">
                             {assignment.coDriverId === undefined && (
                               <button
                                 type="button"
@@ -1052,8 +1028,8 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                                   }));
                                 }}
                               >
-                                <Plus className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                                <span>+ Co-Driver</span>
+                                <Plus className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                <span>Co-Driver</span>
                               </button>
                             )}
                             <button

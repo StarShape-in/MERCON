@@ -575,9 +575,11 @@ export const getTripById = async (req: Request, res: Response) => {
       balance_due: fin.balanceDue,
       total_amount: fin.totalCustomerBilling,
       charges_total: fin.chargesTotal,
-      per_trip_billing: fin.perTripBilling,
-      driver_payout: fin.totalDriverPayout,
-      driver_charge: fin.totalDriverPayout,
+      primary_driver_payout: fin.primaryDriverPayout,
+      co_driver_payout: fin.coDriverPayout,
+      total_driver_payout: fin.totalDriverPayout,
+      driver_payout: fin.primaryDriverPayout,
+      driver_charge: fin.primaryDriverPayout,
       balance_margin: fin.balanceMargin,
       margin_percent: fin.marginPercent,
       vehicle: trip.vehicle
@@ -859,17 +861,25 @@ export const createTrip = async (req: Request, res: Response) => {
           }
 
           const rawTripCharges = trip_charges ?? req.body.driver_payout ?? req.body.driver_charge;
-          const finalTripCharges = (rawTripCharges !== undefined && rawTripCharges !== null && !isNaN(Number(rawTripCharges)))
+          const totalPayout = (rawTripCharges !== undefined && rawTripCharges !== null && !isNaN(Number(rawTripCharges)))
             ? Number(rawTripCharges)
             : (appliedQuotation?.driver_payout ? Number(appliedQuotation.driver_payout) : 0);
+
+          let finalDriverPayout = totalPayout;
+          let finalCoDriverPayout = co_driver_payout !== undefined && co_driver_payout !== null ? Number(co_driver_payout) : 0;
+
+          if (co_driver_id && (co_driver_payout === undefined || co_driver_payout === null) && totalPayout > 0) {
+            finalDriverPayout = Math.round((totalPayout / 2) * 100) / 100;
+            finalCoDriverPayout = Math.round((totalPayout / 2) * 100) / 100;
+          }
 
           const updateQuotationPayout = req.body.update_quotation_driver_payout === true || req.body.update_quotation_payout === true;
           if (updateQuotationPayout && appliedQuotation) {
             const oldPayout = appliedQuotation.driver_payout != null ? Number(appliedQuotation.driver_payout) : null;
-            if (oldPayout !== finalTripCharges) {
+            if (oldPayout !== totalPayout) {
               await tx.quotation.update({
                 where: { id: appliedQuotation.id },
-                data: { driver_payout: finalTripCharges, updated_by: createdBy },
+                data: { driver_payout: totalPayout, updated_by: createdBy },
               });
 
               try {
@@ -880,7 +890,7 @@ export const createTrip = async (req: Request, res: Response) => {
                   data: {
                     quotationId: appliedQuotation.id,
                     old_driver_payout: oldPayout,
-                    new_driver_payout: finalTripCharges,
+                    new_driver_payout: totalPayout,
                     changed_by: userName,
                     changed_by_user_id: createdBy,
                     changed_by_name: userName,
@@ -902,7 +912,7 @@ export const createTrip = async (req: Request, res: Response) => {
               ...(driver_id ? { driverId: driver_id } : {}),
               ...(co_driver_id ? { co_driver_id: co_driver_id } : {}),
               ...(vehicle_id ? { vehicleId: vehicle_id } : {}),
-              co_driver_payout: co_driver_payout !== undefined ? Number(co_driver_payout) : 0,
+              co_driver_payout: finalCoDriverPayout,
               planned_start: parsedPlannedStart,
               planned_end: parsedPlannedEnd,
               status: targetStatus,
@@ -926,7 +936,7 @@ export const createTrip = async (req: Request, res: Response) => {
               ...(finalRateCategory !== null ? { rate_category: finalRateCategory } : {}),
               ...(finalBillingType !== null ? { operation_type: finalBillingType } : {}),
               ...(defaultBilling !== null ? { billing_amount: defaultBilling } : {}),
-              driver_payout: finalTripCharges,
+              driver_payout: finalDriverPayout,
               is_third_party: is_third_party === true,
               ...(is_third_party ? {
                 subcontract: {
@@ -1320,6 +1330,21 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
           })
         );
 
+        const rawRowPayout = (row as any).driver_payout ?? (row as any).driver_charge ?? (row as any).trip_charges;
+        const totalRowPayout = (rawRowPayout !== undefined && rawRowPayout !== null && !isNaN(Number(rawRowPayout)))
+          ? Number(rawRowPayout)
+          : (thirdPartyCostVal !== undefined ? thirdPartyCostVal : (appliedQuotation?.driver_payout != null ? Number(appliedQuotation.driver_payout) : 0));
+
+        let finalRowDriverPayout = totalRowPayout;
+        let finalRowCoDriverPayout = (row.co_driver_payout !== undefined && row.co_driver_payout !== null && !isNaN(Number(row.co_driver_payout)))
+          ? Number(row.co_driver_payout)
+          : 0;
+
+        if (row.co_driver_id && (row.co_driver_payout === undefined || row.co_driver_payout === null) && totalRowPayout > 0) {
+          finalRowDriverPayout = Math.round((totalRowPayout / 2) * 100) / 100;
+          finalRowCoDriverPayout = Math.round((totalRowPayout / 2) * 100) / 100;
+        }
+
         const trip = await prisma.$transaction(async (tx) => {
           return tx.trip.create({
             data: {
@@ -1328,7 +1353,7 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
               driver_workflow: customer.driver_workflow || 'NATIVE',
               ...(driverId ? { driverId } : {}),
               ...(row.co_driver_id ? { co_driver_id: row.co_driver_id } : {}),
-              ...(row.co_driver_payout !== undefined && !isNaN(Number(row.co_driver_payout)) ? { co_driver_payout: Number(row.co_driver_payout) } : {}),
+              co_driver_payout: finalRowCoDriverPayout,
               ...(vehicleId ? { vehicleId } : {}),
               ...(appliedQuotation ? { quotationId: appliedQuotation.id } : {}),
               is_third_party: Boolean(row.is_third_party),
@@ -1366,9 +1391,7 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
               ...(row.billing_amount !== undefined && row.billing_amount !== null && !isNaN(Number(row.billing_amount))
                 ? { billing_amount: Number(row.billing_amount) }
                 : (appliedQuotation?.rate != null ? { billing_amount: Number(appliedQuotation.rate) } : {})),
-              ...(((row as any).driver_payout !== undefined || (row as any).driver_charge !== undefined || (row as any).trip_charges !== undefined) && !isNaN(Number((row as any).driver_payout ?? (row as any).driver_charge ?? (row as any).trip_charges))
-                ? { driver_payout: Number((row as any).driver_payout ?? (row as any).driver_charge ?? (row as any).trip_charges) }
-                : (thirdPartyCostVal !== undefined ? { driver_payout: thirdPartyCostVal } : (appliedQuotation?.driver_payout != null ? { driver_payout: Number(appliedQuotation.driver_payout) } : {}))),
+              driver_payout: finalRowDriverPayout,
               ...(createdBy ? { created_by: createdBy } : {}),
               carrier_name: carrierName,
               ...(resolvedImportStops.length > 0 ? {
