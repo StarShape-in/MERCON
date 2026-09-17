@@ -143,7 +143,7 @@ const matchesExportStatusGroup = (status: TripStatus, group: ExportStatusGroup) 
 
 const TRIP_EXPORT_HEADERS = [
   'ref_id', 'status', 'customer', 'pickup_location', 'dropoff_location',
-  'driver', 'vehicle', 'rate_category', 'vehicle_type', 'rate_card',
+  'driver', 'vehicle', 'rate_category', 'vehicle_type', 'quotation',
   'planned_start', 'actual_start', 'planned_end', 'actual_end',
   'driver_payout', 'billing_amount', 'carrier_name'
 ];
