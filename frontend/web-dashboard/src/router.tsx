@@ -105,6 +105,9 @@ const ReportBuilderLandingPage   = lazyWithRetry(() => import('@/pages/report-bu
 const QuickReportPage            = lazyWithRetry(() => import('@/pages/report-builder/QuickReportPage'));
 const AdvancedBuilderPage        = lazyWithRetry(() => import('@/pages/report-builder/AdvancedBuilderPage'));
 
+// Learning & Academy
+const LearningPage               = lazyWithRetry(() => import('@/pages/learning/LearningPage'));
+
 // Settings & Governance
 const OperatorProfilePage     = lazyWithRetry(() => import('@/pages/settings/OperatorProfilePage'));
 const SettingsPage            = lazyWithRetry(() => import('@/pages/settings/SettingsPage'));
@@ -286,6 +289,9 @@ export default function AppRouter() {
             <Route path="/report-builder"          element={<RequireModule moduleKey="report-builder"><ReportBuilderLandingPage /></RequireModule>} />
             <Route path="/report-builder/quick"    element={<RequireModule moduleKey="report-builder"><QuickReportPage /></RequireModule>} />
             <Route path="/report-builder/advanced" element={<RequireModule moduleKey="report-builder"><AdvancedBuilderPage /></RequireModule>} />
+
+            {/* Learning & Academy */}
+            <Route path="/learning"                element={<RequireModule moduleKey="learning"><LearningPage /></RequireModule>} />
 
             {/* Settings & Governance */}
             <Route path="/settings"                 element={<SettingsPage />} />
