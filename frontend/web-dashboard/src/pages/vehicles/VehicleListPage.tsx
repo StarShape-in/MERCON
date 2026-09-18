@@ -1245,107 +1245,92 @@ export default function VehicleListPage() {
     }
   ];
 
+  const vehicleHeaderActions = useMemo(() => (
+    <div className="flex items-center gap-2 shrink-0">
+      {viewMode === 'map' && (
+        <MapThemeSelector
+          currentThemeId={mapThemeId}
+          onThemeChange={(newTheme) => setMapThemeId(newTheme)}
+        />
+      )}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs dark:bg-slate-900 dark:border-slate-800"
+          >
+            <Download className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
+            Export / Import
+            <ChevronDown className="h-3 w-3 text-slate-400" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-60 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+          <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+            Export Data
+          </DropdownMenuLabel>
+          <DropdownMenuItem
+            onClick={() => handleExportExcel(vehicles)}
+            className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
+          >
+            <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+            Export Excel (.xlsx)
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => handleExportPDF(vehicles)}
+            className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
+          >
+            <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />
+            Export PDF (.pdf)
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
+            onClick={() => {
+              setSelectedVehiclesForExport([]);
+              setIsExportOpen(true);
+            }}
+            className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40"
+          >
+            <Filter className="mr-2 h-3.5 w-3.5 text-brand" />
+            Custom Export Settings...
+          </DropdownMenuItem>
+
+          <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
+
+          <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+            Import Data
+          </DropdownMenuLabel>
+          <DropdownMenuItem
+            onClick={() => setIsImportOpen(true)}
+            className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+          >
+            <UploadCloud className="mr-2 h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+            Import from Excel
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => setIsBatchTruckDocsOpen(true)}
+            className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
+          >
+            <Truck className="mr-2 h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+            Batch Import Trucks Docs
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <Button
+        size="sm"
+        className="h-8 gap-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs rounded-md px-3.5"
+        onClick={() => setIsCreateVehicleOpen(true)}
+      >
+        <Plus className="h-4 w-4" />
+        Add Vehicle
+      </Button>
+    </div>
+  ), [viewMode, mapThemeId, vehicles, handleExportExcel, handleExportPDF]);
+
   return (
     <DashboardLayout active="Vehicles" title="Vehicles">
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
-        
-        {/* ── Page Content Header ─────────────────────────────────────────── */}
-        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
-          <div className="flex items-center gap-3">
-            <Truck className="w-6 h-6 text-blue-600 dark:text-blue-400 shrink-0" />
-
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2.5">
-                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                  Vehicles
-                </h1>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5">
-            {viewMode === 'map' && (
-              <MapThemeSelector
-                currentThemeId={mapThemeId}
-                onThemeChange={(newTheme) => setMapThemeId(newTheme)}
-              />
-            )}
-
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs dark:bg-slate-900 dark:border-slate-800"
-                >
-                  <Download className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
-                  Export / Import
-                  <ChevronDown className="h-3 w-3 text-slate-400" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-60 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
-                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                  Export Data
-                </DropdownMenuLabel>
-                <DropdownMenuItem
-                  onClick={() => handleExportExcel(vehicles)}
-                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
-                >
-                  <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
-                  Export Excel (.xlsx)
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleExportPDF(vehicles)}
-                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
-                >
-                  <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />
-                  Export PDF (.pdf)
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  onClick={() => {
-                    setSelectedVehiclesForExport([]);
-                    setIsExportOpen(true);
-                  }}
-                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40"
-                >
-                  <Filter className="mr-2 h-3.5 w-3.5 text-brand" />
-                  Custom Export Settings...
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
-
-                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                  Import Data
-                </DropdownMenuLabel>
-                <DropdownMenuItem
-                  onClick={() => setIsImportOpen(true)}
-                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
-                >
-                  <UploadCloud className="mr-2 h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                  Import from Excel
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setIsBatchTruckDocsOpen(true)}
-                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
-                >
-                  <Truck className="mr-2 h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
-                  Batch Import Trucks Docs
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <Button
-              size="sm"
-              className="h-9 gap-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs rounded-md px-4"
-              onClick={() => setIsCreateVehicleOpen(true)}
-            >
-              <Plus className="h-4 w-4" />
-              Add Vehicle
-            </Button>
-          </div>
-        </div>
 
         {/* ── Standard Full-Width 4-Column Grid: 4 KPI Cards ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
@@ -1803,6 +1788,12 @@ export default function VehicleListPage() {
         {viewMode === 'list' && (
           <div className="w-full flex flex-col">
             <DataTable
+              title={
+                <span className="flex items-center gap-2 text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight">
+                  <Truck className="w-5 h-5 text-blue-500" />
+                  <span>Fleet Vehicles Ledger</span>
+                </span>
+              }
               columns={columns}
               data={vehicles}
               sortAccessor={(row: Vehicle) => row.createdAt}
@@ -1816,6 +1807,7 @@ export default function VehicleListPage() {
               searchValue={search}
               onSearchChange={(val) => { setSearch(val); setCurrentPage(1); }}
               filterElement={vehicleFilters}
+              actionsElement={vehicleHeaderActions}
               currentPage={currentPage}
               totalPages={totalPages}
               pageSize={pageSize}

@@ -188,10 +188,8 @@ export default function VisualRouteProgress({ stops, tz, tripStatus, hideBadges,
     <div className="relative w-full rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs overflow-hidden flex flex-col justify-between p-3.5 sm:px-5 sm:py-3.5 gap-3">
       {/* ── 1. TOP HEADER: ROUTE SUMMARY ── */}
       <div className="flex flex-wrap items-center justify-between gap-3 w-full">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-orange-100/70 dark:bg-orange-950/60 flex items-center justify-center text-[#FA634E] shrink-0">
-            <Navigation className="w-4 h-4 fill-current transform rotate-45" />
-          </div>
+        <div className="flex items-center gap-2.5">
+          <Navigation className="w-5 h-5 text-[#FA634E] fill-current transform rotate-45 shrink-0" />
           <div>
             <h3 className="font-extrabold text-sm text-[#1F2937] dark:text-slate-100 tracking-tight leading-none" title={routeTitle}>
               {routeTitle}

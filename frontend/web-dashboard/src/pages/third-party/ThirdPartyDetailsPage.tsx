@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -74,6 +74,147 @@ function renderTripCardBadge(status: string) {
     </span>
   );
 }
+
+function ScrollingRouteTitle({ origin, dest }: { origin: string; dest: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLDivElement>(null);
+  const [isOverflowing, setIsOverflowing] = useState(false);
+
+  useEffect(() => {
+    if (containerRef.current && textRef.current) {
+      setIsOverflowing(textRef.current.scrollWidth > containerRef.current.clientWidth);
+    }
+  }, [origin, dest]);
+
+  if (!isOverflowing) {
+    return (
+      <div ref={containerRef} className="overflow-hidden min-w-0 w-full">
+        <div ref={textRef} className="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-tight flex items-center gap-1 truncate">
+          <span className="capitalize">{origin}</span>
+          <span className="text-slate-900 dark:text-white font-normal mx-0.5">→</span>
+          <span className="capitalize">{dest}</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={containerRef} className="overflow-hidden min-w-0 w-full relative group/route">
+      <style>{`
+        @keyframes routeMarquee {
+          0% { transform: translateX(0%); }
+          100% { transform: translateX(-50%); }
+        }
+      `}</style>
+      <div
+        className="inline-flex items-center gap-4 whitespace-nowrap text-base sm:text-lg font-black text-slate-900 dark:text-white leading-tight group-hover/route:[animation-play-state:paused]"
+        style={{
+          animation: 'routeMarquee 10s linear infinite',
+        }}
+      >
+        <div className="flex items-center gap-1.5">
+          <span className="capitalize">{origin}</span>
+          <span className="text-slate-900 dark:text-white font-normal mx-0.5">→</span>
+          <span className="capitalize">{dest}</span>
+        </div>
+        <span className="text-slate-400">•</span>
+        <div className="flex items-center gap-1.5">
+          <span className="capitalize">{origin}</span>
+          <span className="text-slate-900 dark:text-white font-normal mx-0.5">→</span>
+          <span className="capitalize">{dest}</span>
+        </div>
+        <span className="text-slate-400">•</span>
+      </div>
+    </div>
+  );
+}
+
+function TicketCouponCard({
+  children,
+  isSelected,
+  onClick,
+  className
+}: {
+  children: React.ReactNode;
+  isSelected?: boolean;
+  onClick?: () => void;
+  className?: string;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ w: 0, h: 0 });
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const updateSize = () => {
+      if (containerRef.current) {
+        setSize({
+          w: containerRef.current.clientWidth,
+          h: containerRef.current.clientHeight,
+        });
+      }
+    };
+    updateSize();
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const w = size.w || 300;
+  const h = size.h || 128;
+  const r = 16;
+  const nr = 9;
+  const cy = h / 2;
+
+  const pathD = w > 0 ? `
+    M ${r} 0
+    L ${w - r} 0
+    A ${r} ${r} 0 0 1 ${w} ${r}
+    L ${w} ${cy - nr}
+    A ${nr} ${nr} 0 0 0 ${w} ${cy + nr}
+    L ${w} ${h - r}
+    A ${r} ${r} 0 0 1 ${w - r} ${h}
+    L ${r} ${h}
+    A ${r} ${r} 0 0 1 0 ${h - r}
+    L 0 ${cy + nr}
+    A ${nr} ${nr} 0 0 0 0 ${cy - nr}
+    L 0 ${r}
+    A ${r} ${r} 0 0 1 ${r} 0
+    Z
+  `.replace(/\s+/g, ' ').trim() : '';
+
+  return (
+    <div
+      ref={containerRef}
+      onClick={onClick}
+      className={cn(
+        "relative transition-all cursor-pointer flex group shadow-2xs min-h-[128px] rounded-2xl bg-white dark:bg-slate-900 overflow-hidden",
+        className
+      )}
+      style={{
+        clipPath: size.w > 0 ? `path('${pathD}')` : undefined,
+        WebkitClipPath: size.w > 0 ? `path('${pathD}')` : undefined,
+      }}
+    >
+      {/* SVG Vector Ticket Contour Border Overlay */}
+      {size.w > 0 && (
+        <svg
+          className="absolute inset-0 w-full h-full pointer-events-none z-30 overflow-visible"
+          viewBox={`0 0 ${w} ${h}`}
+        >
+          <path
+            d={pathD}
+            fill="none"
+            stroke={isSelected ? "#FA634E" : "rgba(226, 232, 240, 0.9)"}
+            strokeWidth="1.5"
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
+      )}
+      {children}
+    </div>
+  );
+}
+
 
 const VEHICLE_CLASSES = ['3-4 TON', '5 TON', '10 TON', '20 TON', '40 FEET'];
 const LINE_TYPES = ['Single Trip', 'Round Trip', '10 Hours Duty', '12 Hours Duty'];
@@ -710,44 +851,53 @@ export default function ThirdPartyDetailsPage() {
               </div>
             </div>
 
-            {/* 3 KPI CARDS ROW (Icon & Value on same row, Height & Typography matching Company Details Page) */}
+            {/* 3 KPI CARDS ROW (Large Icon on Left, Vertically Middle Aligned, Values & Titles on Right) */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 shrink-0">
               {/* KPI Card 1: TOTAL SUBCONTRACT TRIPS */}
-              <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-center gap-2 min-h-[96px]">
-                <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none">
-                  SUBCONTRACT TRIPS
-                </p>
-                <div className="flex items-center gap-3">
-                  <Truck className="w-6.5 h-6.5 text-[#FA634E] stroke-[1.75] shrink-0" />
+              <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center justify-between min-h-[96px] gap-3">
+                <Truck className="w-10 h-10 sm:w-11 sm:h-11 text-[#FA634E] stroke-[1.75] shrink-0" />
+                <div className="flex flex-col items-end justify-center min-w-0 text-right">
+                  <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mb-1.5 truncate">
+                    SUBCONTRACT TRIPS
+                  </p>
                   <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-none">
                     {totalTripsCount}
                   </span>
+                  <p className="text-[11px] font-semibold text-slate-400 mt-1 truncate">
+                    Outsourced dispatches
+                  </p>
                 </div>
               </div>
 
               {/* KPI Card 2: ACTIVE DEPLOYMENTS */}
-              <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-center gap-2 min-h-[96px]">
-                <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none">
-                  ACTIVE DEPLOYMENTS
-                </p>
-                <div className="flex items-center gap-3">
-                  <Activity className="w-6.5 h-6.5 text-blue-600 dark:text-blue-400 stroke-[1.75] shrink-0" />
+              <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center justify-between min-h-[96px] gap-3">
+                <Activity className="w-10 h-10 sm:w-11 sm:h-11 text-blue-600 dark:text-blue-400 stroke-[1.75] shrink-0" />
+                <div className="flex flex-col items-end justify-center min-w-0 text-right">
+                  <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mb-1.5 truncate">
+                    ACTIVE DEPLOYMENTS
+                  </p>
                   <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-none">
                     {activeDispatchesCount}
                   </span>
+                  <p className="text-[11px] font-semibold text-slate-400 mt-1 truncate">
+                    Active fleet on road
+                  </p>
                 </div>
               </div>
 
               {/* KPI Card 3: TOTAL RENTAL OUTLAY */}
-              <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-center gap-2 min-h-[96px]">
-                <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none">
-                  TOTAL RENTAL OUTLAY
-                </p>
-                <div className="flex items-center gap-3">
-                  <Banknote className="w-6.5 h-6.5 text-emerald-600 dark:text-emerald-400 stroke-[1.75] shrink-0" />
+              <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center justify-between min-h-[96px] gap-3">
+                <Banknote className="w-10 h-10 sm:w-11 sm:h-11 text-emerald-600 dark:text-emerald-400 stroke-[1.75] shrink-0" />
+                <div className="flex flex-col items-end justify-center min-w-0 text-right">
+                  <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mb-1.5 truncate">
+                    TOTAL RENTAL OUTLAY
+                  </p>
                   <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-none font-mono">
                     SAR {totalRentalOutlay > 0 ? Math.round(totalRentalOutlay).toLocaleString() : '0'}
                   </span>
+                  <p className="text-[11px] font-semibold text-slate-400 mt-1 truncate">
+                    Cumulative vendor spend
+                  </p>
                 </div>
               </div>
             </div>
@@ -1444,76 +1594,78 @@ export default function ThirdPartyDetailsPage() {
                       paginatedRates.map((rate: ProviderRateCard, idx: number) => {
                         const isSelected = selectedPreviewRate?.id === rate.id;
                         const rateCodeStr = `RATE-${rate.id.slice(0, 5).toUpperCase()}`;
-                        const costStr = `SAR ${Number(rate.cost).toLocaleString(undefined, { minimumFractionDigits: 0 })}`;
+                        const costAmount = rate.cost || 0;
+                        const origin = rate.origin_city || 'Origin';
+                        const dest = rate.destination_city || 'Destination';
+                        const vehicleClassStr = rate.vehicle_class || '1 Lane';
 
                         return (
-                          <div
+                          <TicketCouponCard
                             key={rate.id || idx}
+                            isSelected={isSelected}
                             onClick={() => {
                               setSelectedPreviewTrip(null);
                               setSelectedPreviewRate((prev: any) => prev?.id === rate.id ? null : rate);
                             }}
-                            className={cn(
-                              "relative overflow-hidden rounded-2xl border transition-all cursor-pointer flex flex-col justify-between p-3.5 sm:p-4 gap-2.5 group shadow-2xs",
-                              isSelected
-                                ? "border-[#FA634E] ring-1 ring-[#FA634E]/30 bg-white dark:bg-slate-900"
-                                : "border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50/60 dark:hover:bg-slate-800/60"
-                            )}
                           >
-                            {/* TOP ROW: RATE CODE & STATUS (LEFT) | RATE AMOUNT (RIGHT) */}
-                            <div className="flex items-center justify-between gap-2 z-10">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <Tag className="w-4.5 h-4.5 text-[#FA634E] shrink-0 stroke-[2]" />
-                                <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white font-mono leading-none tracking-tight">
+                            {/* LEFT MAIN SECTION */}
+                            <div className="flex-1 p-3.5 sm:p-4 flex flex-col justify-between border-r border-dashed border-slate-200 dark:border-slate-800 pr-3.5 sm:pr-4 min-w-0">
+                              {/* TOP ROW: ICON + RATE REF */}
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <Tag className="w-5 h-5 text-[#FA634E] shrink-0 stroke-[2.2]" />
+                                <span className="text-base font-black text-slate-900 dark:text-white font-mono leading-none tracking-tight">
                                   {rateCodeStr}
                                 </span>
-                                <span className="bg-emerald-50 text-emerald-700 border border-emerald-200/80 dark:bg-emerald-950/50 dark:text-emerald-400 px-2 py-0.5 rounded-full text-[10px] font-bold shadow-2xs flex items-center gap-1 shrink-0">
+                              </div>
+
+                              {/* ROUTE TITLE (SIDE-WISE MARQUEE SCROLL IF LONG) */}
+                              <div className="my-2 min-w-0 w-full">
+                                <ScrollingRouteTitle origin={origin} dest={dest} />
+                              </div>
+
+                              {/* HORIZONTAL DIVIDER LINE */}
+                              <div className="w-full h-px bg-slate-100 dark:bg-slate-800 my-0.5"></div>
+
+                              {/* BOTTOM ROW: DATE CREATED */}
+                              <div className="flex items-center text-xs pt-0.5">
+                                <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500">
+                                  <Calendar className="w-4 h-4 text-slate-400 shrink-0 stroke-[1.75]" />
+                                  <div>
+                                    <span className="text-[8.5px] font-black uppercase tracking-wider text-slate-400 block leading-none mb-0.5">
+                                      CREATED
+                                    </span>
+                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-200 leading-none block">
+                                      {formatInDeploymentTz(rate.createdAt || rate.updatedAt || new Date(), tz, 'dd MMM yyyy')}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* RIGHT STUB SECTION */}
+                            <div className="w-[115px] sm:w-[130px] shrink-0 p-3.5 sm:p-4 flex flex-col justify-between items-end pl-3.5 sm:pl-4 text-right">
+                              {/* TOP RIGHT: ACTIVE TAG & VEHICLE CLASS / LANE PILL */}
+                              <div className="flex flex-col items-end gap-1.5">
+                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold border shadow-2xs flex items-center gap-1.5 leading-none shrink-0 bg-emerald-50 text-emerald-700 border-emerald-200/90 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800/60">
                                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                                   Active
                                 </span>
-                              </div>
-
-                              {/* Rate Amount Badge */}
-                              <div className="flex flex-col items-end shrink-0">
-                                <span className="text-[8.5px] font-black uppercase text-[#FA634E] dark:text-orange-400 tracking-wider mb-0.5">
-                                  Rate
-                                </span>
-                                <span className="text-xs sm:text-sm font-black font-mono text-[#FA634E] dark:text-orange-400 bg-orange-50 dark:bg-orange-950/60 border border-orange-200/80 dark:border-orange-800/50 px-2 py-0.5 rounded-md shadow-2xs leading-none">
-                                  {costStr}
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* ROUTE TITLE & SPECS */}
-                            <div className="space-y-1 z-10 py-0.5">
-                              <div className="text-xs sm:text-sm font-black text-slate-900 dark:text-white leading-tight flex items-center gap-1 truncate">
-                                <span className="capitalize">{rate.origin_city}</span>
-                                <ArrowRight className="w-3.5 h-3.5 text-[#FA634E] shrink-0 mx-0.5" />
-                                <span className="capitalize">{rate.destination_city}</span>
-                              </div>
-                              <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 truncate">
-                                {rate.vehicle_class} · {rate.line_type}
-                              </p>
-                            </div>
-
-                            {/* DIVIDER LINE */}
-                            <div className="w-full h-px bg-slate-100 dark:bg-slate-800 z-10"></div>
-
-                            {/* BOTTOM ROW: DATE & PREVIEW LINK */}
-                            <div className="flex items-center justify-between text-xs pt-0.5 z-10">
-                              <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
-                                <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                <span className="text-[10.5px] font-bold text-slate-600 dark:text-slate-300">
-                                  {formatInDeploymentTz(rate.updatedAt || rate.createdAt || new Date(), tz, 'dd MMM yyyy')}
+                                <span className="px-2 py-0.5 rounded-full text-[9.5px] font-bold bg-orange-50 text-[#FA634E] border border-orange-200/90 dark:bg-orange-950/60 dark:text-orange-300 dark:border-orange-900/60 leading-none shadow-2xs">
+                                  {vehicleClassStr}
                                 </span>
                               </div>
 
-                              <div className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-bold text-[10.5px] uppercase tracking-wider">
-                                <span>PREVIEW</span>
-                                <ChevronRight className="w-3.5 h-3.5" />
+                              {/* BOTTOM RIGHT: RATE AMOUNT */}
+                              <div className="w-full text-right">
+                                <span className="text-[8.5px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider block leading-none mb-1">
+                                  RATE
+                                </span>
+                                <span className="text-sm sm:text-base font-black font-mono text-slate-900 dark:text-white leading-none block tracking-tight">
+                                  SAR {Number(costAmount).toLocaleString()}
+                                </span>
                               </div>
                             </div>
-                          </div>
+                          </TicketCouponCard>
                         );
                       })
                     )}

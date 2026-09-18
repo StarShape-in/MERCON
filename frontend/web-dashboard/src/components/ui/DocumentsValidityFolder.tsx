@@ -203,15 +203,12 @@ export default function DocumentsValidityFolder({
     <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between h-full min-h-[410px] relative overflow-hidden select-none">
       
       {/* ── Top Header Bar ── */}
-      <div className="flex items-center justify-between mb-3 pb-2.5 border-b border-slate-100 dark:border-slate-800 shrink-0 z-10">
+      <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800 shrink-0 z-10">
         <h2 className="text-sm font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
           <FileText className="w-4.5 h-4.5 text-blue-600" />
           Documents &amp; Validity
         </h2>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-black uppercase text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded-full font-mono">
-            {documents.length} Items
-          </span>
           <button 
             onClick={() => vehicleId && navigate(`/vehicles/${vehicleId}/documents`)}
             className="text-xs font-bold px-3 py-1 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer shrink-0"
@@ -221,8 +218,8 @@ export default function DocumentsValidityFolder({
         </div>
       </div>
 
-      {/* ── Folder Pocket & Stacked Index Cards ── */}
-      <div className="relative flex-1 flex flex-col justify-start pt-1 pb-1 min-h-0 overflow-y-auto pr-0.5">
+      {/* ── Folder Pocket & Stacked Index Cards (Shifted Down with More Breathing Room) ── */}
+      <div className="relative flex-1 flex flex-col justify-start pt-2 sm:pt-3 pb-1 min-h-0 overflow-y-auto pr-0.5">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center gap-3 py-10 text-slate-400">
             <Loader2 className="w-6 h-6 animate-spin text-[#FA634E]" />
@@ -240,7 +237,7 @@ export default function DocumentsValidityFolder({
             </button>
           </div>
         ) : (
-          <div className="relative w-full flex flex-col justify-start space-y-2 pt-2">
+          <div className="relative w-full flex flex-col justify-start space-y-2.5 pt-3">
             {documents.map((doc, index) => {
               const Icon = doc.icon;
               const isSelected = selectedDocumentId === doc.id;
@@ -340,9 +337,7 @@ export default function DocumentsValidityFolder({
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 w-full max-w-md shadow-2xl animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-[#FA634E] flex items-center justify-center">
-                  <FilePlus className="w-4.5 h-4.5 stroke-[2.2]" />
-                </div>
+                <FilePlus className="w-5 h-5 text-[#FA634E] stroke-[2.2] shrink-0" />
                 <div>
                   <h3 className="text-sm font-black text-slate-900 dark:text-white leading-tight">Add Vehicle Document</h3>
                   <p className="text-[11px] font-medium text-slate-400">Attach a new certificate to stack</p>

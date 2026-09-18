@@ -7,7 +7,7 @@ import {
   Plus, RotateCw, ShieldCheck, CheckCircle2, Truck, Calendar,
   ChevronLeft, ChevronRight, TrendingUp, Sparkles, CreditCard, ArrowRight, Package, Layers, Phone, Mail,
   Trash2, UploadCloud, User, Download, ChevronDown, Car, UserCheck, Copy, PhoneCall,
-  MoreVertical, Award, FolderOpen, Banknote, Gauge, Compass, Radio, Plane, Search
+  MoreVertical, Award, FolderOpen, Banknote, Gauge, Compass, Radio, Plane, Search, Tag
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -98,6 +98,92 @@ function ScrollingRouteTitle({ origin, dest }: { origin: string; dest: string })
         </div>
         <span className="text-slate-400">•</span>
       </div>
+    </div>
+  );
+}
+
+function TicketCouponCard({
+  children,
+  isSelected,
+  onClick,
+  className
+}: {
+  children: React.ReactNode;
+  isSelected?: boolean;
+  onClick?: () => void;
+  className?: string;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ w: 0, h: 0 });
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const updateSize = () => {
+      if (containerRef.current) {
+        setSize({
+          w: containerRef.current.clientWidth,
+          h: containerRef.current.clientHeight,
+        });
+      }
+    };
+    updateSize();
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const w = size.w || 300;
+  const h = size.h || 128;
+  const r = 16;
+  const nr = 9;
+  const cy = h / 2;
+
+  const pathD = w > 0 ? `
+    M ${r} 0
+    L ${w - r} 0
+    A ${r} ${r} 0 0 1 ${w} ${r}
+    L ${w} ${cy - nr}
+    A ${nr} ${nr} 0 0 0 ${w} ${cy + nr}
+    L ${w} ${h - r}
+    A ${r} ${r} 0 0 1 ${w - r} ${h}
+    L ${r} ${h}
+    A ${r} ${r} 0 0 1 0 ${h - r}
+    L 0 ${cy + nr}
+    A ${nr} ${nr} 0 0 0 0 ${cy - nr}
+    L 0 ${r}
+    A ${r} ${r} 0 0 1 ${r} 0
+    Z
+  `.replace(/\s+/g, ' ').trim() : '';
+
+  return (
+    <div
+      ref={containerRef}
+      onClick={onClick}
+      className={cn(
+        "relative transition-all cursor-pointer flex group shadow-2xs min-h-[128px] rounded-2xl bg-white dark:bg-slate-900 overflow-hidden",
+        className
+      )}
+      style={{
+        clipPath: size.w > 0 ? `path('${pathD}')` : undefined,
+        WebkitClipPath: size.w > 0 ? `path('${pathD}')` : undefined,
+      }}
+    >
+      {/* SVG Vector Ticket Contour Border Overlay */}
+      {size.w > 0 && (
+        <svg
+          className="absolute inset-0 w-full h-full pointer-events-none z-30 overflow-visible"
+          viewBox={`0 0 ${w} ${h}`}
+        >
+          <path
+            d={pathD}
+            fill="none"
+            stroke={isSelected ? "#FA634E" : "rgba(226, 232, 240, 0.9)"}
+            strokeWidth={isSelected ? "2.5" : "1.5"}
+            className="transition-colors duration-200"
+          />
+        </svg>
+      )}
+      {children}
     </div>
   );
 }
@@ -505,44 +591,53 @@ export default function CustomerDetailsPage() {
               </div>
             </div>
 
-            {/* 3 KPI CARDS ROW (Icon & Value on same row, Height & Typography matching Driver/Vehicle Details Pages) */}
+            {/* 3 KPI CARDS ROW (Large Icon on Left, Vertically Middle Aligned, Values & Titles on Right) */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 shrink-0">
               {/* KPI Card 1: TOTAL TRIPS */}
-              <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-center gap-2 min-h-[96px]">
-                <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none">
-                  TOTAL TRIPS
-                </p>
-                <div className="flex items-center gap-3">
-                  <Truck className="w-6.5 h-6.5 text-[#FA634E] stroke-[1.75] shrink-0" />
+              <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center justify-between min-h-[96px] gap-3">
+                <Truck className="w-10 h-10 sm:w-11 sm:h-11 text-[#FA634E] stroke-[1.75] shrink-0" />
+                <div className="flex flex-col items-end justify-center min-w-0 text-right">
+                  <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mb-1.5 truncate">
+                    TOTAL TRIPS
+                  </p>
                   <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-none">
                     {totalTripsCount}
                   </span>
+                  <p className="text-[11px] font-semibold text-slate-400 mt-1 truncate">
+                    All-time dispatches
+                  </p>
                 </div>
               </div>
 
               {/* KPI Card 2: ACTIVE DISPATCHES */}
-              <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-center gap-2 min-h-[96px]">
-                <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none">
-                  ACTIVE DISPATCHES
-                </p>
-                <div className="flex items-center gap-3">
-                  <Activity className="w-6.5 h-6.5 text-blue-600 dark:text-blue-400 stroke-[1.75] shrink-0" />
+              <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center justify-between min-h-[96px] gap-3">
+                <Activity className="w-10 h-10 sm:w-11 sm:h-11 text-blue-600 dark:text-blue-400 stroke-[1.75] shrink-0" />
+                <div className="flex flex-col items-end justify-center min-w-0 text-right">
+                  <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mb-1.5 truncate">
+                    ACTIVE DISPATCHES
+                  </p>
                   <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-none">
                     {activeDispatchesCount}
                   </span>
+                  <p className="text-[11px] font-semibold text-slate-400 mt-1 truncate">
+                    Currently on road
+                  </p>
                 </div>
               </div>
 
               {/* KPI Card 3: ON-TIME DELIVERY */}
-              <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col justify-center gap-2 min-h-[96px]">
-                <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none">
-                  ON-TIME DELIVERY
-                </p>
-                <div className="flex items-center gap-3">
-                  <TrendingUp className="w-6.5 h-6.5 text-emerald-600 dark:text-emerald-400 stroke-[1.75] shrink-0" />
+              <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center justify-between min-h-[96px] gap-3">
+                <TrendingUp className="w-10 h-10 sm:w-11 sm:h-11 text-emerald-600 dark:text-emerald-400 stroke-[1.75] shrink-0" />
+                <div className="flex flex-col items-end justify-center min-w-0 text-right">
+                  <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mb-1.5 truncate">
+                    ON-TIME DELIVERY
+                  </p>
                   <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-none">
                     {onTimeRatio}%
                   </span>
+                  <p className="text-[11px] font-semibold text-slate-400 mt-1 truncate">
+                    SLA completion rate
+                  </p>
                 </div>
               </div>
             </div>
@@ -1200,7 +1295,7 @@ export default function CustomerDetailsPage() {
                   <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800 shrink-0 gap-2">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="w-8 h-8 rounded-xl bg-orange-50 dark:bg-orange-950/60 border border-orange-200/80 dark:border-orange-900/60 flex items-center justify-center shrink-0">
-                        <FileText className="w-4.5 h-4.5 text-[#FA634E]" />
+                        <Tag className="w-4.5 h-4.5 text-[#FA634E]" />
                       </div>
                       <div className="min-w-0">
                         <h3 className="text-base font-black text-slate-900 dark:text-white leading-tight truncate">Quotations</h3>
@@ -1248,7 +1343,7 @@ export default function CustomerDetailsPage() {
                   <div className="flex-1 space-y-3 pr-0.5 min-h-0 py-1">
                     {paginatedCustomerQuotations.length === 0 ? (
                       <div className="h-full min-h-[220px] p-4 text-center border border-dashed border-slate-200/80 dark:border-slate-800 rounded-2xl bg-slate-50/50 dark:bg-slate-800/40 flex flex-col items-center justify-center">
-                        <FileText className="w-6 h-6 text-slate-300 mx-auto mb-1.5 stroke-[1.5]" />
+                        <Tag className="w-6 h-6 text-slate-300 mx-auto mb-1.5 stroke-[1.5]" />
                         <p className="text-xs font-bold text-slate-600 dark:text-slate-400">No Quotations Found</p>
                         <p className="text-[10px] text-slate-400 mt-0.5">No price agreements found for this customer.</p>
                         <Button
@@ -1270,38 +1365,19 @@ export default function CustomerDetailsPage() {
                         const rateAmount = quot.total_amount || (idx === 0 ? 2850 : idx === 1 ? 3120 : 2640);
 
                         return (
-                          <div
+                          <TicketCouponCard
                             key={quot.id || idx}
+                            isSelected={isSelected}
                             onClick={() => {
                               setSelectedPreviewTrip(null);
                               setSelectedPreviewQuotation((prev: any) => prev?.id === quot.id ? null : quot);
                             }}
-                            className={cn(
-                              "relative overflow-hidden rounded-2xl border transition-all cursor-pointer flex group shadow-2xs min-h-[128px]",
-                              isSelected
-                                ? "border-[#FA634E] ring-1 ring-[#FA634E]/30 bg-white dark:bg-slate-900"
-                                : "border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50/60 dark:hover:bg-slate-800/60"
-                            )}
                           >
-                            {/* Left & Right Notch Cutouts for Bill Ticket Stub Look with Dynamic Selected Border */}
-                            <div className={cn(
-                              "absolute -left-2.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 rounded-full bg-white dark:bg-slate-900 border z-20 pointer-events-none transition-colors",
-                              isSelected
-                                ? "border-slate-300 dark:border-slate-700"
-                                : "border-slate-200/90 dark:border-slate-800"
-                            )} />
-                            <div className={cn(
-                              "absolute -right-2.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 rounded-full bg-white dark:bg-slate-900 border z-20 pointer-events-none transition-colors",
-                              isSelected
-                                ? "border-slate-300 dark:border-slate-700"
-                                : "border-slate-200/90 dark:border-slate-800"
-                            )} />
-
                             {/* LEFT MAIN SECTION */}
                             <div className="flex-1 p-3.5 sm:p-4 flex flex-col justify-between border-r border-dashed border-slate-200 dark:border-slate-800 pr-3.5 sm:pr-4 min-w-0">
                               {/* TOP ROW: ICON + QUOT REF */}
                               <div className="flex items-center gap-2.5 min-w-0">
-                                <FileText className="w-5 h-5 text-[#FA634E] shrink-0 stroke-[2.2]" />
+                                <Tag className="w-5 h-5 text-[#FA634E] shrink-0 stroke-[2.2]" />
                                 <span className="text-base font-black text-slate-900 dark:text-white font-mono leading-none tracking-tight">
                                   {quotCodeStr}
                                 </span>
@@ -1331,8 +1407,8 @@ export default function CustomerDetailsPage() {
                               </div>
                             </div>
 
-                            {/* RIGHT STUB SECTION (CONTAINS MOVED APPROVED TAG AT TOP RIGHT) */}
-                            <div className="w-[115px] sm:w-[130px] shrink-0 p-3.5 sm:p-4 flex flex-col justify-between items-end bg-slate-50/40 dark:bg-slate-800/30 pl-3.5 sm:pl-4 text-right">
+                            {/* RIGHT STUB SECTION */}
+                            <div className="w-[115px] sm:w-[130px] shrink-0 p-3.5 sm:p-4 flex flex-col justify-between items-end pl-3.5 sm:pl-4 text-right">
                               {/* TOP RIGHT: APPROVED TAG & LANE PILL */}
                               <div className="flex flex-col items-end gap-1.5">
                                 <span className={cn(
@@ -1359,7 +1435,7 @@ export default function CustomerDetailsPage() {
                                 </span>
                               </div>
                             </div>
-                          </div>
+                          </TicketCouponCard>
                         );
                       })
                     )}

@@ -33,6 +33,7 @@ export interface DriverGridViewProps {
   search: string;
   onSearchChange: (val: string) => void;
   filterToolbar: React.ReactNode;
+  headerActions?: React.ReactNode;
 }
 
 export function DriverGridView({
@@ -51,6 +52,7 @@ export function DriverGridView({
   search,
   onSearchChange,
   filterToolbar,
+  headerActions,
 }: DriverGridViewProps) {
   const navigate = useNavigate();
 
@@ -92,6 +94,7 @@ export function DriverGridView({
 
           <div className="flex w-full xl:w-auto items-center flex-wrap gap-2 sm:shrink-0 xl:ml-auto rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-950/30 p-1.5">
             {filterToolbar}
+            {headerActions}
           </div>
         </div>
       </div>
