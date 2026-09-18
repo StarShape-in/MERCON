@@ -1032,7 +1032,7 @@ export default function DriverDetailsPage() {
                       className={cn(
                         "relative overflow-hidden rounded-2xl border transition-all cursor-pointer flex flex-col justify-between p-3 sm:p-3.5 gap-2 group shadow-2xs",
                         isSelected
-                          ? "border-slate-300 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/60"
+                          ? "border-[#FA634E] bg-rose-50/40 dark:bg-rose-950/30 ring-1 ring-[#FA634E]/30"
                           : "border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50/60 dark:hover:bg-slate-800/60"
                       )}
                     >
