@@ -4,8 +4,9 @@ import {
   Home, Bell, Truck, Users, Car, Building2,
   CreditCard, ReceiptText, Calculator, Files, FileBarChart,
   Settings, User, LogOut, Wrench, X, MapPin, TrendingUp, Trash2,
-  CalendarRange, Wallet, SlidersHorizontal, ChevronsLeft, ChevronsRight, FolderArchive, Lock, ShieldCheck
+  CalendarRange, Wallet, SlidersHorizontal, ChevronsLeft, ChevronsRight, FolderArchive, Lock, ShieldCheck, GraduationCap
 } from 'lucide-react';
+
 import { authStore } from '@/store/authStore';
 import { notificationService } from '@/services/notificationService';
 
@@ -109,6 +110,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
     {
       label: 'COMPLIANCE & REPORTS',
       items: [
+        { icon: GraduationCap, label: 'Learning', path: '/learning', moduleKey: 'learning' },
         { icon: Files, label: 'Documents', path: '/documents', moduleKey: 'documents' },
         { icon: FileBarChart, label: 'Company Reports', path: '/company-reports', moduleKey: 'company-reports', permissionKey: 'reports.view' },
         { icon: SlidersHorizontal, label: 'Report Builder', path: '/report-builder', moduleKey: 'report-builder', permissionKey: 'reports.view' },
