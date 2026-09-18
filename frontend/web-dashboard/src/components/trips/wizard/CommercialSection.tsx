@@ -97,6 +97,7 @@ interface CommercialSectionProps {
   customerOptions?: ComboboxOption[];
   fieldErrors?: Record<string, boolean>;
   assignmentType?: string;
+  isEditMode?: boolean;
 }
 
 export const CommercialSection: React.FC<CommercialSectionProps> = ({
@@ -118,6 +119,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
   customerOptions = [],
   fieldErrors = {},
   assignmentType = 'own',
+  isEditMode = false,
 }) => {
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
   const searchInputRef = React.useRef<HTMLInputElement>(null);
@@ -346,7 +348,7 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
     <div className="p-3.5 rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs space-y-2.5 text-[#3E3C3D]">
       {/* UNIFIED SINGLE HEADER: CUSTOMER ACCOUNT */}
       <div className="flex items-center justify-between gap-3 pb-2 border-b border-slate-100 dark:border-slate-800 flex-wrap">
-        {/* LEFT: LOGO + CUSTOMER SEARCH COMBOBOX + MATCHED RATE BADGE */}
+        {/* LEFT: LOGO + CUSTOMER DISPLAY + MATCHED RATE BADGE */}
         <div className="flex items-center gap-2.5 flex-wrap flex-1 min-w-0">
           {/* COMPANY PROFILE PICTURE */}
           {selectedCust ? (
@@ -371,8 +373,17 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
             </div>
           )}
 
-          {/* CUSTOMER SEARCH COMBOBOX */}
-          {setContractCustomer && (
+          {/* CUSTOMER DISPLAY: COMBOBOX IF CREATE MODE, READ-ONLY CARD IF EDIT MODE */}
+          {isEditMode ? (
+            <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700">
+              <span className="text-xs font-black text-slate-900 dark:text-slate-100 truncate max-w-[260px]">
+                {selectedCust?.name || 'Assigned Customer'}
+              </span>
+              <span className="text-[10px] font-bold text-slate-500 bg-slate-200/80 dark:bg-slate-700 px-1.5 py-0.5 rounded">
+                Fixed Customer
+              </span>
+            </div>
+          ) : setContractCustomer ? (
             <div id="field-customer" className="w-full sm:w-[320px] shrink-0">
               <Combobox
                 options={derivedCustomerOptions}
@@ -390,12 +401,12 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                 </div>
               )}
             </div>
-          )}
+          ) : null}
         </div>
 
         {/* RIGHT: CREATE / EDIT QUOTATION BUTTON TOGGLE */}
         <div className="flex items-center gap-1.5 shrink-0">
-          {contractCustomer && (
+          {!isEditMode && contractCustomer && (
             <Button
               type="button"
               variant="outline"

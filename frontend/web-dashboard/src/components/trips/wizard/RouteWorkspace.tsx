@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Trash2, Calendar, Clock, RotateCcw, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Calendar, Clock, RotateCcw, AlertCircle, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LocationCombobox from '@/components/quotations/LocationCombobox';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
@@ -29,6 +29,7 @@ interface RouteWorkspaceProps {
   handleRemoveSlotReturnIntermediate?: (slotId: string, idx: number) => void;
   handleUpdateSlotReturnIntermediate?: (slotId: string, idx: number, val: string) => void;
   fieldErrors?: Record<string, boolean>;
+  isRouteLocked?: boolean;
 }
 
 export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
@@ -50,6 +51,7 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
   handleRemoveSlotReturnIntermediate,
   handleUpdateSlotReturnIntermediate,
   fieldErrors = {},
+  isRouteLocked = false,
 }) => {
   const lineTypeTaxonomyOptions = getAllTaxonomyOptions('LINE_TYPE');
   const selectedTaxonomyOption = resolveTaxonomyOption('LINE_TYPE', contractRateCategory);
@@ -180,6 +182,12 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
               }}
               compact
             />
+          )}
+
+          {isRouteLocked && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-900">
+              <Lock className="w-3 h-3 text-amber-600" /> Route Locked
+            </span>
           )}
         </div>
 
