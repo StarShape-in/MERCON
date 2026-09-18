@@ -383,6 +383,12 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
                 searchPlaceholder="Search customer name or code..."
                 triggerClassName="h-8.5 rounded-xl border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 shadow-2xs w-full focus:ring-2 focus:ring-brand"
               />
+              {fieldErrors?.['customer'] && (
+                <div className="flex items-center gap-1.5 mt-1 text-[11px] font-bold text-rose-600 dark:text-rose-400">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>Please select customer account</span>
+                </div>
+              )}
             </div>
           )}
         </div>

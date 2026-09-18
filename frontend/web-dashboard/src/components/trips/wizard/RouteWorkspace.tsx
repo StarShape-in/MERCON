@@ -220,6 +220,12 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
                 triggerClassName="h-9 border-slate-200 bg-white text-xs font-bold text-[#3E3C3D] dark:text-slate-100 shadow-2xs w-full"
                 precision={slot.originPrecision}
               />
+              {(fieldErrors?.[`origin-${slot.id}`] || fieldErrors?.['origin']) && (
+                <div className="flex items-center gap-1.5 mt-1 text-[11px] font-bold text-rose-600 dark:text-rose-400">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>Please select origin location</span>
+                </div>
+              )}
             </div>
 
             {/* COMBINED PICKUP DATE & TIME (4 COLS) */}
@@ -257,7 +263,7 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
                   placeholder="Select pickup time..."
                   buttonClassName={cn(
                     "h-9 rounded-xl border-slate-200 bg-white shadow-2xs font-semibold text-xs text-slate-800 px-3 w-full",
-                    (fieldErrors?.[`pickup-${slot.id}`] || fieldErrors?.[`schedule-${slot.id}`]) && "border-red-500 ring-1 ring-red-500"
+                    (fieldErrors?.[`pickup-${slot.id}`] || fieldErrors?.[`schedule-${slot.id}`]) && "border-red-500 ring-2 ring-red-500/30 bg-red-50/20 text-red-900"
                   )}
                 />
               ) : (
@@ -285,6 +291,12 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
                   showRelativeBadge={false}
                   className="h-9 rounded-xl border-slate-200 bg-white shadow-2xs text-xs font-semibold"
                 />
+              )}
+              {(fieldErrors?.[`pickup-${slot.id}`] || fieldErrors?.[`schedule-${slot.id}`]) && (
+                <div className="flex items-center gap-1.5 mt-1 text-[11px] font-bold text-rose-600 dark:text-rose-400">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>Please select pickup time</span>
+                </div>
               )}
             </div>
           </div>
@@ -354,6 +366,12 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
                 triggerClassName="h-9 border-slate-200 bg-white text-xs font-bold text-[#3E3C3D] dark:text-slate-100 shadow-2xs w-full"
                 precision={slot.destinationPrecision}
               />
+              {(fieldErrors?.[`destination-${slot.id}`] || fieldErrors?.['destination']) && (
+                <div className="flex items-center gap-1.5 mt-1 text-[11px] font-bold text-rose-600 dark:text-rose-400">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>Please select destination location</span>
+                </div>
+              )}
             </div>
 
             {/* COMBINED DROPOFF DATE & TIME (4 COLS) */}

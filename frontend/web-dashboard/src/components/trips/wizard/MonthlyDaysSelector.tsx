@@ -144,16 +144,6 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
       });
     }
 
-    const targetVehId = masterVehicle || rotationVehicles[0];
-    if (targetVehId && targetVehId !== 'unassigned' && setContractVehicleType) {
-      const selVeh = vehicles.find((v: any) => v.id === targetVehId);
-      if (selVeh) {
-        const vClass = getVehicleClassFromVeh(selVeh);
-        if (vClass) {
-          setContractVehicleType(vClass);
-        }
-      }
-    }
   }, [masterDriver, masterVehicle, rotationVehicles, vehicles]);
 
   // Helper to fetch full driver object
@@ -257,18 +247,6 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
       }
     }
 
-    // Auto-update contractVehicleType based on driver's assigned vehicle or active vehicle
-    const activeVehId = nextVehicles[index] || nextVehicles[0];
-    if (activeVehId && activeVehId !== 'unassigned' && setContractVehicleType) {
-      const selVeh = vehicles.find((v: any) => v.id === activeVehId);
-      if (selVeh) {
-        const vClass = getVehicleClassFromVeh(selVeh);
-        if (vClass) {
-          setContractVehicleType(vClass);
-        }
-      }
-    }
-
     applyAssignmentStrategy(strategyMode, rotationCount, nextDrivers, nextVehicles);
   };
 
@@ -286,13 +264,7 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
     if (newVehicleId && newVehicleId !== 'unassigned') {
       const selVeh = vehicles.find((v: any) => v.id === newVehicleId);
       if (selVeh) {
-        // 1. Auto update contractVehicleType based on selected vehicle
-        const vClass = getVehicleClassFromVeh(selVeh);
-        if (vClass && setContractVehicleType) {
-          setContractVehicleType(vClass);
-        }
-
-        // 2. If no driver assigned for this slot yet, auto-select vehicle's default driver
+        // If no driver assigned for this slot yet, auto-select vehicle's default driver
         if (!nextDrivers[index] || nextDrivers[index] === 'unassigned') {
           const defaultDriverId = selVeh.assignedDriverId || selVeh.assigned_driver_id || (selVeh.assignedDriver && selVeh.assignedDriver.id);
           if (defaultDriverId) {

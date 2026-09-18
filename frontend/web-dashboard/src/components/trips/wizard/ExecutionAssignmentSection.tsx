@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Truck, User, Users, ShieldAlert, Plus, Trash2, TrendingUp, Tag } from 'lucide-react';
+import { Truck, User, Users, ShieldAlert, Plus, Trash2, TrendingUp, Tag, AlertCircle } from 'lucide-react';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import DriverAvatar from '@/components/ui/DriverAvatar';
 import { thirdPartyService, ProviderRateCard, Previous3PLDriver } from '@/services/thirdPartyService';
+import VehicleCompatibilityBadge from '@/components/trips/shared/VehicleCompatibilityBadge';
+import { getCompatibilityRuleForClass } from '@/utils/vehicleCompatibilityRegistry';
+import { getVehicleTypeFromCapacity } from '@/hooks/useCreateTripForm';
 
 interface ExecutionAssignmentSectionProps {
   assignmentType: 'own' | 'third_party' | '3pl';
@@ -30,6 +33,7 @@ interface ExecutionAssignmentSectionProps {
   setContractVehicleType?: (vType: string) => void;
   contractBillingType?: string;
   fieldErrors?: Record<string, boolean>;
+  vehicles?: any[];
 }
 
 export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProps> = ({
@@ -57,6 +61,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
   setContractVehicleType,
   contractBillingType,
   fieldErrors = {},
+  vehicles = [],
 }) => {
   const [coDriver, setCoDriver] = useState('');
   const [showCoDriver, setShowCoDriver] = useState(false);
@@ -102,9 +107,6 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
       setThirdPartyDriverName(drv.driverName || '');
       setThirdPartyDriverPhone?.(drv.driverPhone || '');
       setThirdPartyVehiclePlate(drv.vehiclePlate || '');
-      if (drv.vehicleType && setContractVehicleType) {
-        setContractVehicleType(drv.vehicleType);
-      }
     }
   };
 
@@ -219,9 +221,15 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
         </div>
       ) : assignmentType === 'own' ? (
         /* 2-COLUMN ASSIGNMENT WORKSPACE */
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
+        <div id="field-driver-vehicle" className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
           {/* LEFT COLUMN: SELECTION DROPDOWNS */}
           <div className="md:col-span-7 space-y-2 border-r-0 md:border-r border-slate-100 dark:border-slate-800 pr-0 md:pr-2.5">
+            {fieldErrors?.['driverVehicle'] && (
+              <div className="flex items-center gap-1.5 p-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 dark:bg-rose-950/40 dark:border-rose-900 dark:text-rose-300 text-xs font-bold animate-fade-in">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>Please select an assignment choice: Driver & Vehicle or Assign Later.</span>
+              </div>
+            )}
             {/* VEHICLE CLASS */}
             {setContractVehicleType && (
               <div className="space-y-1">
@@ -302,6 +310,13 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                 placeholder="Select primary vehicle or assign later..."
                 searchPlaceholder="Search plate, asset code..."
                 triggerClassName="h-8 rounded-lg border-slate-200 text-xs font-bold text-slate-800 dark:text-slate-100 shadow-2xs"
+              />
+              <VehicleCompatibilityBadge
+                contractVehicleType={contractVehicleType}
+                masterVehicle={masterVehicle}
+                vehicles={vehicles}
+                activeCompatibilityRule={getCompatibilityRuleForClass(contractVehicleType)}
+                getVehicleTypeFromCapacity={getVehicleTypeFromCapacity}
               />
             </div>
 
@@ -481,7 +496,7 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
         /* 3PL PARTNER ASSIGNMENT WORKSPACE WITH PROFITABILITY CARD */
         <div className="space-y-2.5">
           {/* 3PL PROVIDER */}
-          <div className="space-y-1">
+          <div id="field-3pl-partner" className="space-y-1">
             <div className="flex items-center justify-between">
               <label className="text-[10px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                 3PL PROVIDER *
@@ -520,6 +535,12 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                 ))}
               </SelectContent>
             </Select>
+            {fieldErrors?.['thirdPartyProvider'] && (
+              <div className="flex items-center gap-1.5 mt-1 text-[11px] font-bold text-rose-600 dark:text-rose-400">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <span>Please select 3PL logistics partner</span>
+              </div>
+            )}
           </div>
 
           {/* 3PL PREVIOUS DRIVER HISTORY (IF AVAILABLE FOR SELECTED PROVIDER) */}
@@ -657,6 +678,12 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
                 />
                 <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">SAR</span>
               </div>
+              {fieldErrors?.['thirdPartyCost'] && (
+                <div className="flex items-center gap-1.5 mt-1 text-[11px] font-bold text-rose-600 dark:text-rose-400">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>Please enter 3PL cost</span>
+                </div>
+              )}
             </div>
           </div>
 

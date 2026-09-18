@@ -12,7 +12,8 @@ on:
 # --build` is never interrupted.
 concurrency:
   group: ci-cd-dev
-  cancel-in-progress: true
+  cancel-in-progress: false
+
 
 jobs:
   deploy:
@@ -125,20 +126,52 @@ jobs:
           echo "Disk space available immediately prior to build:"
           df -h / || true
 
-          echo "Building and updating mercon-dev services with BuildKit cache..."
-          docker compose -p mercon-dev up -d --build
+          echo "Building mercon-dev images (running container remains untouched during build)..."
+          docker compose -p mercon-dev build
 
-          # Build and start services in detached mode
-          # Migration and prisma generation are handled authoritatively at container boot by Dockerfile CMD:
-          # npx prisma migrate deploy && npx prisma generate && node dist/index.js
-          sleep 8
-          echo "--- dev-api logs (last 100 lines) ---"
-          docker compose -p mercon-dev logs --no-color --tail=100 mercon-api || true
-          echo "--- dev-api container status ---"
+          echo "Executing Prisma database migrations with newly built image..."
+          docker compose -p mercon-dev run --rm --no-deps mercon-api npx prisma migrate deploy
+
+          echo "Recreating and restarting mercon-dev containers..."
+          docker compose -p mercon-dev up -d --no-build
+
+          echo "Waiting for mercon-dev-api container to achieve healthy status (bounded 60s timeout)..."
+          HEALTH_STATUS="unknown"
+          TIMEOUT=60
+          ELAPSED=0
+
+          while [ $ELAPSED -lt $TIMEOUT ]; do
+            HEALTH_STATUS=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' mercon-dev-api 2>/dev/null || echo "container-not-found")
+            if [ "$HEALTH_STATUS" = "healthy" ]; then
+              echo "✓ mercon-dev-api container reported healthy state after ${ELAPSED}s."
+              break
+            elif [ "$HEALTH_STATUS" = "unhealthy" ]; then
+              echo "::error::mercon-dev-api container reported UNHEALTHY state." >&2
+              break
+            fi
+            sleep 2
+            ELAPSED=$((ELAPSED + 2))
+          done
+
+          echo "--- mercon-dev-api container status ---"
           docker compose -p mercon-dev ps mercon-api || true
 
-          echo "--- Verifying dev health endpoint ---"
-          curl -fsS http://127.0.0.1:3051/health 2>/dev/null || curl -fsS http://localhost:3051/health 2>/dev/null || echo "Healthcheck curl probe completed."
+          if [ "$HEALTH_STATUS" != "healthy" ]; then
+            echo "::error::Deployment failed! mercon-dev-api container did not achieve healthy status (Status: '$HEALTH_STATUS'). Printing logs..." >&2
+            echo "--- mercon-dev-api logs (last 100 lines) ---"
+            docker compose -p mercon-dev logs --no-color --tail=100 mercon-api || true
+            exit 1
+          fi
+
+          echo "--- Verifying external health endpoint ---"
+          if ! curl -fsS http://127.0.0.1:3051/health; then
+            echo "::error::Deployment failed! External health probe GET http://127.0.0.1:3051/health failed or returned non-200. Printing logs..." >&2
+            echo "--- mercon-dev-api logs (last 100 lines) ---"
+            docker compose -p mercon-dev logs --no-color --tail=100 mercon-api || true
+            exit 1
+          fi
+          echo "✓ External health probe GET http://127.0.0.1:3051/health verified successfully."
+
 
           echo "=== FINAL DISK AND DOCKER STORAGE STATE ==="
           df -h / || true
