@@ -643,7 +643,7 @@ export default function CustomerDetailsPage() {
                             className={cn(
                               "relative overflow-hidden rounded-2xl border transition-all cursor-pointer flex flex-col justify-between p-3 sm:p-3.5 gap-2 group shadow-2xs",
                               isSelected
-                                ? "border-[#FA634E] bg-rose-50/40 dark:bg-rose-950/30 ring-1 ring-[#FA634E]/30"
+                                ? "border-[#FA634E] ring-1 ring-[#FA634E]/30 bg-white dark:bg-slate-900"
                                 : "border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50/60 dark:hover:bg-slate-800/50"
                             )}
                           >
@@ -1279,13 +1279,23 @@ export default function CustomerDetailsPage() {
                             className={cn(
                               "relative overflow-hidden rounded-2xl border transition-all cursor-pointer flex group shadow-2xs min-h-[128px]",
                               isSelected
-                                ? "border-[#FA634E] bg-rose-50/40 dark:bg-rose-950/30 ring-1 ring-[#FA634E]/30"
+                                ? "border-[#FA634E] ring-1 ring-[#FA634E]/30 bg-white dark:bg-slate-900"
                                 : "border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50/60 dark:hover:bg-slate-800/60"
                             )}
                           >
-                            {/* Left & Right Notch Cutouts for Bill Ticket Stub Look */}
-                            <div className="absolute -left-2.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 rounded-full bg-slate-100 dark:bg-slate-950 border border-slate-200/90 dark:border-slate-800 z-20 pointer-events-none" />
-                            <div className="absolute -right-2.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 rounded-full bg-slate-100 dark:bg-slate-950 border border-slate-200/90 dark:border-slate-800 z-20 pointer-events-none" />
+                            {/* Left & Right Notch Cutouts for Bill Ticket Stub Look with Dynamic Selected Border */}
+                            <div className={cn(
+                              "absolute -left-2.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 rounded-full bg-white dark:bg-slate-900 border z-20 pointer-events-none transition-colors",
+                              isSelected
+                                ? "border-slate-300 dark:border-slate-700"
+                                : "border-slate-200/90 dark:border-slate-800"
+                            )} />
+                            <div className={cn(
+                              "absolute -right-2.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 rounded-full bg-white dark:bg-slate-900 border z-20 pointer-events-none transition-colors",
+                              isSelected
+                                ? "border-slate-300 dark:border-slate-700"
+                                : "border-slate-200/90 dark:border-slate-800"
+                            )} />
 
                             {/* LEFT MAIN SECTION */}
                             <div className="flex-1 p-3.5 sm:p-4 flex flex-col justify-between border-r border-dashed border-slate-200 dark:border-slate-800 pr-3.5 sm:pr-4 min-w-0">
