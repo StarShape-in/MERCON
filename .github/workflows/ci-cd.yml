@@ -55,6 +55,8 @@ jobs:
 
       - name: Rebuild and Restart Docker Containers
         env:
+          CLIENT_NAME: mercon
+          COMPOSE_PROJECT_NAME: mercon
           # Injected into docker compose interpolation; stored as GitHub
           # Actions secrets, never committed. Rotating JWT_SECRET invalidates
           # all existing JWTs (everyone must log in again). Rotating
@@ -113,16 +115,16 @@ jobs:
           df -h / || true
 
           # Build and start services in detached mode
-          docker compose up -d --build
+          docker compose -p mercon up -d --build
 
           # Give mercon-api a moment to run its startup chain (prisma db push
           # && seed && node dist/index.js), then print its logs so a crash in
           # that chain is visible in the Actions run instead of just a 502.
           sleep 8
           echo "--- mercon-api logs (last 100 lines) ---"
-          docker compose logs --no-color --tail=100 mercon-api || true
+          docker compose -p mercon logs --no-color --tail=100 mercon-api || true
           echo "--- mercon-api container status ---"
-          docker compose ps mercon-api || true
+          docker compose -p mercon ps mercon-api || true
 
       - name: Deploy Nginx Config & Reload
         run: |
