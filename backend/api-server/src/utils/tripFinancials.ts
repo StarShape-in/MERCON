@@ -5,6 +5,8 @@
  * Operational N-Days Scheduling, Balance Margin (Profit), and Margin Percentage.
  */
 
+import { parseOptionalFloat } from './uuid';
+
 type Money = number | string | null | undefined | { toNumber(): number };
 
 export const asNumber = (v: Money): number => {
@@ -65,6 +67,42 @@ export interface ComputedBackendFinancials {
 export function computeTripChargesTotal(charges: ChargeLike[] | null | undefined): number {
   if (!charges || charges.length === 0) return 0;
   return charges.reduce((sum, c) => sum + asNumber(c.amount), 0);
+}
+
+export interface ResolveDriverPayoutInput {
+  /** trip.driver_payout ?? trip.driver_charge — the payout already on the trip. */
+  currentDriverPayout: Money;
+  isThirdParty: boolean;
+  /** trip.subcontract?.cost ?? trip.third_party_cost */
+  subcontractCost: Money;
+  /**
+   * The raw (unparsed) value of req.body.driver_payout, falling back to
+   * driver_charge then trip_charges — `undefined` only when none of the
+   * three keys were sent, which is what distinguishes "caller didn't touch
+   * this field" from "caller explicitly sent a value" (including a value
+   * that turns out not to parse, which still overrides rather than falling
+   * through to the subcontract-cost guess below).
+   */
+  requestedPayoutRaw: unknown;
+}
+
+/**
+ * MERCON's own driver pulls the lane's agreed payout off the rate card; a
+ * third-party job pulls the subcontractor cost already on the trip. Either
+ * way it stays a suggestion, not a lock — an explicit value in the request
+ * always wins, and the settlement form can still override it before
+ * submitting.
+ */
+export function resolveDriverPayout(input: ResolveDriverPayoutInput): number {
+  const { currentDriverPayout, isThirdParty, subcontractCost, requestedPayoutRaw } = input;
+
+  if (requestedPayoutRaw !== undefined) {
+    return parseOptionalFloat(requestedPayoutRaw) ?? 0;
+  }
+  if (isThirdParty && subcontractCost !== null && subcontractCost !== undefined) {
+    return asNumber(subcontractCost);
+  }
+  return asNumber(currentDriverPayout);
 }
 
 /** Base billing price for the customer. */

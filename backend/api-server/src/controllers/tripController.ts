@@ -11,7 +11,7 @@ import { resolveVehicleLocation, resolveVehicleLocationsForTrips } from '../serv
 import { parseOptionalFloat, getValidUuid } from '../utils/uuid';
 import { buildSearchAnd } from '../utils/search';
 import { getCompanyLegalName } from './settingsController';
-import { computeTripChargesTotal, calculateBackendTripFinancials } from '../utils/tripFinancials';
+import { computeTripChargesTotal, calculateBackendTripFinancials, resolveDriverPayout } from '../utils/tripFinancials';
 import { validateTripDrivers, TripDriverInput, validateTripSchedule, validateTripStops } from '../services/tripValidationService';
 import { recordAssignmentEvent } from '../services/fleetDispatchService';
 import { whatsappService } from '../services/whatsappService';
@@ -2352,26 +2352,16 @@ export const updateTripFinancials = async (req: Request, res: Response) => {
 
       if (!trip) throw new Error('NOT_FOUND');
 
-      // Auto-fill the driver payout only when the caller didn't send one:
-      // MERCON's own driver pulls the lane's agreed payout off the rate card;
-      // a third-party job pulls the subcontractor cost already on the trip.
-      // Either way it stays a suggestion, not a lock — an explicit value in
-      // the request always wins, and the settlement form can still override
-      // it before submitting.
-      // trip.trip_charges / third_party_cost / quotation.driver_payout are all
-      // Decimal at runtime — normalised to number here so this stays a plain
-      // number through every branch below (Prisma accepts a number for a
-      // Decimal field write, so nothing is lost storing it back as one).
-      let nextTripCharges = Number(trip.driver_payout ?? (trip as any).driver_charge);
-      const inputCharges = req.body.driver_payout !== undefined ? req.body.driver_payout : (req.body.driver_charge !== undefined ? req.body.driver_charge : trip_charges);
-      if (inputCharges !== undefined) {
-        nextTripCharges = parseOptionalFloat(inputCharges) ?? 0;
-      } else if (trip.is_third_party) {
-        const subCost = (trip as any).subcontract?.cost ?? (trip as any).third_party_cost;
-        if (subCost !== null && subCost !== undefined) {
-          nextTripCharges = Number(subCost);
-        }
-      }
+      // Auto-fill the driver payout only when the caller didn't send one —
+      // see resolveDriverPayout() for the actual rule. Prisma accepts a
+      // number for a Decimal field write, so nextTripCharges stays a plain
+      // number through storage below.
+      const nextTripCharges = resolveDriverPayout({
+        currentDriverPayout: trip.driver_payout ?? (trip as any).driver_charge,
+        isThirdParty: trip.is_third_party,
+        subcontractCost: (trip as any).subcontract?.cost ?? (trip as any).third_party_cost,
+        requestedPayoutRaw: req.body.driver_payout !== undefined ? req.body.driver_payout : (req.body.driver_charge !== undefined ? req.body.driver_charge : trip_charges),
+      });
 
       if (charges !== undefined) {
         await tx.tripCharge.deleteMany({ where: { tripId: trip.id } });
