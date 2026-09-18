@@ -135,30 +135,36 @@ jobs:
           echo "Recreating and restarting mercon-dev containers..."
           docker compose -p mercon-dev up -d --no-build
 
-          echo "Waiting for mercon-dev-api container to achieve healthy status (bounded 60s timeout)..."
+          echo "Waiting for mercon-api service container to achieve healthy status (bounded 60s timeout)..."
           HEALTH_STATUS="unknown"
           TIMEOUT=60
           ELAPSED=0
 
           while [ $ELAPSED -lt $TIMEOUT ]; do
-            HEALTH_STATUS=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' mercon-dev-api 2>/dev/null || echo "container-not-found")
+            CONTAINER_ID=$(docker compose -p mercon-dev ps -q mercon-api 2>/dev/null || echo "")
+            if [ -n "$CONTAINER_ID" ]; then
+              HEALTH_STATUS=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "$CONTAINER_ID" 2>/dev/null || echo "container-not-found")
+            else
+              HEALTH_STATUS="container-not-found"
+            fi
+
             if [ "$HEALTH_STATUS" = "healthy" ]; then
-              echo "✓ mercon-dev-api container reported healthy state after ${ELAPSED}s."
+              echo "✓ Service mercon-api container (ID: ${CONTAINER_ID:0:12}) reported healthy state after ${ELAPSED}s."
               break
             elif [ "$HEALTH_STATUS" = "unhealthy" ]; then
-              echo "::error::mercon-dev-api container reported UNHEALTHY state." >&2
+              echo "::error::Service mercon-api container reported UNHEALTHY state." >&2
               break
             fi
             sleep 2
             ELAPSED=$((ELAPSED + 2))
           done
 
-          echo "--- mercon-dev-api container status ---"
+          echo "--- mercon-api service container status ---"
           docker compose -p mercon-dev ps mercon-api || true
 
           if [ "$HEALTH_STATUS" != "healthy" ]; then
-            echo "::error::Deployment failed! mercon-dev-api container did not achieve healthy status (Status: '$HEALTH_STATUS'). Printing logs..." >&2
-            echo "--- mercon-dev-api logs (last 100 lines) ---"
+            echo "::error::Deployment failed! Service mercon-api container did not achieve healthy status (Status: '$HEALTH_STATUS'). Printing logs..." >&2
+            echo "--- mercon-api logs (last 100 lines) ---"
             docker compose -p mercon-dev logs --no-color --tail=100 mercon-api || true
             exit 1
           fi
@@ -166,11 +172,12 @@ jobs:
           echo "--- Verifying external health endpoint ---"
           if ! curl -fsS http://127.0.0.1:3051/health; then
             echo "::error::Deployment failed! External health probe GET http://127.0.0.1:3051/health failed or returned non-200. Printing logs..." >&2
-            echo "--- mercon-dev-api logs (last 100 lines) ---"
+            echo "--- mercon-api logs (last 100 lines) ---"
             docker compose -p mercon-dev logs --no-color --tail=100 mercon-api || true
             exit 1
           fi
           echo "✓ External health probe GET http://127.0.0.1:3051/health verified successfully."
+
 
 
           echo "=== FINAL DISK AND DOCKER STORAGE STATE ==="
