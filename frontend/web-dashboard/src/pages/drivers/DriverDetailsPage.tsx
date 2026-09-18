@@ -806,8 +806,6 @@ export default function DriverDetailsPage() {
                   {driver.status || 'Available'}
                 </span>
               </div>
-                </span>
-              </div>
 
               <div className="flex items-center gap-2">
                 <DropdownMenu>
