@@ -55,6 +55,8 @@ jobs:
 
       - name: Rebuild and Restart Docker Containers
         env:
+          CLIENT_NAME: mercon
+          COMPOSE_PROJECT_NAME: mercon
           # Injected into docker compose interpolation; stored as GitHub
           # Actions secrets, never committed. Rotating JWT_SECRET invalidates
           # all existing JWTs (everyone must log in again). Rotating
@@ -99,7 +101,6 @@ jobs:
           # Update host NGINX client_max_body_size to 250M and reload configuration
           sudo sed -i 's/client_max_body_size.*/client_max_body_size 250m;/g' /etc/nginx/nginx.conf 2>/dev/null || true
           sudo sed -i 's/client_max_body_size.*/client_max_body_size 250m;/g' /etc/nginx/sites-available/default 2>/dev/null || true
-          sudo cp nginx/mercon-api.conf /etc/nginx/sites-available/default 2>/dev/null || true
           sudo cp nginx/mercon-api.conf /etc/nginx/sites-available/mercon-api.conf 2>/dev/null || true
           sudo nginx -s reload 2>/dev/null || true
 
@@ -114,24 +115,32 @@ jobs:
           df -h / || true
 
           # Build and start services in detached mode
-          docker compose up -d --build
+          docker compose -p mercon up -d --build
 
           # Give mercon-api a moment to run its startup chain (prisma db push
           # && seed && node dist/index.js), then print its logs so a crash in
           # that chain is visible in the Actions run instead of just a 502.
           sleep 8
           echo "--- mercon-api logs (last 100 lines) ---"
-          docker compose logs --no-color --tail=100 mercon-api || true
+          docker compose -p mercon logs --no-color --tail=100 mercon-api || true
           echo "--- mercon-api container status ---"
-          docker compose ps mercon-api || true
+          docker compose -p mercon ps mercon-api || true
 
       - name: Deploy Nginx Config & Reload
         run: |
           echo "Deploying nginx reverse proxy config..."
-          # Copy repo-managed nginx config to sites-available
+
+          # Deploy catch-all default SSL block (rejects unknown HTTPS hosts)
+          sudo cp nginx/00-default-ssl.conf /etc/nginx/sites-available/00-default-ssl.conf
+          sudo ln -sf /etc/nginx/sites-available/00-default-ssl.conf /etc/nginx/sites-enabled/00-default-ssl.conf
+
+          # Deploy production nginx config
           sudo cp nginx/mercon-api.conf /etc/nginx/sites-available/mercon-api.conf
-          # Enable it (idempotent — ok if symlink already exists)
           sudo ln -sf /etc/nginx/sites-available/mercon-api.conf /etc/nginx/sites-enabled/mercon-api.conf
+
+          # Remove stale default config if it exists
+          sudo rm -f /etc/nginx/sites-enabled/default 2>/dev/null || true
+
           # Validate config before reloading to avoid taking down the server
           sudo nginx -t
           sudo systemctl reload nginx

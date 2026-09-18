@@ -242,17 +242,20 @@ export default function TripDetailsPage() {
 
   // Financials & Economics (Single Source of Truth)
   const tAny = trip as any;
-  const rawBilling = trip.billing_amount ?? trip.applied_rate ?? trip.rateCard?.base_price ?? tAny.quotation?.rate;
-  const rawDriverPayout = (trip as any).driver_payout ?? trip.driver_charge ?? trip.trip_charges ?? trip.rateCard?.driver_payout ?? tAny.quotation?.driver_payout;
+  const coDriverPayoutRaw = Number(tAny.co_driver_payout ?? 0);
+  const rawBilling = Number(trip.billing_amount || trip.applied_rate || trip.rateCard?.base_price || tAny.quotation?.rate || 0);
+  const rawDriverPayout = Number(tAny.primary_driver_payout ?? tAny.driver_payout ?? tAny.driver_charge ?? tAny.trip_charges ?? tAny.rateCard?.driver_payout ?? tAny.quotation?.driver_payout ?? coDriverPayoutRaw ?? 0);
   const chargesList = trip.charges || [];
   const chargesTotal = Number(tAny.charges_total ?? chargesList.reduce((sum, c: any) => sum + Number(c.amount || 0), 0));
   const is3PL = Boolean(trip.is_third_party);
   const subcontractCost = trip.third_party_cost;
 
   const fin = computeTripFinancials({
-    customerBilling: trip.billing_amount,
+    customerBilling: rawBilling,
     monthlyRate: tAny.quotation?.rate,
     driverPayout: rawDriverPayout,
+    coDriverPayout: coDriverPayoutRaw,
+    quotationDriverPayout: tAny.quotation?.driver_payout,
     is3PL,
     subcontractCost,
     extraDriverPayment: tAny.extra_driver_payment,
@@ -261,8 +264,7 @@ export default function TripDetailsPage() {
   });
 
   const customerBilling = fin.resolvedBilling;
-  const driverPayout = fin.resolvedDriverPayout;
-  const coDriverPayoutRaw = Number(tAny.co_driver_payout ?? 0);
+  const driverPayout = fin.primaryDriverPayout;
   const coDriverName = tAny.coDriver
     ? `${tAny.coDriver.first_name || ''} ${tAny.coDriver.last_name || ''}`.trim() || null
     : null;

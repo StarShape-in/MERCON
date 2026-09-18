@@ -7,6 +7,8 @@ interface VisualRouteProgressProps {
   stops: any[];
   tz: string;
   tripStatus?: string;
+  hideBadges?: boolean;
+  hidePulseAnimation?: boolean;
 }
 
 interface NormalizedStop {
@@ -62,7 +64,7 @@ function isTurnaroundPair(prevStop: any, nextStop: any): boolean {
   return (isLegTransition || isDropoffToPickup) && sameLocation;
 }
 
-export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRouteProgressProps) {
+export default function VisualRouteProgress({ stops, tz, tripStatus, hideBadges, hidePulseAnimation }: VisualRouteProgressProps) {
   const isTripFullyCompleted = ['completed', 'invoiced'].includes(String(tripStatus || '').trim().toLowerCase());
   const isDelayed =
     ['delayed', 'late'].includes(String(tripStatus || '').trim().toLowerCase()) ||
@@ -184,7 +186,7 @@ export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRou
 
   return (
     <div className="relative w-full rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs overflow-hidden flex flex-col justify-between p-3.5 sm:px-5 sm:py-3.5 gap-3">
-      {/* ── 1. TOP HEADER: ROUTE SUMMARY & INLINE TELEMETRY ── */}
+      {/* ── 1. TOP HEADER: ROUTE SUMMARY ── */}
       <div className="flex flex-wrap items-center justify-between gap-3 w-full">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-orange-100/70 dark:bg-orange-950/60 flex items-center justify-center text-[#FA634E] shrink-0">
@@ -201,55 +203,57 @@ export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRou
         </div>
 
         {/* Header Telemetry Pills & Status Badge */}
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-          {/* Status Metric */}
-          <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50/80 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/50">
-            <Truck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-            <span className="text-[11px] font-bold text-blue-700 dark:text-blue-300 capitalize">
-              {isTripFullyCompleted
-                ? 'Completed'
-                : tripStatus
-                ? String(tripStatus).replace(/([A-Z])/g, ' $1').trim()
-                : 'Scheduled'}
-            </span>
-          </div>
+        {!hideBadges && (
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            {/* Status Metric */}
+            <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50/80 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/50">
+              <Truck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              <span className="text-[11px] font-bold text-blue-700 dark:text-blue-300 capitalize">
+                {isTripFullyCompleted
+                  ? 'Completed'
+                  : tripStatus
+                  ? String(tripStatus).replace(/([A-Z])/g, ' $1').trim()
+                  : 'Scheduled'}
+              </span>
+            </div>
 
-          {/* Schedule Metric */}
-          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
-            <Clock className={cn("w-3.5 h-3.5", isDelayed ? "text-rose-500" : "text-emerald-500")} />
-            <span className={cn("text-[11px] font-bold", isDelayed ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400")}>
-              {isTripFullyCompleted ? 'On Time' : isDelayed ? 'Delayed' : 'On Time'}
-            </span>
-          </div>
+            {/* Schedule Metric */}
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
+              <Clock className={cn("w-3.5 h-3.5", isDelayed ? "text-rose-500" : "text-emerald-500")} />
+              <span className={cn("text-[11px] font-bold", isDelayed ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400")}>
+                {isTripFullyCompleted ? 'On Time' : isDelayed ? 'Delayed' : 'On Time'}
+              </span>
+            </div>
 
-          {/* Main Status Pill Badge */}
-          <div className={cn(
-            "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-2xs",
-            isTripFullyCompleted || progressPercent === 100
-              ? "bg-[#E6F4EA] dark:bg-emerald-950/50 text-[#0F9D58] dark:text-emerald-400 border-[#CEEAD6] dark:border-emerald-800"
-              : isDelayed
-              ? "bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border-rose-200/80 dark:border-rose-900/60"
-              : "bg-orange-50 dark:bg-orange-950/50 text-[#FA634E] dark:text-orange-400 border-orange-200/80 dark:border-orange-900/60"
-          )}>
-            <span className={cn(
-              "w-2 h-2 rounded-full",
+            {/* Main Status Pill Badge */}
+            <div className={cn(
+              "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-2xs",
               isTripFullyCompleted || progressPercent === 100
-                ? "bg-[#0F9D58]"
+                ? "bg-[#E6F4EA] dark:bg-emerald-950/50 text-[#0F9D58] dark:text-emerald-400 border-[#CEEAD6] dark:border-emerald-800"
                 : isDelayed
-                ? "bg-rose-500 animate-pulse"
-                : "bg-[#FA634E] animate-pulse"
-            )} />
-            <span>
-              {isTripFullyCompleted || progressPercent === 100
-                ? 'Delivered'
-                : isDelayed
-                ? 'Delayed'
-                : progressPercent > 0
-                ? 'In Transit'
-                : 'Scheduled'}
-            </span>
+                ? "bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border-rose-200/80 dark:border-rose-900/60"
+                : "bg-orange-50 dark:bg-orange-950/50 text-[#FA634E] dark:text-orange-400 border-orange-200/80 dark:border-orange-900/60"
+            )}>
+              <span className={cn(
+                "w-2 h-2 rounded-full",
+                isTripFullyCompleted || progressPercent === 100
+                  ? "bg-[#0F9D58]"
+                  : isDelayed
+                  ? (hidePulseAnimation ? "bg-rose-500" : "bg-rose-500 animate-pulse")
+                  : (hidePulseAnimation ? "bg-[#FA634E]" : "bg-[#FA634E] animate-pulse")
+              )} />
+              <span>
+                {isTripFullyCompleted || progressPercent === 100
+                  ? 'Delivered'
+                  : isDelayed
+                  ? 'Delayed'
+                  : progressPercent > 0
+                  ? 'In Transit'
+                  : 'Scheduled'}
+              </span>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* ── 2. VISUAL ROUTE TRACK & MILESTONES (ALL STOPS RENDERED) ── */}
@@ -272,7 +276,8 @@ export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRou
                 {!isTripFullyCompleted && progressPercent > 0 && (
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[35%] w-10 h-10 sm:w-12 sm:h-12 pointer-events-none z-0 flex items-center justify-center">
                     <div className={cn(
-                      "w-full h-full rounded-full border-2 animate-ping",
+                      "w-full h-full rounded-full border-2",
+                      !hidePulseAnimation && "animate-ping",
                       isDelayed
                         ? "border-rose-500/70 bg-rose-500/20"
                         : "border-emerald-400/60 bg-emerald-500/20"
@@ -320,7 +325,10 @@ export default function VisualRouteProgress({ stops, tz, tripStatus }: VisualRou
                       <Check className="w-3 h-3 stroke-[3]" />
                     </div>
                   ) : isCurrent ? (
-                    <div className="w-5 h-5 rounded-full bg-[#FA634E] text-white flex items-center justify-center ring-4 ring-orange-100 dark:ring-orange-950/60 shadow-xs animate-pulse">
+                    <div className={cn(
+                      "w-5 h-5 rounded-full bg-[#FA634E] text-white flex items-center justify-center ring-4 ring-orange-100 dark:ring-orange-950/60 shadow-xs",
+                      !hidePulseAnimation && "animate-pulse"
+                    )}>
                       <MapPin className="w-3 h-3 fill-current" />
                     </div>
                   ) : (

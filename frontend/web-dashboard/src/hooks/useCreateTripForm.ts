@@ -443,6 +443,14 @@ export function useCreateTripForm() {
                   const cardRate = Number(card.rate ?? card.base_price ?? 0);
                   const driverPayout = card.driver_payout ?? (card as any).driver_charge;
                   if (cardRate > 0) {
+                    const cardClass = card.vehicle_type || card.vehicle_class || (card as any).vehicleClass || (card as any).source_vehicle_label;
+                    if (cardClass) {
+                      const normClass = normalizeVehicleClass(cardClass);
+                      if (normClass) {
+                        setContractVehicleType(normClass);
+                      }
+                    }
+
                     const isMonthlyRate = card.pricing_basis === 'PER_TRIP'
                       ? false
                       : card.pricing_basis === 'PER_MONTH'
