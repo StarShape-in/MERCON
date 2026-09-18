@@ -19,6 +19,14 @@ jobs:
   deploy:
     name: Deploy to Self-Hosted Runner
     runs-on: self-hosted
+    # promote-dev-to-prod.yml (mode: promote) already builds, deploys, and
+    # health-checks this exact commit before fast-forwarding main to it, using
+    # the default GITHUB_TOKEN (x-access-token) to push — which GitHub records
+    # as actor github-actions[bot]. Without this guard that push retriggers
+    # this workflow immediately after, redeploying the same already-verified
+    # commit a second time. A direct human push/merge to main still runs
+    # normally, since its actor is the person or bot that made it.
+    if: github.actor != 'github-actions[bot]'
 
     steps:
       # Native git instead of actions/checkout: this runner keeps its work
