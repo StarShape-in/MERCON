@@ -289,9 +289,7 @@ function RealDocumentPreviewMiddleBox({
           {/* Header Card */}
           <div className="p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 flex items-center justify-between shrink-0 shadow-2xs">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-100 dark:border-blue-900/40 flex items-center justify-center shrink-0">
-                <FileText className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400" />
-              </div>
+              <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" />
               <div className="min-w-0">
                 <h3 className="text-xs font-black text-slate-900 dark:text-white truncate">
                   {docTypeName}
@@ -863,9 +861,7 @@ export default function DriverDetailsPage() {
                     </p>
                   </div>
                 </div>
-                <div className="w-7 h-7 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 flex items-center justify-center text-slate-400 shrink-0">
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </div>
+                <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
               </div>
 
               {/* Card 2: PHONE NUMBER with Call & WhatsApp buttons (No Background Fill) */}
@@ -940,7 +936,6 @@ export default function DriverDetailsPage() {
                 <Truck className="w-5 h-5 text-[#FA634E] dark:text-[#FA634E] stroke-[2] shrink-0" />
                 <div className="min-w-0">
                   <h3 className="text-base font-black text-slate-900 dark:text-white leading-tight truncate">Trips</h3>
-                  <p className="text-[11px] font-medium text-slate-400 truncate">View and manage driver trips</p>
                 </div>
               </div>
 
@@ -1026,14 +1021,18 @@ export default function DriverDetailsPage() {
                       key={t.id || idx}
                       onClick={() => {
                         if (t.id) {
-                          setSelectedTripIdForPreview(t.id);
-                          setSelectedDocIdForPreview(null);
+                          if (selectedTripIdForPreview === t.id && !selectedDocIdForPreview) {
+                            setSelectedTripIdForPreview(null);
+                          } else {
+                            setSelectedTripIdForPreview(t.id);
+                            setSelectedDocIdForPreview(null);
+                          }
                         }
                       }}
                       className={cn(
                         "relative overflow-hidden rounded-2xl border transition-all cursor-pointer flex flex-col justify-between p-3 sm:p-3.5 gap-2 group shadow-2xs",
                         isSelected
-                          ? "border-[#FA634E] bg-rose-50/40 dark:bg-rose-950/30 ring-1 ring-[#FA634E]/30"
+                          ? "border-slate-300 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/60"
                           : "border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50/60 dark:hover:bg-slate-800/60"
                       )}
                     >
@@ -1615,9 +1614,7 @@ export default function DriverDetailsPage() {
 
               {/* Middle Section: No Active Trip Status Banner */}
               <div className="flex-1 flex flex-col items-center justify-center text-center p-4 rounded-xl border border-dashed border-slate-200/90 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 my-1">
-                <div className="w-10 h-10 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900/50 flex items-center justify-center mb-2 shadow-2xs">
-                  <Clock className="w-5 h-5 text-[#FA634E]" />
-                </div>
+                <Clock className="w-6 h-6 text-[#FA634E] mb-2 shrink-0" />
                 <h4 className="text-sm font-black text-slate-900 dark:text-white">No Active Trip in Progress</h4>
                 <p className="text-[11px] font-semibold text-slate-400 max-w-xs mt-0.5">
                   This driver is currently available and not assigned to an active trip. Select a trip below to preview details.
@@ -1640,8 +1637,12 @@ export default function DriverDetailsPage() {
                       key={t.id || idx}
                       onClick={() => {
                         if (t.id) {
-                          setSelectedTripIdForPreview(t.id);
-                          setSelectedDocIdForPreview(null);
+                          if (selectedTripIdForPreview === t.id && !selectedDocIdForPreview) {
+                            setSelectedTripIdForPreview(null);
+                          } else {
+                            setSelectedTripIdForPreview(t.id);
+                            setSelectedDocIdForPreview(null);
+                          }
                         }
                       }}
                       className="p-2.5 rounded-xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 hover:border-[#FA634E]/60 hover:bg-rose-50/20 dark:hover:bg-rose-950/20 transition-all cursor-pointer flex items-center justify-between gap-3 group shadow-2xs"
