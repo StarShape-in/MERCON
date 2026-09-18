@@ -24,6 +24,7 @@ import { useTripSlotsState } from '@/hooks/useTripSlotsState';
 import { useTripDraftStorage } from '@/hooks/useTripDraftStorage';
 import { useTripSubmission } from '@/hooks/useTripSubmission';
 import { useTripAccelerators } from '@/hooks/useTripAccelerators';
+import { formatDriverDetails } from '@/utils/driverStatusUtils';
 
 export const addDays = (dateStr: string, days: number): string => {
   if (!dateStr) return dateStr;
@@ -255,12 +256,7 @@ export function useCreateTripForm() {
           : 'Truck: Unassigned';
 
         const isNotAvailable = Boolean(d.status && d.status !== 'Available' && d.status.toLowerCase() !== 'available' && d.id !== masterDriver);
-        const statusTag = d.status && d.status !== 'Available' && d.status.toLowerCase() !== 'available'
-          ? d.status === 'OnTrip' ? 'On Trip' : d.status === 'OffDuty' ? 'Off Duty' : d.status
-          : '';
-
-        const badgesStr = rec?.badges ? rec.badges.join(' • ') : '';
-        const detailsStr = [truckInfo, statusTag, badgesStr].filter(Boolean).join(' • ');
+        const detailsStr = formatDriverDetails(d, rec, matchedVeh);
         const fullName = `${d.first_name || ''} ${d.last_name || ''}`.trim() || `Driver #${d.id.slice(0, 5)}`;
 
         const label = React.createElement(
@@ -285,7 +281,7 @@ export function useCreateTripForm() {
           label,
           selectedLabel: fullName,
           disabled: isNotAvailable,
-          keywords: `${fullName} ${detailsStr} ${d.phone_primary || ''} ${d.license_number || ''} ${capacityLabel} ${d.status || ''} ${badgesStr}`,
+          keywords: `${fullName} ${detailsStr} ${d.phone_primary || ''} ${d.license_number || ''} ${capacityLabel} ${d.status || ''}`,
           avatar_url: d.avatar_url,
           avatarUrl: d.avatar_url,
           first_name: d.first_name,
@@ -752,9 +748,6 @@ export function useCreateTripForm() {
       : normalizeVehicleClass(matchedVehicle.asset_type);
 
     setMasterVehicle(matchedVehicle.id);
-    if (vClass) {
-      setContractVehicleType(vClass);
-    }
     toast.success(`Auto-selected driver's truck: ${matchedVehicle.plate_number || 'Vehicle'} (${vClass})`);
     return matchedVehicle.id;
   };
@@ -927,15 +920,6 @@ export function useCreateTripForm() {
 
   const handleVehicleChange = (vehicleId: string) => {
     setMasterVehicle(vehicleId);
-    if (vehicleId && vehicleId !== 'unassigned') {
-      const selectedVehicle = vehicles.find((v) => v.id === vehicleId);
-      if (selectedVehicle) {
-        const type = getVehicleTypeFromCapacity(selectedVehicle.capacity_kg);
-        setContractVehicleType(type);
-        setIsVehicleTypeEditable(false);
-        triggerRateLookupForSlots(type);
-      }
-    }
   };
 
   const batchTripRows = useMemo(() => {

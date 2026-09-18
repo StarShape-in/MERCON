@@ -575,6 +575,17 @@ export default function SurchargeFeesPanel({ activeTab = 'surcharges', setActive
                 return (
                   <tr
                     key={rule.id}
+                    onClickCapture={(e) => {
+                      if (selectedIds.length > 0) {
+                        const target = e.target as HTMLElement;
+                        if (target.tagName.toLowerCase() === 'input' && (target as HTMLInputElement).type === 'checkbox') {
+                          return;
+                        }
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleSelectOne(rule.id, !isSelected);
+                      }
+                    }}
                     className={`transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/40 ${
                       isSelected ? 'bg-orange-50/50 dark:bg-orange-950/20' : ''
                     }`}

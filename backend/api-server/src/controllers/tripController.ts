@@ -700,7 +700,7 @@ export const createTrip = async (req: Request, res: Response) => {
       attempts++;
       try {
         const ref_id = await generateRefId('TRP', () =>
-          prisma.trip.findMany({ select: { ref_id: true } }));
+          prisma.trip.findMany({ where: { deletedAt: null }, select: { ref_id: true } }));
 
         trip = await prisma.$transaction(async (tx) => {
           const customer = await tx.customer.findFirst({ where: { id: customer_id, deletedAt: null } });
@@ -1241,7 +1241,7 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
 
 
         const ref_id = await generateRefId('TRP', () =>
-          prisma.trip.findMany({ select: { ref_id: true } }));
+          prisma.trip.findMany({ where: { deletedAt: null }, select: { ref_id: true } }));
 
         const parsedDest = parseDestinationAndStops(row.destination || '');
         const originCoords = row.origin ? await resolveStopCoords(row.origin, customer.id) : null;
@@ -2083,14 +2083,22 @@ export const bulkDeleteTrips = async (req: Request, res: Response) => {
     const eligibleIds = eligibleTrips.map((t) => t.id);
 
     await prisma.$transaction(async (tx) => {
-      // Perform soft delete ONLY — do NOT delete child tables (TripStop, TripCharge, TripLocation, etc.)
-      await tx.trip.updateMany({
-        where: { id: { in: eligibleIds } },
-        data: {
-          deletedAt: new Date(),
-          deleted_by: getValidUuid(userId),
-        },
-      });
+      // Soft-delete trips: rename ref_id to TRP-DEL-XXXX to release sequence slot, mark isActive = false
+      for (const trip of eligibleTrips) {
+        let newRefId = trip.ref_id;
+        if (newRefId && newRefId.startsWith('TRP-') && !newRefId.startsWith('TRP-DEL-')) {
+          newRefId = newRefId.replace('TRP-', 'TRP-DEL-');
+        }
+        await tx.trip.update({
+          where: { id: trip.id },
+          data: {
+            ref_id: newRefId,
+            isActive: false,
+            deletedAt: new Date(),
+            deleted_by: getValidUuid(userId),
+          },
+        });
+      }
 
       // Release driver / vehicle if soft-deleting in-flight trips
       const inFlightTrips = eligibleTrips.filter((t) => IN_FLIGHT_STATUSES.includes(t.status as TripStatus));
