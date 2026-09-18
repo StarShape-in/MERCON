@@ -102,6 +102,11 @@ const MODULE_DESCRIPTIONS: Record<string, { label: string; path: string; desc: s
     path: '/aprodac-documents',
     desc: 'Aprodac compliance document storage & digital archives.',
   },
+  learning: {
+    label: 'Learning & Academy',
+    path: '/learning',
+    desc: 'Operational training, driver safety certifications & interactive academy.',
+  },
 };
 
 export default function ModuleGovernancePage() {
