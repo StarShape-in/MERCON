@@ -1166,7 +1166,7 @@ export default function DriverDetailsPage() {
 
             {/* Footer Button */}
             <Button
-              onClick={() => navigate(`/trips?driver=${driver.id}`)}
+              onClick={() => navigate(`/trips?driver=${driver.id}&driver_id=${driver.id}&driver_name=${encodeURIComponent(driver.first_name + ' ' + (driver.last_name || ''))}&view=table`)}
               variant="ghost"
               className="w-full mt-3 h-11 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white text-xs sm:text-sm font-black rounded-2xl flex items-center justify-center gap-2 transition-colors cursor-pointer shrink-0"
             >

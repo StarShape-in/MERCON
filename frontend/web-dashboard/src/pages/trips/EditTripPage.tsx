@@ -17,16 +17,10 @@ import TripStep1UnifiedWorkspace from '@/components/trips/wizard/TripStep1Unifie
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { KbdBadge } from '@/components/ui/KbdBadge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { useEditTripForm, isRoundTripCategory, normalizeRateCategory } from '@/hooks/useEditTripForm';
-import { TripStatus } from '@/services/tripService';
-
-const STAGE_ORDER: TripStatus[] = ['Draft', 'Dispatched', 'AtPickup', 'InTransit', 'Completed', 'Invoiced'];
 
 export default function EditTripPage() {
   const form = useEditTripForm();
-  const [pendingStatusChange, setPendingStatusChange] = useState<TripStatus | null>(null);
 
   if (form.isTripLoading || !form.trip) {
     return (
@@ -38,25 +32,6 @@ export default function EditTripPage() {
       </DashboardLayout>
     );
   }
-
-  const handleStatusSelect = (newStatus: TripStatus) => {
-    const currentIndex = STAGE_ORDER.indexOf(form.status);
-    const newIndex = STAGE_ORDER.indexOf(newStatus);
-
-    // If moving backward from Completed or Invoiced, prompt for confirmation
-    if (currentIndex >= 4 && newIndex < currentIndex) {
-      setPendingStatusChange(newStatus);
-    } else {
-      form.setStatus(newStatus);
-    }
-  };
-
-  const confirmStatusRegression = () => {
-    if (pendingStatusChange) {
-      form.setStatus(pendingStatusChange);
-      setPendingStatusChange(null);
-    }
-  };
 
   return (
     <DashboardLayout active="Trips" title={`Edit ${form.trip.ref_id || 'Trip'}`} hideBackButton hideHeader fixedViewport>
@@ -73,42 +48,6 @@ export default function EditTripPage() {
                 Ref: {form.trip.ref_id || 'TRIP-LOG'}
               </span>
 
-              {/* Status Stage Stepper Selector */}
-              <div className="flex items-center gap-1.5 ml-1 bg-slate-50 dark:bg-slate-800/80 px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-700">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Stage:</span>
-                <Select
-                  value={form.status}
-                  onValueChange={(val: TripStatus) => handleStatusSelect(val)}
-                >
-                  <SelectTrigger className="h-7 text-xs font-black w-[140px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700">
-                    <SelectValue placeholder="Select status..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Draft" className="text-xs font-bold">Scheduled</SelectItem>
-                    <SelectItem value="Dispatched" className="text-xs font-bold">Dispatched</SelectItem>
-                    <SelectItem value="AtPickup" className="text-xs font-bold">At Pickup</SelectItem>
-                    <SelectItem value="InTransit" className="text-xs font-bold">In Transit</SelectItem>
-                    <SelectItem value="Completed" className="text-xs font-bold">Completed</SelectItem>
-                    <SelectItem value="Invoiced" className="text-xs font-bold">Invoiced</SelectItem>
-                    <SelectItem value="Cancelled" className="text-xs font-bold text-rose-600">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Editing Rules Badges */}
-              {form.isAssignmentLocked ? (
-                <Badge variant="outline" className="text-[10px] text-rose-700 border-rose-300 bg-rose-50 dark:bg-rose-950/40 font-extrabold flex items-center gap-1">
-                  <Lock className="w-3 h-3" /> Trip Frozen ({form.status})
-                </Badge>
-              ) : form.isRouteLocked ? (
-                <Badge variant="outline" className="text-[10px] text-amber-800 border-amber-300 bg-amber-50 dark:bg-amber-950/40 font-extrabold flex items-center gap-1">
-                  <Lock className="w-3 h-3 text-amber-600" /> Route Locked ({form.status})
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="text-[10px] text-slate-500 border-slate-200 font-bold flex items-center gap-1">
-                  Customer & Quotation Fixed
-                </Badge>
-              )}
             </div>
 
             <div className="flex items-center gap-2">
@@ -195,39 +134,18 @@ export default function EditTripPage() {
               drivers={form.drivers}
               vehicles={form.vehicles}
               dayAssignments={form.dayAssignments}
-              setDayAssignments={form.setDayAssignments}
               isEditMode={true}
               isRouteLocked={form.isRouteLocked}
+              isScheduleLocked={form.isScheduleLocked}
+              isAssignmentLocked={form.isAssignmentLocked}
+              isBaseBillingLocked={form.isBaseBillingLocked}
+              isFinancialsLocked={form.isFinancialsLocked}
+              status={form.status}
             />
           </div>
 
         </div>
       </div>
-
-      {/* Status Regression Warning Modal */}
-      {pendingStatusChange && (
-        <Dialog open={!!pendingStatusChange} onOpenChange={() => setPendingStatusChange(null)}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-rose-600 font-black text-base">
-                <ShieldAlert className="w-5 h-5 shrink-0 text-rose-600" /> Confirm Status Regression
-              </DialogTitle>
-              <DialogDescription className="text-xs text-slate-600 dark:text-slate-300 font-medium pt-1">
-                You are moving trip status backward from <strong className="text-slate-900 dark:text-slate-100">{form.status}</strong> to <strong className="text-[#FA634E]">{pendingStatusChange}</strong>.
-                This will unlock previously frozen execution or route fields.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="gap-2 sm:gap-0 pt-2">
-              <Button variant="outline" size="sm" onClick={() => setPendingStatusChange(null)} className="text-xs font-bold">
-                Cancel
-              </Button>
-              <Button size="sm" onClick={confirmStatusRegression} className="text-xs bg-rose-600 hover:bg-rose-700 text-white font-bold">
-                Revert Status to {pendingStatusChange}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
 
       {/* Modal Dialogs */}
       <CreateDriverModal

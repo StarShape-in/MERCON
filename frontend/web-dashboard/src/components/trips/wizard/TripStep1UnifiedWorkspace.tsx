@@ -74,6 +74,11 @@ interface TripStep1UnifiedWorkspaceProps {
   fieldErrors?: Record<string, boolean>;
   isEditMode?: boolean;
   isRouteLocked?: boolean;
+  isScheduleLocked?: boolean;
+  isAssignmentLocked?: boolean;
+  isBaseBillingLocked?: boolean;
+  isFinancialsLocked?: boolean;
+  status?: string;
 }
 
 export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps> = ({
@@ -138,6 +143,11 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
   fieldErrors = {},
   isEditMode = false,
   isRouteLocked = false,
+  isScheduleLocked = false,
+  isAssignmentLocked = false,
+  isBaseBillingLocked = false,
+  isFinancialsLocked = false,
+  status = '',
 }) => {
   const primarySlot = contractSlots[0] || {};
   const isRoundTrip = isRoundTripProp ?? (isRoundTripCategory ? isRoundTripCategory(contractRateCategory) : contractRateCategory === 'Round Trip');
@@ -240,6 +250,8 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
                   contractBillingType={contractBillingType}
                   fieldErrors={fieldErrors}
                   vehicles={vehicles}
+                  isAssignmentLocked={isAssignmentLocked}
+                  status={status}
                 />
               )}
 
@@ -252,6 +264,8 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
                 contractCustomer={contractCustomer}
                 customers={customers}
                 handleUpdateTripSlot={handleUpdateTripSlot}
+                isBaseBillingLocked={isBaseBillingLocked}
+                isFinancialsLocked={isFinancialsLocked}
               />
             </div>
           </div>

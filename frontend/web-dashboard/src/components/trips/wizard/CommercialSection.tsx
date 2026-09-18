@@ -1,5 +1,5 @@
 import React from 'react';
-import { DollarSign, CheckCircle2, Plus, Tag, AlertCircle, ChevronLeft, ChevronRight, Building2, Search, X, Calendar, Zap, Layers, Pencil } from 'lucide-react';
+import { DollarSign, CheckCircle2, Plus, Tag, AlertCircle, ChevronLeft, ChevronRight, Building2, Search, X, Calendar, Zap, Layers, Pencil, Lock as LockIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { cn } from '@/lib/utils';
@@ -373,14 +373,11 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
             </div>
           )}
 
-          {/* CUSTOMER DISPLAY: COMBOBOX IF CREATE MODE, READ-ONLY CARD IF EDIT MODE */}
+          {/* CUSTOMER DISPLAY: COMBOBOX IF CREATE MODE, READ-ONLY GRAYED OUT CARD IF EDIT MODE */}
           {isEditMode ? (
-            <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700">
-              <span className="text-xs font-black text-slate-900 dark:text-slate-100 truncate max-w-[260px]">
+            <div className="flex items-center gap-2 bg-slate-100/80 dark:bg-slate-800/60 px-3 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-800 text-slate-500 dark:text-slate-400 cursor-not-allowed select-none">
+              <span className="text-xs font-black text-slate-700 dark:text-slate-300 truncate max-w-[320px]">
                 {selectedCust?.name || 'Assigned Customer'}
-              </span>
-              <span className="text-[10px] font-bold text-slate-500 bg-slate-200/80 dark:bg-slate-700 px-1.5 py-0.5 rounded">
-                Fixed Customer
               </span>
             </div>
           ) : setContractCustomer ? (
@@ -435,16 +432,33 @@ export const CommercialSection: React.FC<CommercialSectionProps> = ({
         </div>
       </div>
 
-      {/* STAGE 1: NO CUSTOMER SELECTED */}
-      {!contractCustomer && (
+      {/* STAGE 1 & 2: CREATE MODE VS EDIT MODE COMMERCIAL WORKSPACE */}
+      {isEditMode ? (
+        <div className="p-2.5 rounded-xl bg-slate-50/90 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between gap-3 flex-wrap shadow-2xs">
+          <div className="flex items-center gap-2.5 flex-wrap text-xs">
+            <div className="flex items-center gap-1.5 font-black text-slate-800 dark:text-slate-100">
+              <Tag className="w-3.5 h-3.5 text-[#FA634E]" />
+              <span>Quotation Ref:</span>
+              <span className="font-mono text-brand font-black">
+                {primarySlot.matchedRateCard?.quotation_number ? `Q-${primarySlot.matchedRateCard.quotation_number}` : 'Fixed Commercial Rate'}
+              </span>
+            </div>
+            <span className="text-slate-300 dark:text-slate-700">•</span>
+            <div className="flex items-center gap-2 font-bold text-slate-600 dark:text-slate-300">
+              <span>Customer Rate: <strong className="text-slate-900 dark:text-slate-100 font-mono font-black">SAR {Number(primarySlot.billingAmount || 0).toLocaleString()}</strong></span>
+              <span>•</span>
+              <span>Class: <strong className="text-slate-800 dark:text-slate-200">{contractVehicleType}</strong></span>
+              <span>•</span>
+              <span>Line: <strong className="text-slate-800 dark:text-slate-200">{contractRateCategory}</strong></span>
+            </div>
+          </div>
+        </div>
+      ) : !contractCustomer ? (
         <CustomerCardCarousel
           customers={sortedCustomers}
           onSelectCustomer={(id) => setContractCustomer?.(id)}
         />
-      )}
-
-      {/* STAGE 2: CUSTOMER IS SELECTED */}
-      {Boolean(contractCustomer) && (
+      ) : (
         <div className="space-y-2.5">
           {/* SEARCH INPUT TOOLBAR */}
           {!showInlineForm && (

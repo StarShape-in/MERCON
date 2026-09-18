@@ -262,7 +262,9 @@ export function useEditTripForm() {
 
   // Edit Rules based on Trip Status
   const isRouteLocked = ['Dispatched', 'AtPickup', 'InTransit', 'Completed', 'Invoiced', 'Cancelled'].includes(status);
+  const isScheduleLocked = ['Completed', 'Invoiced', 'Cancelled'].includes(status);
   const isAssignmentLocked = ['Completed', 'Invoiced', 'Cancelled'].includes(status);
+  const isBaseBillingLocked = ['InTransit', 'Completed', 'Invoiced', 'Cancelled'].includes(status);
   const isFinancialsLocked = ['Invoiced', 'Cancelled'].includes(status);
   const isStopsFrozen = STOPS_FROZEN_IN.includes(status);
 
@@ -448,7 +450,9 @@ export function useEditTripForm() {
     isSubmitting,
     isStopsFrozen,
     isRouteLocked,
+    isScheduleLocked,
     isAssignmentLocked,
+    isBaseBillingLocked,
     isFinancialsLocked,
     handleReset,
     handleSave,

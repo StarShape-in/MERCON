@@ -889,8 +889,17 @@ export default function TripListPage() {
   // Deep-link support: ?driver=UUID&driver_name=... or ?search=PlateNumber pre-fills search & switches to table view
   // ?status=X pre-selects the status filter
   // Run once on mount (searchParams is stable on initial render)
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalTripsResetKey, setTotalTripsResetKey] = useState(0);
+  const [selectedStatus, setSelectedStatus] = useState<TripStatusFilter>('All');
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('All');
+  const [selectedDriverId, setSelectedDriverId] = useState<string>('All');
+  const [dateFilter, setDateFilter] = useState<DateFilterType>('3Days');
+  const activeFiltersCount = (selectedStatus !== 'All' ? 1 : 0) + (selectedCustomerId !== 'All' ? 1 : 0) + (selectedDriverId !== 'All' ? 1 : 0);
+
   useEffect(() => {
-    const driverParam = searchParams.get('driver');
+    const driverParam = searchParams.get('driver') || searchParams.get('driver_id');
     const driverNameParam = searchParams.get('driver_name');
     const searchParam = searchParams.get('search') || searchParams.get('vehicle') || searchParams.get('vehicle_name') || searchParams.get('plate_number');
     const statusParam = searchParams.get('status') as TripStatusFilter | null;
@@ -900,17 +909,20 @@ export default function TripListPage() {
     }
 
     if (driverParam || driverNameParam) {
-      // Switch to table view so the filtered rows are immediately visible
+      // Switch to table view and show ALL trips of that driver across all time
+      if (driverParam) {
+        setSelectedDriverId(driverParam);
+      } else if (driverNameParam) {
+        setSearch(driverNameParam);
+      }
+      setDateFilter('All');
       const newParams = new URLSearchParams(searchParams);
       newParams.set('view', 'table');
       newParams.delete('driver');
+      newParams.delete('driver_id');
       newParams.delete('driver_name');
       newParams.delete('status');
       setSearchParams(newParams, { replace: true });
-      // Pre-fill search with driver name so client-side filter matches correctly
-      if (driverNameParam) {
-        setSearch(driverNameParam);
-      }
     } else if (searchParam) {
       const newParams = new URLSearchParams(searchParams);
       newParams.set('view', 'table');
@@ -924,14 +936,6 @@ export default function TripListPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [totalTripsResetKey, setTotalTripsResetKey] = useState(0);
-  const [selectedStatus, setSelectedStatus] = useState<TripStatusFilter>('All');
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('All');
-  const [dateFilter, setDateFilter] = useState<DateFilterType>('3Days');
-  const activeFiltersCount = (selectedStatus !== 'All' ? 1 : 0) + (selectedCustomerId !== 'All' ? 1 : 0);
   const [kpiPeriod, setKpiPeriod] = useState<DateFilterType>('Today');
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
   const [search, setSearch] = useState('');
@@ -1047,10 +1051,11 @@ export default function TripListPage() {
 
   // Fetch trips using React Query with server-side pagination (10 trips default, 30s polling).
   const { data: tripsRes, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ['trips', selectedStatus, selectedCustomerId, dateFilter, startDateStr, endDateStr, currentPage, pageSize, debouncedSearch],
+    queryKey: ['trips', selectedStatus, selectedCustomerId, selectedDriverId, dateFilter, startDateStr, endDateStr, currentPage, pageSize, debouncedSearch],
     queryFn: () => tripService.getAll({
       status: getServerStatusFilter(selectedStatus) as any,
       customer_id: selectedCustomerId !== 'All' ? selectedCustomerId : undefined,
+      driver_id: selectedDriverId !== 'All' ? selectedDriverId : undefined,
       date_filter: dateFilter === 'All' || dateFilter === 'Custom' ? undefined : dateFilter,
       start_date: startDateStr,
       end_date: endDateStr,
@@ -1117,6 +1122,30 @@ export default function TripListPage() {
     queryFn: () => customerService.getAll({ per_page: 200, mode: 'lookup' }),
     staleTime: 5 * 60 * 1000,
   });
+
+  const { data: driverLookupRes } = useQuery({
+    queryKey: ['drivers-lookup'],
+    queryFn: () => driverService.getAll({ per_page: 200, mode: 'lookup' }),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const driverFilterOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    const masterList = driverLookupRes?.data || [];
+    masterList.forEach((d) => {
+      if (d.id) {
+        map.set(d.id, `${d.first_name || ''} ${d.last_name || ''}`.trim() || 'Driver');
+      }
+    });
+    rawTrips.forEach((t) => {
+      if (t.driver?.id) {
+        map.set(t.driver.id, `${t.driver.first_name || ''} ${t.driver.last_name || ''}`.trim());
+      }
+    });
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [driverLookupRes?.data, rawTrips]);
 
   const customerFilterOptions = useMemo(() => {
     const map = new Map<string, string>();
@@ -1230,6 +1259,9 @@ export default function TripListPage() {
     if (selectedCustomerId !== 'All') {
       filtered = filtered.filter(t => t.customer?.id === selectedCustomerId);
     }
+    if (selectedDriverId !== 'All') {
+      filtered = filtered.filter(t => t.driver?.id === selectedDriverId || (t as any).driver_id === selectedDriverId);
+    }
     if (debouncedSearch && debouncedSearch.trim()) {
       filtered = filtered.filter(t => computeTripSearchRelevance(t, debouncedSearch) > 0);
     }
@@ -1244,7 +1276,7 @@ export default function TripListPage() {
 
       if (sortOption === 'oldest') {
         const timeA = new Date(a.createdAt || (a as any).created_at || a.planned_start || 0).getTime();
-        const timeB = new Date(b.createdAt || (b as any).created_at || b.planned_start || 0).getTime();
+        const timeB = new Date(b.createdAt || (b as any).created_at || a.planned_start || 0).getTime();
         if (timeA !== timeB) return timeA - timeB;
       } else if (sortOption === 'price_desc') {
         const pA = a.billing_amount ?? a.trip_charges ?? a.rateCard?.base_price ?? 0;
@@ -2288,6 +2320,26 @@ export default function TripListPage() {
                         ))}
                       </select>
                     </div>
+
+                    {/* Driver Filter */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Driver</label>
+                      <select
+                        value={selectedDriverId}
+                        onChange={(e) => {
+                          setSelectedDriverId(e.target.value);
+                          setCurrentPage(1);
+                        }}
+                        className="w-full h-8 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+                      >
+                        <option value="All">All Drivers</option>
+                        {driverFilterOptions.map((d) => (
+                          <option key={d.id} value={d.id}>
+                            {d.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
                   {activeFiltersCount > 0 && (
@@ -2297,6 +2349,7 @@ export default function TripListPage() {
                         onClick={() => {
                           setSelectedStatus('All');
                           setSelectedCustomerId('All');
+                          setSelectedDriverId('All');
                           setCurrentPage(1);
                         }}
                         className="text-[10px] font-bold text-red-600 hover:underline cursor-pointer"
@@ -2513,7 +2566,7 @@ export default function TripListPage() {
               ) : (
                 <div className="w-full flex flex-col gap-3 animate-fade-in">
 
-                  {/* Active Filter Indicator Banner */}
+                  {/* Active Filter Indicator Banners */}
                   {selectedStatus !== 'All' && (
                     <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200/80 dark:border-orange-900/40 px-3.5 py-2 rounded-xl flex items-center justify-between gap-3 text-xs font-semibold text-orange-900 dark:text-orange-200 animate-fade-in shrink-0">
                       <div className="flex items-center gap-2">
@@ -2534,10 +2587,30 @@ export default function TripListPage() {
                       </button>
                     </div>
                   )}
+                  {selectedDriverId !== 'All' && (
+                    <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200/80 dark:border-orange-900/40 px-3.5 py-2 rounded-xl flex items-center justify-between gap-3 text-xs font-semibold text-orange-900 dark:text-orange-200 animate-fade-in shrink-0">
+                      <div className="flex items-center gap-2">
+                        <Filter className="h-3.5 w-3.5 text-brand shrink-0" />
+                        <span>
+                          Filtered by driver: <strong className="underline decoration-brand text-slate-900 dark:text-slate-100 font-bold">{driverFilterOptions.find(d => d.id === selectedDriverId)?.name || 'Driver'}</strong> ({trips.length} trip{trips.length === 1 ? '' : 's'} matching)
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setSelectedDriverId('All');
+                          setCurrentPage(1);
+                        }}
+                        className="px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-800 text-[11px] font-bold text-brand hover:bg-orange-100 dark:hover:bg-orange-950 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5"
+                      >
+                        <span>Clear Driver Filter</span>
+                        <X className="w-3 h-3 shrink-0" />
+                      </button>
+                    </div>
+                  )}
 
                   <div className="w-full flex flex-col">
                     <DataTable
-                      key={`${selectedStatus}_${selectedCustomerId}_${dateFilter}_${totalTripsResetKey}`}
+                      key={`${selectedStatus}_${selectedCustomerId}_${selectedDriverId}_${dateFilter}_${totalTripsResetKey}`}
                       title={
                         <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
                           <div className="flex flex-col gap-1 shrink-0">
