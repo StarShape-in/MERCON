@@ -233,6 +233,7 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
                   setContractVehicleType={setContractVehicleType}
                   contractBillingType={contractBillingType}
                   fieldErrors={fieldErrors}
+                  vehicles={vehicles}
                 />
               )}
 

@@ -2684,10 +2684,12 @@ export default function TripListPage() {
                       key={`${selectedStatus}_${selectedCustomerId}_${dateFilter}_${totalTripsResetKey}`}
                       title={
                         <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
-                          <div className="flex items-center gap-2 shrink-0">
-                            <Layers className="w-4 h-4 text-brand" />
-                            <span className="font-extrabold text-sm text-slate-900 dark:text-slate-100 tracking-tight">Trip Ledger</span>
-                            <Badge variant="outline" className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
+                          <div className="flex flex-col gap-1 shrink-0">
+                            <div className="flex items-center gap-2">
+                              <Layers className="w-4 h-4 text-brand" />
+                              <span className="font-extrabold text-sm text-slate-900 dark:text-slate-100 tracking-tight">Trip Ledger</span>
+                            </div>
+                            <Badge variant="outline" className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5 w-fit">
                               {trips.length} {trips.length === 1 ? 'record' : 'records'}
                             </Badge>
                           </div>

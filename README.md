@@ -28,16 +28,21 @@ Built with **Node.js, Express, TypeScript, Prisma (PostgreSQL), and Socket.io**.
 - **Database:** PostgreSQL.
 - **Deployment & CI/CD:** GitHub Actions, Docker, Docker Compose, Nginx Reverse Proxy, Let's Encrypt (Certbot) SSL.
 
+3. **Documentation:**
+   - [Product Requirements Document (PRD)](file:///d:/Mercon/docs/PRD.md)
+   - [Technical Requirements Document (TRD)](file:///d:/Mercon/docs/TRD.md)
+   - [System Architecture](file:///d:/Mercon/docs/technical/SYSTEM_ARCHITECTURE.md)
+
 ---
 
-## 📦 Deployment Pipeline
+## 📦 Deployment Pipeline & Git Standards
 
-The project uses a highly optimized GitHub Actions CI/CD pipeline (`.github/workflows/ci-cd.yml`) that deploys directly to a live VPS at `mercon.tech`.
+The project uses an optimized CI/CD pipeline deploying directly to a live VPS at `mercon.tech` / `dev.mercon.tech`.
 
-1. **Trigger:** Code pushed to `main` branch.
-2. **Transfer:** Source code is synced to the VPS using `rsync` over SSH.
-3. **Build:** Docker Compose rebuilds the containers (`mercon-api` and `mercon-frontend`).
-4. **Proxy:** An external Nginx instance safely routes traffic to the containers, ensuring SSL certificates generated via Certbot are preserved and not overwritten.
+1. **Development & Target Branch:** Primary active pushes default to **`origin/ilan`**.
+2. **Transfer:** Source code syncs to the VPS container host.
+3. **Build & Migration:** Docker Compose rebuilds the containers (`mercon-api` and `mercon-frontend`) and executes `npx prisma migrate deploy` on container boot.
+4. **Proxy:** Nginx safely routes traffic to host ports (`3051` for API, `3060` for Web Dashboard) with SSL certificates intact.
 
 ---
 

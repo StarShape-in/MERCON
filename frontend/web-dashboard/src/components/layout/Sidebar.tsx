@@ -125,6 +125,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
       label: 'ACCOUNT',
       items: [
         { icon: Settings, label: 'Settings', path: '/settings', end: true },
+        { icon: Trash2, label: 'Recycle Bin', path: '/settings/recycle-bin', moduleKey: 'recycle-bin' },
         ...(isSuperAdmin ? [{ icon: SlidersHorizontal, label: 'Module Governance', path: '/settings/module-governance', permissionKey: 'settings.deployment' }] : []),
         ...(can('users.view') ? [{ icon: Users, label: 'User Management', path: '/settings/users', permissionKey: 'users.view' }] : []),
         { icon: FolderArchive, label: 'Aprodac Vault', path: '/aprodac-documents', moduleKey: 'aprodac-documents' },

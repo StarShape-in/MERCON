@@ -18,6 +18,7 @@ import {
   normalizeRateCategory,
   normalizeVehicleClass,
 } from '@/utils/taxonomyRegistry';
+import { formatDriverDetails } from '@/utils/driverStatusUtils';
 
 export {
   normalizeBillingType,
@@ -150,11 +151,14 @@ export function useEditTripForm() {
   const driverOptions = useMemo<ComboboxOption[]>(() => {
     return drivers.map((d) => {
       const fullName = `${d.first_name || ''} ${d.last_name || ''}`.trim() || `Driver #${d.id.slice(0, 5)}`;
+      const detailsStr = formatDriverDetails(d);
+      const isNotAvailable = Boolean(d.status && d.status !== 'Available' && d.status.toLowerCase() !== 'available');
       return {
         value: d.id,
-        label: fullName,
+        label: `${fullName} (${detailsStr})`,
         selectedLabel: fullName,
-        keywords: `${fullName} ${d.phone_primary || ''} ${d.license_number || ''}`,
+        disabled: isNotAvailable,
+        keywords: `${fullName} ${detailsStr} ${d.phone_primary || ''} ${d.license_number || ''}`,
         raw: d,
       } as ComboboxOption;
     });

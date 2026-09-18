@@ -225,9 +225,11 @@ app.get(['/health', '/api/health'], async (req: Request, res: Response) => {
     await prisma.$queryRaw`SELECT 1`;
     res.json({ success: true, message: 'MERCON API is running perfectly!', db: 'connected' });
   } catch (err: any) {
-    res.json({ success: true, message: 'MERCON API is running (DB initializing)', error: err?.message || String(err) });
+    logger.error({ err }, 'Healthcheck database probe failed');
+    res.status(503).json({ success: false, db: 'unavailable' });
   }
 });
+
 
 // Catches errors passed via next(err) — most notably multer's fileFilter
 // rejections (invalid upload type). Must be registered after all routes.

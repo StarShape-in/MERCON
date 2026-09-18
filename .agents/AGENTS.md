@@ -462,7 +462,7 @@ A **502 Bad Gateway** on `dev.mercon.tech` occurs when Nginx cannot proxy reques
 ---
 
 ### 38.2 Mandatory Pre-Push Verification Checklist
-Before pushing any commit:
+Before pushing any commit to `origin/ilan`:
 1. `cd backend/api-server && npx tsc --noEmit` (Must pass with 0 errors)
 2. `cd frontend/web-dashboard && npx tsc -b` (Must pass with 0 errors)
 3. Check `git status` for new Prisma migration SQL files and verify they are committed.
@@ -470,7 +470,9 @@ Before pushing any commit:
 
 ---
 
-## 39. Strict Target Branch Mandate (`hysam`)
-- **Primary Target Branch**: `hysam` (Remote: `origin/hysam`, Local: `HYSAM`)
-- **Rule**: ALL commits, updates, and git pushes initiated by AI agents, IDE tools, or developers MUST strictly target the **`hysam`** branch (`origin/hysam`).
-- Do NOT push directly to `main` or `dev` unless explicitly directed by the repository owner.
+## 39. Default Git Branch & Pushing Guidelines
+
+### 39.1 Default Target Branch
+- **Primary Development & Push Branch**: From now on, all code changes, commits, and pushes must default to the `ilan` branch (`origin/ilan`).
+- **Dev Synchronization**: Keep the `ilan` branch updated with `origin/dev` by pulling from `origin/dev` (`git pull origin dev`) before making major updates.
+- **Default Push Behavior**: Do not push directly to `origin/dev` unless explicitly instructed; all automated and agent pushes must target `origin/ilan`.
