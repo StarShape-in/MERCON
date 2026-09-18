@@ -9,6 +9,11 @@ Read the existing code, schema, and docs relevant to your task **before**
 editing. Do not invent features, fields, enum values, pages, or roles that
 are not already in the codebase or explicitly requested by the owner.
 
+## Rule 0.1: Strict target branch is `hysam`
+
+ALL commits, code updates, and git pushes initiated by AI agents or IDE tools MUST strictly target the **`hysam`** branch (`origin/hysam` / local `HYSAM`). Never push directly to `main` or `dev`. Always verify active branch (`git branch`) and push explicitly via `git push origin HYSAM:hysam`.
+
+
 ## Rule 0.5: Keep PROGRESS.md in sync
 
 `PROGRESS.md` (repo root) is the single source of truth for "where is the

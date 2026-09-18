@@ -462,7 +462,7 @@ A **502 Bad Gateway** on `dev.mercon.tech` occurs when Nginx cannot proxy reques
 ---
 
 ### 38.2 Mandatory Pre-Push Verification Checklist
-Before pushing any commit to `origin/midlaj`:
+Before pushing any commit:
 1. `cd backend/api-server && npx tsc --noEmit` (Must pass with 0 errors)
 2. `cd frontend/web-dashboard && npx tsc -b` (Must pass with 0 errors)
 3. Check `git status` for new Prisma migration SQL files and verify they are committed.
@@ -470,10 +470,7 @@ Before pushing any commit to `origin/midlaj`:
 
 ---
 
-## 39. Git Branch & Remote Policy (`midlaj` Only)
-- **Only pull and push to `midlaj` branch**: All agent work, commits, and pushes must be strictly on `midlaj`.
-- **Syncing from `dev`**: Pull / fetch latest from `origin/dev` and rebase `midlaj` on top of `origin/dev`.
-- **Preserve everything without removing anything**: Never drop, overwrite, or remove existing features/migrations during rebase.
-- See `GIT_WORKFLOW.md` for full details.
-
-
+## 39. Strict Target Branch Mandate (`hysam`)
+- **Primary Target Branch**: `hysam` (Remote: `origin/hysam`, Local: `HYSAM`)
+- **Rule**: ALL commits, updates, and git pushes initiated by AI agents, IDE tools, or developers MUST strictly target the **`hysam`** branch (`origin/hysam`).
+- Do NOT push directly to `main` or `dev` unless explicitly directed by the repository owner.
