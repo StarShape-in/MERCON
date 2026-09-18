@@ -3,6 +3,7 @@ import { Calendar, Check, X, User, Truck, Repeat, RotateCcw, Building2, ChevronD
 import { Button } from '@/components/ui/button';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { shiftMonth, monthOptions } from '@/components/trips/monthly/monthlyBoardUtils';
+import { normalizeVehicleClass } from '@/utils/taxonomyRegistry';
 import DriverAvatar from '@/components/ui/DriverAvatar';
 
 export interface MonthDateItem {
@@ -142,7 +143,18 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
         return nextV;
       });
     }
-  }, [masterDriver, masterVehicle]);
+
+    const targetVehId = masterVehicle || rotationVehicles[0];
+    if (targetVehId && targetVehId !== 'unassigned' && setContractVehicleType) {
+      const selVeh = vehicles.find((v: any) => v.id === targetVehId);
+      if (selVeh) {
+        const vClass = getVehicleClassFromVeh(selVeh);
+        if (vClass) {
+          setContractVehicleType(vClass);
+        }
+      }
+    }
+  }, [masterDriver, masterVehicle, rotationVehicles, vehicles]);
 
   // Helper to fetch full driver object
   const getDriverObject = (dId: string) => {
@@ -205,6 +217,19 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
     applyAssignmentStrategy(mode, nextCount, rotationDrivers, rotationVehicles);
   };
 
+  const getVehicleClassFromVeh = (v: any): string => {
+    if (!v) return '10 TON';
+    if (v.capacity_kg && v.capacity_kg > 0) {
+      const tons = v.capacity_kg / 1000;
+      if (tons <= 4) return '3-4 TON';
+      if (tons <= 5) return '5 TON';
+      if (tons <= 10) return '10 TON';
+      if (tons <= 20) return '20 TON';
+      return '40 FEET';
+    }
+    return normalizeVehicleClass(v.asset_type || v.vehicle_class || v.class || v.type);
+  };
+
   // Update specific driver in rotation array
   const handleUpdateRotationDriver = (index: number, newDriverId: string) => {
     const nextDrivers = [...rotationDrivers];
@@ -221,14 +246,26 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
       }
     } else if (newDriverId && newDriverId !== 'unassigned') {
       const selD = drivers.find((d) => d.id === newDriverId);
-      let vId = selD?.assignedVehicleId || (selD?.assignedVehicle as any)?.id;
+      let vId = selD?.assignedVehicleId || (selD?.assignedVehicle as any)?.id || (selD as any)?.assigned_vehicle_id;
       if (!vId) {
-        const vAssigned = vehicles.find((v: any) => v.assignedDriverId === newDriverId || v.assigned_driver_id === newDriverId);
+        const vAssigned = vehicles.find((v: any) => v.assignedDriverId === newDriverId || v.assigned_driver_id === newDriverId || (v.assignedDriver && v.assignedDriver.id === newDriverId));
         if (vAssigned) vId = vAssigned.id;
       }
       if (vId) {
         nextVehicles[index] = vId;
         setRotationVehicles(nextVehicles);
+      }
+    }
+
+    // Auto-update contractVehicleType based on driver's assigned vehicle or active vehicle
+    const activeVehId = nextVehicles[index] || nextVehicles[0];
+    if (activeVehId && activeVehId !== 'unassigned' && setContractVehicleType) {
+      const selVeh = vehicles.find((v: any) => v.id === activeVehId);
+      if (selVeh) {
+        const vClass = getVehicleClassFromVeh(selVeh);
+        if (vClass) {
+          setContractVehicleType(vClass);
+        }
       }
     }
 
@@ -245,7 +282,31 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
       handleVehicleChange(newVehicleId);
     }
 
-    applyAssignmentStrategy(strategyMode, rotationCount, rotationDrivers, nextVehicles);
+    const nextDrivers = [...rotationDrivers];
+    if (newVehicleId && newVehicleId !== 'unassigned') {
+      const selVeh = vehicles.find((v: any) => v.id === newVehicleId);
+      if (selVeh) {
+        // 1. Auto update contractVehicleType based on selected vehicle
+        const vClass = getVehicleClassFromVeh(selVeh);
+        if (vClass && setContractVehicleType) {
+          setContractVehicleType(vClass);
+        }
+
+        // 2. If no driver assigned for this slot yet, auto-select vehicle's default driver
+        if (!nextDrivers[index] || nextDrivers[index] === 'unassigned') {
+          const defaultDriverId = selVeh.assignedDriverId || selVeh.assigned_driver_id || (selVeh.assignedDriver && selVeh.assignedDriver.id);
+          if (defaultDriverId) {
+            nextDrivers[index] = defaultDriverId;
+            setRotationDrivers(nextDrivers);
+            if (index === 0 && handleDriverChange) {
+              handleDriverChange(defaultDriverId);
+            }
+          }
+        }
+      }
+    }
+
+    applyAssignmentStrategy(strategyMode, rotationCount, nextDrivers, nextVehicles);
   };
 
   // Toggle date selection
@@ -581,20 +642,15 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                             <span className="font-black uppercase px-2 py-0.5 rounded-md bg-orange-100 text-[#FA634E] dark:bg-orange-950/60 dark:text-orange-300 shrink-0 tracking-wider">
                               {strategyMode === 'single' ? 'Primary Pair' : `Pair ${idx + 1}`}
                             </span>
-                            {idx === 0 && setContractVehicleType && (
-                              <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shrink-0">
+                            {idx === 0 && (
+                              <div
+                                className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shrink-0 select-none"
+                                title="Vehicle class is automatically locked to the selected Rate Card / Quotation"
+                              >
                                 <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider">CLASS:</span>
-                                <select
-                                  value={contractVehicleType}
-                                  onChange={(e) => setContractVehicleType(e.target.value)}
-                                  className="text-[10px] font-black text-[#FA634E] dark:text-orange-400 bg-transparent focus:outline-none cursor-pointer"
-                                >
-                                  {['10 TON', '20 TON', '40 FEET', '3-4 TON', '5 TON'].map((vClass) => (
-                                    <option key={vClass} value={vClass} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-bold">
-                                      {vClass}
-                                    </option>
-                                  ))}
-                                </select>
+                                <span className="text-[10px] font-black text-[#FA634E] dark:text-orange-400">
+                                  {contractVehicleType || '10 TON'}
+                                </span>
                               </div>
                             )}
                           </div>
@@ -841,10 +897,10 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                 {/* Table Header */}
                 {selectedDates.length > 0 && (
                   <div className="grid grid-cols-12 gap-2 px-2.5 text-[10px] font-extrabold text-slate-400 uppercase">
-                    <div className="col-span-3">Operating Date</div>
+                    <div className="col-span-2">Operating Date</div>
                     <div className="col-span-4">Assigned Driver</div>
-                    <div className="col-span-4">Assigned Vehicle</div>
-                    <div className="col-span-1 text-right">Actions</div>
+                    <div className="col-span-3">Assigned Vehicle</div>
+                    <div className="col-span-3 text-right">Actions</div>
                   </div>
                 )}
 
@@ -938,8 +994,8 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                               : 'border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300'
                           }`}
                         >
-                          {/* Date Column (col-span-3) */}
-                          <div className="col-span-3 flex items-center gap-1.5 min-w-0 pt-1">
+                          {/* Date Column (col-span-2) */}
+                          <div className="col-span-2 flex items-center gap-1.5 min-w-0 pt-1">
                             <span className="w-4 h-4 rounded-md bg-slate-100 dark:bg-slate-800 text-[9px] font-black text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0">
                               {idx + 1}
                             </span>
@@ -948,7 +1004,7 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                             </span>
                           </div>
 
-                          {/* Driver Combobox (col-span-4) */}
+                          {/* Driver & Co-Driver Comboboxes (col-span-4) */}
                           <div className="col-span-4 min-w-0 flex flex-col gap-1.5">
                             <Combobox
                               options={driverOptions}
@@ -956,75 +1012,51 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                               onChange={handleUpdateDateDriver}
                               placeholder="Select Driver"
                               className="h-7.5 text-xs font-medium"
+                              popoverClassName="w-[320px] max-w-sm"
                             />
                             {assignment.coDriverId !== undefined && (
-                              <div className="flex items-center gap-1 mt-1 animate-fade-in">
+                              <div className="flex items-center gap-1.5 mt-1 animate-fade-in w-full">
                                 <span className="text-[9px] font-black text-[#FA634E] bg-orange-100 dark:bg-orange-950/80 px-1 py-0.5 rounded shrink-0">
                                   CO
                                 </span>
-                                <div className="flex-1 min-w-0 flex items-center gap-1">
+                                <div className="flex-1 min-w-0">
                                   <Combobox
                                     options={driverOptions}
                                     value={assignment.coDriverId}
                                     onChange={(val) => {
                                       if (!setDayAssignments) return;
-                                      setDayAssignments((prev) => ({
-                                        ...prev,
-                                        [dateStr]: {
-                                          ...(prev[dateStr] || { driverId: activeStrategyDriver, vehicleId: activeStrategyVehicle }),
-                                          coDriverId: val,
-                                        },
-                                      }));
-                                    }}
-                                    placeholder="Select Co-Driver"
-                                    className="h-7 text-[11px] font-medium"
-                                  />
-                                  {activeDriver && assignment.coDriverId !== activeDriver && (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        if (!setDayAssignments) return;
+                                      if (val === 'unassigned' || !val) {
+                                        setDayAssignments((prev) => {
+                                          const next = { ...prev };
+                                          if (next[dateStr]) {
+                                            next[dateStr] = { ...next[dateStr] };
+                                            delete next[dateStr].coDriverId;
+                                            delete next[dateStr].driverPayoutOverride;
+                                            delete next[dateStr].coDriverPayoutOverride;
+                                          }
+                                          return next;
+                                        });
+                                      } else {
                                         setDayAssignments((prev) => ({
                                           ...prev,
                                           [dateStr]: {
                                             ...(prev[dateStr] || { driverId: activeStrategyDriver, vehicleId: activeStrategyVehicle }),
-                                            coDriverId: activeDriver,
+                                            coDriverId: val,
                                           },
                                         }));
-                                      }}
-                                      className="text-[9px] font-black text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950 px-1 py-0.5 rounded shrink-0 cursor-pointer"
-                                      title="Set co-driver to same as primary driver"
-                                    >
-                                      Same
-                                    </button>
-                                  )}
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (!setDayAssignments) return;
-                                    setDayAssignments((prev) => {
-                                      const next = { ...prev };
-                                      if (next[dateStr]) {
-                                        next[dateStr] = { ...next[dateStr] };
-                                        delete next[dateStr].coDriverId;
-                                        delete next[dateStr].driverPayoutOverride;
-                                        delete next[dateStr].coDriverPayoutOverride;
                                       }
-                                      return next;
-                                    });
-                                  }}
-                                  className="text-slate-400 hover:text-rose-500 transition-colors p-0.5 shrink-0"
-                                  title="Remove co-driver"
-                                >
-                                  <X className="w-3.5 h-3.5" />
-                                </button>
+                                    }}
+                                    placeholder="Select Co-Driver"
+                                    className="h-7 text-[11px] font-medium w-full"
+                                    popoverClassName="w-[320px] max-w-sm"
+                                  />
+                                </div>
                               </div>
                             )}
                           </div>
 
-                          {/* Vehicle Combobox (col-span-4) */}
-                          <div className="col-span-4 min-w-0">
+                          {/* Vehicle Combobox (col-span-3) */}
+                          <div className="col-span-3 min-w-0">
                             <Combobox
                               options={vehicleOptions}
                               value={activeVehicle}
@@ -1034,8 +1066,8 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                             />
                           </div>
 
-                          {/* Action / Override State (col-span-1) */}
-                          <div className="col-span-1 flex items-center justify-end gap-1.5 shrink-0 pr-0.5 pt-0.5">
+                          {/* Action / Override State (col-span-3) */}
+                          <div className="col-span-3 flex items-center justify-end gap-1.5 shrink-0 pr-0.5 pt-0.5">
                             {assignment.coDriverId === undefined && (
                               <button
                                 type="button"
@@ -1052,8 +1084,8 @@ export const MonthlyDaysSelector: React.FC<MonthlyDaysSelectorProps> = ({
                                   }));
                                 }}
                               >
-                                <Plus className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                                <span>+ Co-Driver</span>
+                                <Plus className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                <span>Co-Driver</span>
                               </button>
                             )}
                             <button

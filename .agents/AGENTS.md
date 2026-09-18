@@ -474,5 +474,3 @@ Before pushing any commit:
 - **Primary Target Branch**: `hysam` (Remote: `origin/hysam`, Local: `HYSAM`)
 - **Rule**: ALL commits, updates, and git pushes initiated by AI agents, IDE tools, or developers MUST strictly target the **`hysam`** branch (`origin/hysam`).
 - Do NOT push directly to `main` or `dev` unless explicitly directed by the repository owner.
-
-

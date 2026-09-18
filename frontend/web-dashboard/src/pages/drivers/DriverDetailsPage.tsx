@@ -19,6 +19,12 @@ import VisualRouteProgress from '@/components/trips/VisualRouteProgress';
 import { driverService } from '@/services/driverService';
 import { documentService } from '@/services/documentService';
 import { exportExcelTable } from '@/utils/exportUtils';
+import DriverAvatar from '@/components/ui/DriverAvatar';
+import { getDriverAvatar } from '@/lib/driverAvatarMap';
+import DocumentPreviewSheet from '@/components/documents/DocumentPreviewSheet';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import {
@@ -798,6 +804,8 @@ export default function DriverDetailsPage() {
                 <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs sm:text-sm font-bold bg-emerald-100/90 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/40 shadow-2xs">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
                   {driver.status || 'Available'}
+                </span>
+              </div>
                 </span>
               </div>
 

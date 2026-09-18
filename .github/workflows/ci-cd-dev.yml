@@ -148,9 +148,19 @@ jobs:
 
       - name: Deploy Nginx Config for Dev & Reload
         run: |
+          echo "Deploying dev nginx config..."
+
+          # Deploy catch-all default SSL block (rejects unknown HTTPS hosts)
+          # Both pipelines deploy this to guarantee the safety net is always present.
+          if [ -f nginx/00-default-ssl.conf ]; then
+            sudo cp nginx/00-default-ssl.conf /etc/nginx/sites-available/00-default-ssl.conf
+            sudo ln -sf /etc/nginx/sites-available/00-default-ssl.conf /etc/nginx/sites-enabled/00-default-ssl.conf
+          fi
+
+          # Deploy dev nginx config
           if [ -f nginx/dev-mercon-api.conf ]; then
-            sudo cp nginx/dev-mercon-api.conf /etc/nginx/sites-available/dev-mercon-api.conf 2>/dev/null || true
-            sudo ln -sf /etc/nginx/sites-available/dev-mercon-api.conf /etc/nginx/sites-enabled/dev-mercon-api.conf 2>/dev/null || true
+            sudo cp nginx/dev-mercon-api.conf /etc/nginx/sites-available/dev-mercon-api.conf
+            sudo ln -sf /etc/nginx/sites-available/dev-mercon-api.conf /etc/nginx/sites-enabled/dev-mercon-api.conf
           fi
 
           # Update dev nginx site configs strictly (*dev*) to proxy to dev API port 3051 and dev Frontend port 3061
@@ -167,5 +177,8 @@ jobs:
             sudo sed -i 's/127\.0\.0\.1:3061/127.0.0.1:3060/g' /etc/nginx/sites-enabled/mercon-api.conf 2>/dev/null || true
           fi
 
-          sudo nginx -t 2>/dev/null && (sudo systemctl reload nginx 2>/dev/null || sudo service nginx reload 2>/dev/null || true)
+          # Validate config before reloading
+          sudo nginx -t
+          sudo systemctl reload nginx || sudo service nginx reload || true
+          echo "Dev nginx config deployed and reloaded."
 

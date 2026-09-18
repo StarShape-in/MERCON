@@ -51,7 +51,9 @@ export interface ComputedBackendFinancials {
   perTripBilling: number;        // Base customer rate for active trip
   chargesTotal: number;          // Additional billable charges
   totalCustomerBilling: number;  // perTripBilling + chargesTotal
-  totalDriverPayout: number;     // Driver payout or 3PL subcontract cost (NEVER divided by 30)
+  primaryDriverPayout: number;   // Primary driver payout (SAR)
+  coDriverPayout: number;        // Co-driver payout (SAR)
+  totalDriverPayout: number;     // Sum of primary + co-driver + 3PL cost
   extraDriverPayment: number;    // Extra driver allowance
   balanceMargin: number;         // totalCustomerBilling - totalDriverPayout
   marginPercent: number;         // Margin percentage (%)
@@ -83,18 +85,8 @@ export function computeTripTotalAmount(
 
 /** Driver Payout or 3PL Subcontract Cost. NEVER DIVIDED BY 30. */
 export function computeTripDriverPayout(trip: BackendTripFinancialInputs): number {
-  const extraDriver = asNumber(trip.extra_driver_payment);
-  const days = asNumber(trip.selected_operating_days);
-  const multiplier = days > 0 ? days : 1;
-
-  if (trip.is_third_party) {
-    const cost = trip.subcontract?.cost ?? trip.third_party_cost;
-    return Math.max(0, (asNumber(cost) * multiplier) + extraDriver);
-  }
-  const primaryPayout = trip.driver_payout ?? trip.driver_charge ?? trip.trip_charges ?? trip.rateCard?.driver_payout ?? trip.quotation?.driver_payout;
-  const coDriverPayout = trip.co_driver_payout ?? 0;
-  const totalPayout = asNumber(primaryPayout) + asNumber(coDriverPayout);
-  return Math.max(0, (totalPayout * multiplier) + extraDriver);
+  const fin = calculateBackendTripFinancials(trip);
+  return fin.totalDriverPayout;
 }
 
 /** Balance profit kept by MERCON: customer total minus driver payout. */
@@ -143,8 +135,65 @@ export function calculateBackendTripFinancials(trip: BackendTripFinancialInputs)
     : computeTripChargesTotal(trip.charges);
   
   const totalCustomerBilling = perTripBilling + chargesTotal;
-  const totalDriverPayout = computeTripDriverPayout(trip);
   const extraDriverPayment = asNumber(trip.extra_driver_payment);
+
+  let primaryDriverPayout = 0;
+  let coDriverPayout = 0;
+  let totalDriverPayout = 0;
+
+  if (trip.is_third_party) {
+    const cost = trip.subcontract?.cost ?? trip.third_party_cost;
+    primaryDriverPayout = Math.max(0, asNumber(cost));
+    totalDriverPayout = Math.max(0, (primaryDriverPayout * operatingDays) + extraDriverPayment);
+  } else {
+    const quotationDefault = trip.rateCard?.driver_payout ?? trip.quotation?.driver_payout;
+    const quotationDefaultVal = quotationDefault != null ? asNumber(quotationDefault) : 0;
+    const rawPrimary = trip.driver_payout ?? trip.driver_charge ?? trip.trip_charges ?? 0;
+    const rawPrimaryVal = asNumber(rawPrimary);
+    let coVal = asNumber(trip.co_driver_payout);
+
+    const hasCoDriver = Boolean((trip as any).co_driver_id || (trip as any).coDriverId || (trip as any).coDriver || coVal > 0);
+
+    let primaryVal = 0;
+
+    if (hasCoDriver) {
+      if (coVal > 0) {
+        if (rawPrimaryVal > 0) {
+          if (rawPrimaryVal === coVal) {
+            primaryVal = rawPrimaryVal;
+          } else if (rawPrimaryVal >= coVal * 2) {
+            primaryVal = rawPrimaryVal - coVal;
+          } else {
+            primaryVal = rawPrimaryVal;
+          }
+        } else if (quotationDefaultVal > 0) {
+          if (quotationDefaultVal > coVal) {
+            primaryVal = quotationDefaultVal - coVal;
+          } else {
+            primaryVal = quotationDefaultVal;
+          }
+        } else {
+          primaryVal = coVal;
+        }
+      } else if (rawPrimaryVal > 0) {
+        // Equal 50/50 split of the total saved rate driver payout
+        const half = Math.round((rawPrimaryVal / 2) * 100) / 100;
+        primaryVal = half;
+        coVal = half;
+      } else if (quotationDefaultVal > 0) {
+        const half = Math.round((quotationDefaultVal / 2) * 100) / 100;
+        primaryVal = half;
+        coVal = half;
+      }
+    } else {
+      primaryVal = rawPrimaryVal > 0 ? rawPrimaryVal : quotationDefaultVal;
+      coVal = 0;
+    }
+
+    primaryDriverPayout = Math.max(0, primaryVal);
+    coDriverPayout = Math.max(0, coVal);
+    totalDriverPayout = Math.max(0, ((primaryDriverPayout + coDriverPayout) * operatingDays) + extraDriverPayment);
+  }
 
   const balanceMargin = totalCustomerBilling - totalDriverPayout;
   const marginPercent = totalCustomerBilling > 0
@@ -161,6 +210,8 @@ export function calculateBackendTripFinancials(trip: BackendTripFinancialInputs)
     perTripBilling,
     chargesTotal,
     totalCustomerBilling,
+    primaryDriverPayout,
+    coDriverPayout,
     totalDriverPayout,
     extraDriverPayment,
     balanceMargin,

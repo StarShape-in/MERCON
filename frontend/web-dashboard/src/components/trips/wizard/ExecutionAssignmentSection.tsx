@@ -552,8 +552,8 @@ export const ExecutionAssignmentSection: React.FC<ExecutionAssignmentSectionProp
             </div>
           )}
 
-          {/* DRIVER NAME, DRIVER PHONE, VEHICLE PLATE & 3PL COST IN A 4-COLUMN GRID */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 items-start">
+          {/* DRIVER NAME, DRIVER PHONE, VEHICLE PLATE & 3PL COST IN A 2-COLUMN GRID */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
             <div className="space-y-1">
               <div className="flex items-center justify-between min-h-[16px] mb-1">
                 <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">

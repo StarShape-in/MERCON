@@ -100,3 +100,9 @@ creating drivers itself.
 - When adding any role-gated feature, enforce it in **both** places: backend
   route middleware (`authorizeRoles(...)`) and frontend (`RequireRole` /
   conditional nav). Frontend-only gating is not security.
+
+## Git Branch Policy (`midlaj` Only)
+- **Only pull and push to `midlaj` branch**: All changes, commits, and pushes must be exclusively on `midlaj`.
+- **Syncing from `dev`**: Pull/fetch from `origin/dev` and rebase `midlaj` on top of `origin/dev` without dropping or removing any existing work.
+- See `GIT_WORKFLOW.md` for complete workflow guidelines.
+
