@@ -10,13 +10,13 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-interface CreateVehicleModalProps {
+interface QuickCreateVehicleModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreated: (vehicle: Vehicle) => void;
 }
 
-export default function CreateVehicleModal({ isOpen, onClose, onCreated }: CreateVehicleModalProps) {
+export default function QuickCreateVehicleModal({ isOpen, onClose, onCreated }: QuickCreateVehicleModalProps) {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
 

@@ -14,13 +14,13 @@ import { Combobox } from '@/components/ui/combobox';
 import { DatePicker } from '@/components/ui/date-picker';
 import DriverImageUploader from '@/components/ui/DriverImageUploader';
 
-interface CreateDriverModalProps {
+interface QuickCreateDriverModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreated: (driver: Driver) => void;
 }
 
-export default function CreateDriverModal({ isOpen, onClose, onCreated }: CreateDriverModalProps) {
+export default function QuickCreateDriverModal({ isOpen, onClose, onCreated }: QuickCreateDriverModalProps) {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
 
