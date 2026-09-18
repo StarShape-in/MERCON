@@ -46,6 +46,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { formatDriverDetails } from '@/utils/driverStatusUtils';
 
 import type { TemplateGroup } from './MonthlyCompanyBoard';
 import { tripService, type MonthlyBoardTrip } from '@/services/tripService';
@@ -164,15 +165,13 @@ export default function MonthlyGroupLedgerModal({
       { value: 'unassigned', label: '— Unassign Driver —', keywords: 'none unassign remove' },
     ];
     rawDrivers.forEach((d) => {
-      const isNotAvailable = d.status && d.status !== 'Available' && d.status.toLowerCase() !== 'available';
-      const statusTag = isNotAvailable ? (d.status === 'OnTrip' ? 'On Trip' : d.status === 'OffDuty' ? 'Off Duty' : d.status) : '';
+      const details = formatDriverDetails(d);
       const phoneStr = (d as any).phone || d.phone_primary || '';
-      const details = [phoneStr, statusTag].filter(Boolean).join(' · ');
 
       opts.push({
         value: d.id,
-        label: details ? `${d.first_name} ${d.last_name} (${details})` : `${d.first_name} ${d.last_name}`,
-        keywords: `${d.first_name} ${d.last_name} ${phoneStr} ${d.status || ''}`,
+        label: `${d.first_name} ${d.last_name} (${details})`,
+        keywords: `${d.first_name} ${d.last_name} ${phoneStr} ${details} ${d.status || ''}`,
       });
     });
     return opts;
