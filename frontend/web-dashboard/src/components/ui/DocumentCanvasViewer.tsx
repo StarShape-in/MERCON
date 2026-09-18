@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ZoomIn, ZoomOut, RotateCw, RefreshCw, FileText, Download, ExternalLink, Maximize2, X, Scaling, Expand } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCw, RefreshCw, FileText, Download, ExternalLink, Maximize2, X, Scaling, Expand, Loader2, FileQuestion } from 'lucide-react';
 import { resolveFileUrl } from '@/lib/documents';
 import { isImageFile, isPdfFile } from '@/components/ui/DocumentViewerModal';
 import { Button } from '@/components/ui/button';
@@ -33,6 +33,7 @@ export default function DocumentCanvasViewer({
   const [rotation, setRotation] = useState(0);
   const [fitMode, setFitMode] = useState<'contain' | 'width'>('contain');
   const [hasError, setHasError] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
   const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
 
@@ -46,9 +47,38 @@ export default function DocumentCanvasViewer({
     setHasError(false);
   }, [files]);
 
+  const resolvedUrl = activeFile?.file_url ? resolveFileUrl(activeFile.file_url) : '';
+
   useEffect(() => {
+    if (!resolvedUrl) return;
+    let isMounted = true;
+    setIsChecking(true);
     setHasError(false);
-  }, [activeIdx, retryKey]);
+
+    // Probe the file availability to catch 404s before iframe renders raw error
+    fetch(resolvedUrl, { method: 'HEAD' })
+      .then((res) => {
+        if (!isMounted) return;
+        if (!res.ok) {
+          setHasError(true);
+        } else {
+          const contentType = res.headers.get('content-type') || '';
+          if (contentType.includes('text/html')) {
+            setHasError(true);
+          }
+        }
+      })
+      .catch(() => {
+        if (isMounted) setHasError(true);
+      })
+      .finally(() => {
+        if (isMounted) setIsChecking(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [resolvedUrl, retryKey]);
 
   if (!activeFile || !activeFile.file_url) {
     return (
@@ -61,7 +91,6 @@ export default function DocumentCanvasViewer({
     );
   }
 
-  const resolvedUrl = resolveFileUrl(activeFile.file_url);
   const isImg = isImageFile(activeFile.file_url, activeFile.mime_type);
   const isPdf = isPdfFile(activeFile.file_url, activeFile.mime_type);
 
@@ -191,31 +220,33 @@ export default function DocumentCanvasViewer({
           </div>
         )}
 
-        {/* Render Image / PDF / Error */}
-        {hasError ? (
-          <div className="flex flex-col items-center justify-center p-6 text-center gap-3 text-slate-400 max-w-xs">
-            <FileText className="w-10 h-10 text-slate-500" />
+        {/* Render Image / PDF / Loading / Error */}
+        {isChecking ? (
+          <div className="flex flex-col items-center justify-center p-6 text-center gap-2 text-slate-400">
+            <Loader2 className="w-6 h-6 animate-spin text-[#FA634E]" />
+            <p className="text-xs font-semibold text-slate-500">Checking document file...</p>
+          </div>
+        ) : hasError ? (
+          <div className="flex flex-col items-center justify-center p-6 text-center gap-3 text-slate-400 max-w-sm">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 flex items-center justify-center text-rose-500 shadow-2xs">
+              <FileQuestion className="w-6 h-6" />
+            </div>
             <div>
-              <p className="text-xs font-bold text-slate-300">File Preview Unavailable</p>
-              <p className="text-[11px] text-slate-500 mt-1">Unable to load document directly in viewer.</p>
+              <p className="text-sm font-bold text-slate-800 dark:text-slate-200">Document File Unavailable</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                The physical file for this document is missing from the server. Click <strong className="text-slate-700 dark:text-slate-300">Replace</strong> below to upload a fresh copy.
+              </p>
             </div>
             <div className="flex items-center gap-2 mt-1">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-7 text-xs font-bold border-slate-700 text-slate-300 cursor-pointer"
+                className="h-8 px-3 text-xs font-bold border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                 onClick={() => setRetryKey((k) => k + 1)}
               >
-                <RefreshCw className="w-3 h-3 mr-1" /> Retry
+                <RefreshCw className="w-3.5 h-3.5 mr-1" /> Retry
               </Button>
-              <a
-                href={resolvedUrl}
-                download
-                className="h-7 px-3 rounded-lg bg-[#FA634E] text-white text-xs font-bold flex items-center gap-1 cursor-pointer hover:bg-[#FA634E]/90"
-              >
-                <Download className="w-3 h-3" /> Download
-              </a>
             </div>
           </div>
         ) : isImg ? (

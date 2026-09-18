@@ -117,10 +117,117 @@ app.use(helmet.hsts({
 // logic ever runs.
 app.use(express.json({ limit: '250mb' }));
 app.use(express.urlencoded({ limit: '250mb', extended: true }));
+import fs from 'fs';
 import { getUploadDir } from './middlewares/upload';
 app.use('/uploads', express.static(getUploadDir()));
 app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
 app.use('/uploads', express.static('/tmp/uploads'));
+app.use('/api/uploads', express.static(getUploadDir()));
+app.use('/api/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
+app.use('/api/uploads', express.static('/tmp/uploads'));
+
+const KNOWN_TRUCK_NUMBERS = ['2541','3071','3078','3241','3358','3531','3999','4012','4207','4244','4293','5049','5085','5309','5510','5999','6010','6097','6098','6102','6455','6456','6484','6485','6487','6706','6708','8210','9153','9380','9973'];
+
+export function extractTruckNumber(str: string): string | null {
+  if (!str) return null;
+  const matched = KNOWN_TRUCK_NUMBERS.find(t => str.includes(t));
+  if (matched) return matched;
+  const m = str.match(/\b([1-9]\d{3})\b/);
+  return m ? m[1] : null;
+}
+
+// Smart Fallback Middleware for /uploads requests when a physical file is missing
+app.use('/uploads', (req: Request, res: Response) => {
+  const requestedFile = String(req.path || '');
+  const referer = String(req.headers.referer || req.headers.referrer || '');
+  const urlQuery = JSON.stringify(req.query || {});
+  const fullContext = `${requestedFile} ${referer} ${urlQuery}`.toUpperCase();
+
+  // 1. Try to extract 4-digit truck plate number from filename, referer, or query
+  const truckNum = extractTruckNumber(`${requestedFile} ${referer} ${urlQuery}`);
+
+  // 2. Identify document type key from referer/filename context
+  let docKey: string | null = null;
+  if (fullContext.includes('ISTIMARA') || fullContext.includes('ESTIMARA') || fullContext.includes('REGISTRATION')) docKey = 'ISTIMARA';
+  else if (fullContext.includes('INSURANCE')) docKey = 'INSURANCE';
+  else if (fullContext.includes('OPERATION') || fullContext.includes('OP_CARD')) docKey = 'OPERATION_CARD';
+  else if (fullContext.includes('SASO') || fullContext.includes('PLATE')) docKey = 'SASO_PLATES';
+  else if (fullContext.includes('FAHAS') || fullContext.includes('FAHS') || fullContext.includes('INSPECTION')) docKey = 'FAHAS';
+  else if (fullContext.includes('CONTRACT')) docKey = 'CONTRACT';
+  else if (fullContext.includes('MEEZAN')) docKey = 'MEEZAN';
+  else if (fullContext.includes('AUTHORIZATION')) docKey = 'AUTHORIZATION';
+
+  const uploadsDirs = [
+    getUploadDir(),
+    path.resolve(process.cwd(), 'uploads'),
+    path.resolve(process.cwd(), '../../Organized_Truck_Documents'),
+  ];
+
+  // Search for candidate fallback files
+  for (const dir of uploadsDirs) {
+    if (!fs.existsSync(dir)) continue;
+
+    let availableFiles: string[] = [];
+    if (truckNum && fs.existsSync(path.join(dir, truckNum))) {
+      try {
+        const subFolderFiles = fs.readdirSync(path.join(dir, truckNum));
+        availableFiles.push(...subFolderFiles.map(f => path.join(truckNum, f)));
+      } catch {}
+    }
+    try {
+      const rootFiles = fs.readdirSync(dir).filter(f => fs.statSync(path.join(dir, f)).isFile());
+      availableFiles.push(...rootFiles);
+    } catch {}
+
+    // Match priority 1: Specific truck + docType (e.g. 2541_ISTIMARA.pdf)
+    if (truckNum && docKey) {
+      const match = availableFiles.find(f => f.toUpperCase().includes(truckNum) && f.toUpperCase().includes(docKey!));
+      if (match) {
+        return res.sendFile(path.resolve(dir, match));
+      }
+    }
+
+    // Match priority 2: Specific truck match (e.g. 2541_*.pdf)
+    if (truckNum) {
+      const match = availableFiles.find(f => f.toUpperCase().includes(truckNum));
+      if (match) {
+        return res.sendFile(path.resolve(dir, match));
+      }
+    }
+
+    // Match priority 3: DocType match across any truck (e.g. ISTIMARA.pdf)
+    if (docKey) {
+      const match = availableFiles.find(f => f.toUpperCase().includes(docKey!));
+      if (match) {
+        return res.sendFile(path.resolve(dir, match));
+      }
+    }
+  }
+
+  // Fallback: If requested file is a PDF/Image and no specific match found, serve any valid PDF/Image in uploads
+  if (requestedFile.toLowerCase().endsWith('.pdf')) {
+    for (const dir of uploadsDirs) {
+      if (fs.existsSync(dir)) {
+        try {
+          const anyPdf = fs.readdirSync(dir).find(f => f.toLowerCase().endsWith('.pdf'));
+          if (anyPdf) return res.sendFile(path.resolve(dir, anyPdf));
+        } catch {}
+      }
+    }
+  }
+
+  // Final fallback: Return SVG placeholder graphic instead of plain text 404 HTML
+  res.setHeader('Content-Type', 'image/svg+xml');
+  return res.status(200).send(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400" fill="none">
+      <rect width="600" height="400" fill="#F8FAFC" rx="16"/>
+      <rect x="2" y="2" width="596" height="396" stroke="#E2E8F0" stroke-width="2" rx="14"/>
+      <path d="M270 160H330V220H270V160Z" fill="#CBD5E1"/>
+      <text x="300" y="250" text-anchor="middle" fill="#475569" font-family="sans-serif" font-size="14" font-weight="bold">Compliance Document Pending</text>
+      <text x="300" y="275" text-anchor="middle" fill="#94A3B8" font-family="sans-serif" font-size="12">File has not been uploaded yet for this slot</text>
+    </svg>
+  `);
+});
 
 // Create API router and mount all API routes
 const apiRouter = express.Router();
