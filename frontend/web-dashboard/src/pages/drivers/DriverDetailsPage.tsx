@@ -778,12 +778,12 @@ export default function DriverDetailsPage() {
         {/* ── TOP HEADER & METRICS SECTION ── */}
         <div className="flex items-stretch gap-4 shrink-0 mt-3">
 
-          {/* LEFT: DRIVER PHOTO CARD (Full Photo Fill, Transparent Seamless Background) */}
-          <div className="bg-[#EEF1F6] dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xs shrink-0 w-36 sm:w-40 min-h-[140px] overflow-hidden">
+          {/* LEFT: DRIVER PHOTO CARD (Circular Profile Picture Holder) */}
+          <div className="bg-white dark:bg-slate-900 border-2 border-slate-200/80 dark:border-slate-800 rounded-full shadow-2xs shrink-0 w-32 h-32 sm:w-36 sm:h-36 overflow-hidden flex items-center justify-center self-center">
             <img
               src={photoUrl}
               alt={driverName}
-              className="w-full h-full object-cover object-top rounded-2xl"
+              className="w-full h-full object-cover object-top rounded-full"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = '/driver-assets/abdul_malik_transparent.png';
               }}
