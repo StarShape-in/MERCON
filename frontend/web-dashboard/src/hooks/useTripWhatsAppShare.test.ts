@@ -21,7 +21,7 @@ function makeTrip(overrides: Partial<Trip> = {}): Trip {
 }
 
 describe('useTripWhatsAppShare', () => {
-  let openSpy: ReturnType<typeof vi.spyOn>;
+  let openSpy: any;
 
   beforeEach(() => {
     openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
