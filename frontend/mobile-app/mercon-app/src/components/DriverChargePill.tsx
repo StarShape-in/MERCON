@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ViewStyle } from 'react-nativ
 import { Wallet, ChevronRight, ChevronLeft } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useTripHistory } from '../lib/use-trip-history';
-import { getTripChargeValue } from '../screens/driver/DriverChargesScreen';
+import { getTripChargeValue } from '../lib/trips';
 import { useLanguage } from '../lib/language-context';
 
 interface DriverChargePillProps {

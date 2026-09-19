@@ -15,12 +15,10 @@ import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens
 import { Badge, DelayReportModal, DriverChargePill, BilingualText } from '../../components';
 import { useAuth } from '../../lib/auth-context';
 import { useCurrentTrip } from '../../lib/use-current-trip';
-import { tripService, statusLabel, stopAddress, stopLabel, isRoundTrip, getEffectiveWorkflowState, type TripStatus, type MobileTrip } from '../../lib/trips';
+import { tripService, statusLabel, stopAddress, stopLabel, isRoundTrip, getEffectiveWorkflowState, getNextExternalAppAction, getTripChargeValue, type TripStatus, type MobileTrip } from '../../lib/trips';
 import { getApiErrorMessage } from '../../lib/api';
 import { useLanguage, getLocalizedStatus } from '../../lib/language-context';
 import { parseTripRouteNodes, getIntermediateStops, getOutboundIntermediateStops, getReturnIntermediateStops, type TimelineStop } from '../../lib/routeParser';
-
-import { getTripChargeValue } from './DriverChargesScreen';
 
 const WORKFLOW_URDU_LABEL: Record<string, string> = {
   ASSIGNED: 'ٹرپ شروع کریں',
@@ -225,9 +223,10 @@ const HomeScreen = () => {
     if (t.driver_workflow === 'EXTERNAL_APP') {
       const ws = getEffectiveWorkflowState(t);
       const isAssigned = ws === 'ASSIGNED';
+      const nextAction = getNextExternalAppAction(t);
       return {
         badgeLabel: isAssigned ? 'Assigned (External)' : 'External App',
-        btnLabel: isAssigned ? 'Start Trip' : 'Upload App Screenshot',
+        btnLabel: isAssigned ? 'Start Trip' : (nextAction?.label ?? 'Trip Completed'),
         onPress: async () => {
           if (isAssigned) {
             setAdvancing(true);
