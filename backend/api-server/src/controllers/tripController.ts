@@ -15,6 +15,7 @@ import { computeTripChargesTotal, calculateBackendTripFinancials, resolveDriverP
 import { validateTripDrivers, TripDriverInput, validateTripSchedule, validateTripStops } from '../services/tripValidationService';
 import { recordAssignmentEvent } from '../services/fleetDispatchService';
 import { whatsappService } from '../services/whatsappService';
+import { processExternalScreenshot } from '../services/externalScreenshotService';
 
 /** Fields the trip ledger search bar looks at. */
 const TRIP_SEARCH_FIELDS = [
@@ -2802,6 +2803,44 @@ export const shareTripMediaToWhatsApp = async (req: Request, res: Response) => {
         code: 'WHATSAPP_DISPATCH_FAILED',
         message: error?.message || 'Failed to dispatch trip media via WhatsApp Cloud API',
       },
+    });
+  }
+};
+
+/**
+ * Upload and process an External App Screenshot for a trip by an authorized Web operator.
+ * Path: POST /api/trips/:id/external-screenshot
+ */
+export const uploadExternalScreenshot = async (req: Request, res: Response) => {
+  const userId = (req as any).user?.id;
+  const tripId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+
+  if (!req.file) {
+    return res.status(400).json({ success: false, error: { message: 'No screenshot file uploaded' } });
+  }
+
+  try {
+    const autoApply = req.body?.auto_apply !== 'false' && req.body?.auto_apply !== false && req.query?.auto_apply !== 'false';
+
+    const result = await processExternalScreenshot({
+      tripId,
+      filePath: req.file.path,
+      mimeType: req.file.mimetype,
+      userId,
+      driverId: null, // Web operators are authorized via RBAC, not driver assignment
+      autoApply,
+    });
+
+    return res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error: any) {
+    logger.error({ err: error }, 'Web uploadExternalScreenshot error:');
+    const statusCode = error.statusCode || 500;
+    return res.status(statusCode).json({
+      success: false,
+      error: { message: error?.message || 'Failed to process screenshot' },
     });
   }
 };

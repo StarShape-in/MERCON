@@ -37,6 +37,7 @@ import TripOverviewBarCard from '@/components/trips/TripOverviewBarCard';
 import ModernFinancialsCard from '@/components/trips/ModernFinancialsCard';
 import TripPhotoEvidence, { PhotoPreviewItem } from '@/components/trips/TripPhotoEvidence';
 import GeotagEvidenceCard from '@/components/trips/GeotagEvidenceCard';
+import ExternalScreenshotCard from '@/components/trips/ExternalScreenshotCard';
 
 const isUuidVal = (str?: string | null) =>
   str ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str.trim()) : false;
@@ -671,10 +672,11 @@ export default function TripDetailsPage() {
           <VisualRouteProgress stops={trip.stops || []} tz={tz} tripStatus={trip.status} />
         </div>
 
-        {/* ── 4. BOTTOM ROW: TRIP PHOTO EVIDENCE (LEFT 9 COLS) + FINANCIALS (RIGHT 3 COLS) ── */}
+        {/* ── 4. BOTTOM ROW: EXTERNAL SCREENSHOT AI + TRIP PHOTO EVIDENCE (LEFT 9 COLS) + FINANCIALS (RIGHT 3 COLS) ── */}
         <div className="grid grid-cols-12 gap-3 items-stretch">
-          {/* Left Column: Trip Photo Evidence Panel (~75% / 9 Cols) */}
-          <div className="col-span-12 lg:col-span-9 flex flex-col h-full">
+          {/* Left Column: External Screenshot AI Card & Trip Photo Evidence Panel (~75% / 9 Cols) */}
+          <div className="col-span-12 lg:col-span-9 flex flex-col gap-3 h-full">
+            <ExternalScreenshotCard trip={trip} />
             <TripPhotoEvidence
               documents={documents}
               stops={trip.stops}
