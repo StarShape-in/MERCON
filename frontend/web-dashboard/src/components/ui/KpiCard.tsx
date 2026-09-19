@@ -76,6 +76,7 @@ export interface KpiCardProps extends Omit<React.ComponentProps<'div'>, 'title' 
   onStageClick?: (stageName: string) => void
   onHealthClick?: (healthType: string) => void
   customFooter?: React.ReactNode
+  standaloneIcon?: boolean
 
   // Backward compatibility props
   delta?: string | number | null
@@ -236,6 +237,7 @@ export function KpiCard({
   ...props
 }: KpiCardProps) {
   const displayTitle = title || label || ''
+  const { standaloneIcon } = props
 
   let computedTrend = trend
   let computedTrendValue = trendValue
@@ -268,10 +270,13 @@ export function KpiCard({
 
   let renderedIcon: React.ReactNode = null
   if (icon) {
+    const defaultIconClass = standaloneIcon ? 'size-5 shrink-0' : 'size-[18px]'
     if (React.isValidElement(icon)) {
-      renderedIcon = React.cloneElement(icon as React.ReactElement<any>, { className: 'size-[18px]' })
+      renderedIcon = React.cloneElement(icon as React.ReactElement<any>, {
+        className: cn(defaultIconClass, (icon.props as any).className)
+      })
     } else if (typeof icon === 'function' || typeof icon === 'object') {
-      renderedIcon = React.createElement(icon as React.ElementType, { className: 'size-[18px]' })
+      renderedIcon = React.createElement(icon as React.ElementType, { className: defaultIconClass })
     } else {
       renderedIcon = icon
     }
@@ -329,9 +334,15 @@ export function KpiCard({
           <div className="flex items-center gap-1.5 shrink-0">
             {headerAction}
             {renderedIcon && (
-              <span className={cn('shrink-0 flex items-center justify-center p-1.5 rounded-md', selectedStyle.iconBg, selectedStyle.iconColor)}>
-                {renderedIcon}
-              </span>
+              standaloneIcon ? (
+                <span className="shrink-0 flex items-center justify-center">
+                  {renderedIcon}
+                </span>
+              ) : (
+                <span className={cn('shrink-0 flex items-center justify-center p-1.5 rounded-md', selectedStyle.iconBg, selectedStyle.iconColor)}>
+                  {renderedIcon}
+                </span>
+              )
             )}
           </div>
         </div>

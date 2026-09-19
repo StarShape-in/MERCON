@@ -73,7 +73,8 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
         trend="up"
         trendValue={`${periodInTransitCount} Active`}
         description={`Done: ${periodCompletedCount} | Pending: ${periodQueueCount}`}
-        icon={Truck}
+        icon={<Truck className="w-5.5 h-5.5 text-[#FA634E]" />}
+        standaloneIcon={true}
         isActive={selectedStatus === 'All'}
         onClick={() => {
           setSelectedStatus('All');
@@ -183,7 +184,8 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
         trend="up"
         trendValue={`${inTransitCount} Active`}
         description="Trucks on the road now"
-        icon={MapPin}
+        icon={<MapPin className="w-5.5 h-5.5 text-[#10B981]" />}
+        standaloneIcon={true}
         isActive={selectedStatus === 'InTransit'}
         onClick={() => {
           setSelectedStatus('InTransit');
@@ -259,7 +261,8 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
         trend="up"
         trendValue={`${completedCount} Delivered`}
         description="Successfully finished deliveries"
-        icon={CheckCircle2}
+        icon={<CheckCircle2 className="w-5.5 h-5.5 text-[#2563EB]" />}
+        standaloneIcon={true}
         isActive={selectedStatus === 'Completed,Invoiced' || selectedStatus === 'Completed' || selectedStatus === 'Invoiced'}
         onClick={() => {
           setSelectedStatus('Completed,Invoiced');
@@ -342,7 +345,8 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
         trend="neutral"
         trendValue={`${scheduledCount} Queued`}
         description="Planned and queued dispatch"
-        icon={Calendar}
+        icon={<Calendar className="w-5.5 h-5.5 text-[#64748B]" />}
+        standaloneIcon={true}
         isActive={selectedStatus === 'Draft'}
         onClick={() => {
           setSelectedStatus('Draft');
@@ -411,7 +415,8 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
         trend={delayedCount > 0 ? 'down' : 'neutral'}
         trendValue={delayedCount > 0 ? `${delayedCount} Overdue` : 'All Clear'}
         description="Active trips past scheduled timing"
-        icon={AlertTriangle}
+        icon={<AlertTriangle className="w-5.5 h-5.5 text-[#DC2626]" />}
+        standaloneIcon={true}
         isActive={selectedStatus === 'Issues'}
         onClick={() => {
           setSelectedStatus('Issues');

@@ -1351,7 +1351,8 @@ export default function VehicleListPage() {
               trend="up"
               trendValue={`${activePct}% Active`}
               description="Total assets in database"
-              icon={FleetTruck}
+              icon={<FleetTruck className="w-5.5 h-5.5 text-slate-600 dark:text-slate-400" />}
+              standaloneIcon={true}
               isActive={selectedStatus === 'All'}
               onClick={() => { setSelectedStatus('All'); setViewMode('list'); setCurrentPage(1); }}
               customFooter={
@@ -1444,7 +1445,8 @@ export default function VehicleListPage() {
               trend="neutral"
               trendValue={`${availableCount} Ready`}
               description="Ready for immediate dispatch"
-              icon={CheckBadge}
+              icon={<CheckBadge className="w-5.5 h-5.5 text-[#2563EB]" />}
+              standaloneIcon={true}
               isActive={selectedStatus === 'Available'}
               onClick={() => { setSelectedStatus('Available'); setViewMode('list'); setCurrentPage(1); }}
               customFooter={
@@ -1523,7 +1525,8 @@ export default function VehicleListPage() {
               trend={maintenanceCount > 3 ? 'up' : 'down'}
               trendValue={maintenanceCount > 0 ? 'Service Active' : 'All Clear'}
               description="Active servicing units"
-              icon={MaintenanceWrench}
+              icon={<MaintenanceWrench className="w-5.5 h-5.5 text-[#DC2626]" />}
+              standaloneIcon={true}
               isActive={selectedStatus === 'Maintenance'}
               onClick={() => { setSelectedStatus('Maintenance'); setViewMode('list'); setCurrentPage(1); }}
               customFooter={
@@ -1611,7 +1614,8 @@ export default function VehicleListPage() {
               trend={onTripCount > 0 ? 'up' : 'neutral'}
               trendValue={`${onTripCount} En Route`}
               description="Currently dispatched on active trips"
-              icon={Truck}
+              icon={<Truck className="w-5.5 h-5.5 text-[#10B981]" />}
+              standaloneIcon={true}
               isActive={selectedStatus === 'OnTrip'}
               onClick={() => { setSelectedStatus('OnTrip'); setViewMode('list'); setCurrentPage(1); }}
               customFooter={

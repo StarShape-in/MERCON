@@ -2115,7 +2115,7 @@ export default function CargoLoadingView() {
         </div>
 
         {/* Right Column: Documents & Validity (Stretches to combined height of Middle column) */}
-        <div className="xl:col-span-3 flex flex-col h-full min-h-0">
+        <div className="xl:col-span-3 flex flex-col h-full min-h-0 max-h-[540px]">
           <DocumentsValidityFolder 
             vehicleId={vehicle?.id || id} 
             onSelectDocument={(docId) => {
