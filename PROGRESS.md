@@ -1,6 +1,6 @@
 # MERCON — Project Progress (Living Status)
 
-**This is the single source of truth for "where is the project."** Last updated: **2026-09-19** (**Health-check/observability hardening**: a
+**This is the single source of truth for "where is the project."** Last updated: **2026-09-19** (**Backend error-handling audit Phase 1**: fixed the two client-facing stack-trace leaks and the hardcoded Gemini key fallback, added request-ID correlation + process crash handlers — see §7) · Previously (**Health-check/observability hardening**: a
 `cpus` default from the Docker-hardening pass earlier the same day (api 1.5)
 broke the next dev deploy — the VPS only has 1 CPU and Docker hard-rejects any
 single service's `cpus` above the host's core count; lowered defaults
@@ -486,6 +486,55 @@ several low-severity issues. Fixing in phases per `~/.claude/plans/hidden-painti
   - **Item 33** (Replace implicit any): Replaced `any` with `Prisma.TripWhereInput` in `tripController.ts`.
   - **Item 34** (Improve mobile NavigationCard UI padding): Improved bottom padding on the `LiveNavigationScreen` to handle safe area constraints gracefully.
   - **Item 35** (Standardize error response shape): Refactored `uploadController.ts` to follow the standard `error: { code: '...', message: '...' }` pattern.
+
+---
+
+## 7. Error-handling & observability audit remediation (2026-09-19)
+
+A full error-handling/logging/observability audit (backend + web dashboard + mobile app +
+infra) scored the system ~2.8/10, Level 2 maturity — no request correlation, no production
+error monitoring anywhere in the stack, two endpoints leaking raw stack traces to clients, a
+hardcoded third-party API key fallback, and no process-level crash handling. Full findings
+and a 3-phase roadmap were written up; **Phase 1 (backend-only, low-effort, security/reliability
+critical) is done**, on branch `ilan`, targeting `dev` first — production promotion is a
+separate, explicit step via `promote-dev-to-prod.yml`, not part of this change:
+
+- ✅ Removed the hardcoded Gemini API key fallback literal in
+  `services/ocrService.ts` — now reads `env.GEMINI_API_KEY` only, falls back to regex
+  extraction (existing behavior) when unset. **Owner action still needed**: rotate that key
+  in Google AI Studio — it was committed to source and must be treated as compromised.
+- ✅ Added a request-correlation system: `middlewares/requestContext.ts`
+  (`AsyncLocalStorage`-based, `crypto.randomUUID()` per request, `X-Request-Id` response
+  header, `req.id`), wired into `utils/logger.ts` via a pino `mixin()` so every existing
+  `logger.error/warn(...)` call anywhere in any controller automatically carries the request
+  ID with zero per-call-site changes.
+- ✅ `tripController.ts` `getTrips`/`getTripById`: no longer return `stack`/`details` (a raw
+  Prisma/Node stack trace) to API clients on a 500 — client now gets a generic message +
+  `requestId` to correlate with the server-side log line, which still has the full error.
+  Removed a duplicate `console.error` next to the existing `logger.error` in `getTripById`.
+- ✅ `tripController.ts` `createTrip` failure log no longer writes the full `req.body`
+  (address/contact PII) to stdout — logs `customer_id`/`driver_id`/`co_driver_id`/`vehicle_id`
+  only.
+- ✅ `index.ts`: added `process.on('unhandledRejection'/'uncaughtException')` (log fatal;
+  `uncaughtException` exits so Docker's `restart: unless-stopped` + healthcheck recycle the
+  process cleanly instead of continuing in a possibly-corrupt state). Wrapped the two
+  previously-unguarded async Socket.IO handlers (`join:trip`, `driver:location_update`) in
+  try/catch so a transient DB error there fails the one socket event, not the whole process.
+- ✅ Global fallback error middleware in `index.ts` now includes `requestId` in its JSON
+  response too, for consistency with the two fixed `tripController.ts` responses.
+
+`tsc --noEmit` clean. `npm run build`'s `prisma generate` step hit a pre-existing local
+Windows file-lock (`EPERM` renaming `query_engine-windows.dll.node`) unrelated to this
+change — not something to chase for a backend-only TS change; `tsc --noEmit` is the
+meaningful check here and passed.
+
+**Not done yet (Phase 2/3 of the audit roadmap, not started)**: rewriting the other ~210
+generic `res.status(500)` call sites, an `AppError` class hierarchy, mapping Prisma `P2025`
+to 404, an `error_events` table + Admin-only Error Console page, Slack alerting on error
+spikes, and frontend/mobile error-capture wiring (web has an `ErrorBoundary` but no
+`window.onerror`/monitoring integration; mobile has neither an error boundary nor crash
+reporting, and silently swallows failed proof-of-delivery photo uploads via
+`console.warn`). See the full audit + roadmap from this session for details.
 
 ---
 

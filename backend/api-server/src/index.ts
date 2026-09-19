@@ -7,6 +7,19 @@ import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import { env } from './config/env';
+import { requestContext } from './middlewares/requestContext';
+
+// A rejection/exception that reaches here would otherwise be either a
+// silent no-op (unhandledRejection) or an ungraceful, unlogged crash
+// (uncaughtException). Both are now logged with the full error before any
+// process-exit decision is made.
+process.on('unhandledRejection', (reason) => {
+  logger.fatal({ err: reason }, 'Unhandled promise rejection');
+});
+process.on('uncaughtException', (err) => {
+  logger.fatal({ err }, 'Uncaught exception — exiting');
+  process.exit(1);
+});
 
 const app = express();
 const httpServer = createServer(app);
@@ -69,6 +82,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 
 // Middleware
+app.use(requestContext);
 app.use(cors({
   origin: true,
   credentials: true,
@@ -183,15 +197,19 @@ io.on('connection', (socket: Socket) => {
   // specific trip's live location. Only the assigned driver or an
   // Admin/Operator may join — never an arbitrary authenticated client.
   socket.on('join:trip', async (tripId: unknown) => {
-    if (typeof tripId !== 'string' || !UUID_RE.test(tripId)) return;
+    try {
+      if (typeof tripId !== 'string' || !UUID_RE.test(tripId)) return;
 
-    if (user.role === 'Admin' || user.role === 'Operator') {
-      socket.join(`trip:${tripId}`);
-      return;
-    }
-    if (user.role === 'Driver' && user.driver_id) {
-      const trip = await prisma.trip.findUnique({ where: { id: tripId }, select: { driverId: true } });
-      if (trip?.driverId === user.driver_id) socket.join(`trip:${tripId}`);
+      if (user.role === 'Admin' || user.role === 'Operator') {
+        socket.join(`trip:${tripId}`);
+        return;
+      }
+      if (user.role === 'Driver' && user.driver_id) {
+        const trip = await prisma.trip.findUnique({ where: { id: tripId }, select: { driverId: true } });
+        if (trip?.driverId === user.driver_id) socket.join(`trip:${tripId}`);
+      }
+    } catch (err) {
+      logger.error({ err, socketId: socket.id }, 'join:trip failed');
     }
   });
 
@@ -199,19 +217,23 @@ io.on('connection', (socket: Socket) => {
   // assigned to that trip, and relayed only to that trip's room — not to
   // every connected client.
   socket.on('driver:location_update', async (data) => {
-    if (user.role !== 'Driver' || !user.driver_id) return;
-    if (!data || typeof data.tripId !== 'string' || data.driverId !== user.driver_id) return;
+    try {
+      if (user.role !== 'Driver' || !user.driver_id) return;
+      if (!data || typeof data.tripId !== 'string' || data.driverId !== user.driver_id) return;
 
-    // Authorisation says who may speak; it says nothing about what they said.
-    // This payload used to be relayed verbatim, so a malformed or hostile
-    // client could put a non-numeric position on every watching operator's map.
-    const update = normalizeMobileLocationUpdate(data);
-    if (!update) return;
+      // Authorisation says who may speak; it says nothing about what they said.
+      // This payload used to be relayed verbatim, so a malformed or hostile
+      // client could put a non-numeric position on every watching operator's map.
+      const update = normalizeMobileLocationUpdate(data);
+      if (!update) return;
 
-    const trip = await prisma.trip.findUnique({ where: { id: data.tripId }, select: { driverId: true } });
-    if (trip?.driverId !== user.driver_id) return;
+      const trip = await prisma.trip.findUnique({ where: { id: data.tripId }, select: { driverId: true } });
+      if (trip?.driverId !== user.driver_id) return;
 
-    io.to(`trip:${data.tripId}`).emit(`trip:location_update:${data.tripId}`, update);
+      io.to(`trip:${data.tripId}`).emit(`trip:location_update:${data.tripId}`, update);
+    } catch (err) {
+      logger.error({ err, socketId: socket.id }, 'driver:location_update failed');
+    }
   });
 
   socket.on('disconnect', () => {
@@ -239,7 +261,10 @@ app.get(['/health', '/api/health'], async (req: Request, res: Response) => {
 app.use((err: Error, req: Request, res: Response, next: express.NextFunction) => {
   if (res.headersSent) return next(err);
   logger.error({ err }, 'Unhandled request error');
-  res.status(400).json({ success: false, error: { code: 'BAD_REQUEST', message: err.message || 'Invalid request' } });
+  res.status(400).json({
+    success: false,
+    error: { code: 'BAD_REQUEST', message: err.message || 'Invalid request', requestId: (req as Request & { id?: string }).id },
+  });
 });
 
 // Initialize Background Workers

@@ -8,11 +8,19 @@
  *         logger.error({ err }, 'Something failed');
  */
 import pino from 'pino';
+import { getRequestId } from '../middlewares/requestContext';
 
 const isProd = process.env.NODE_ENV === 'production';
 
 export const logger = pino({
   level: process.env.LOG_LEVEL ?? (isProd ? 'info' : 'debug'),
+  // Merges the current request's correlation ID (if any) into every log
+  // line, so every existing logger.error/warn(...) call site becomes
+  // traceable back to a specific client request with no per-call-site edits.
+  mixin() {
+    const requestId = getRequestId();
+    return requestId ? { requestId } : {};
+  },
   // Without this, passing a raw Error under the `err` key (the pattern every
   // controller's catch block uses: logger.error({ err: error }, '...')) prints
   // as an empty/opaque object instead of the real message and stack — pino

@@ -475,9 +475,8 @@ export const getTrips = async (req: Request, res: Response) => {
       success: false,
       error: {
         code: 'SERVER_ERROR',
-        message: error?.message || 'Failed to fetch trips',
-        stack: error?.stack,
-        details: String(error)
+        message: 'Failed to fetch trips',
+        requestId: (req as any).id,
       }
     });
   }
@@ -593,15 +592,13 @@ export const getTripById = async (req: Request, res: Response) => {
 
     res.json({ success: true, data: tripData });
   } catch (error: any) {
-    console.error('Failed to fetch trip by id:', error);
     logger.error({ err: error }, 'Failed to fetch trip by id');
     res.status(500).json({
       success: false,
       error: {
         code: 'SERVER_ERROR',
-        message: error?.message || 'Failed to fetch trip',
-        stack: error?.stack,
-        details: String(error)
+        message: 'Failed to fetch trip',
+        requestId: (req as any).id,
       }
     });
   }
@@ -1013,7 +1010,16 @@ export const createTrip = async (req: Request, res: Response) => {
 
     res.status(201).json({ success: true, data: trip });
   } catch (error: any) {
-    logger.error({ err: error, body: req.body }, 'Failed to create trip');
+    logger.error(
+      {
+        err: error,
+        customer_id: req.body?.customer_id,
+        driver_id: req.body?.driver_id,
+        co_driver_id: req.body?.co_driver_id,
+        vehicle_id: req.body?.vehicle_id,
+      },
+      'Failed to create trip'
+    );
     if (
       error.message === 'CUSTOMER_NOT_FOUND' ||
       error.message === 'DRIVER_NOT_FOUND' ||
