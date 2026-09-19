@@ -1695,7 +1695,7 @@ export default function DriverDetailsPage() {
               COLUMN 3 (RIGHT): Documents Box (xl:col-span-3)
               Matches Trips box height, locked, inner scrollable
              ════════════════════════════════════════════════ */}
-          <div className="xl:col-span-3 flex flex-col h-full min-h-0 overflow-hidden">
+          <div className="xl:col-span-3 flex flex-col h-full min-h-[460px] overflow-hidden">
             <DriverDocumentsValidityFolder
               driverId={driver.id}
               selectedDocumentId={selectedDocIdForPreview}
