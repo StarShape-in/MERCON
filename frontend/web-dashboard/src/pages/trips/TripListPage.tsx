@@ -1938,7 +1938,7 @@ export default function TripListPage() {
                 className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
               >
                 <Edit2 className="mr-2 h-3.5 w-3.5 text-amber-600" />
-                Edit Trip Manifest
+                Edit Trip
               </DropdownMenuItem>
 
               <DropdownMenuItem
@@ -1985,7 +1985,7 @@ export default function TripListPage() {
 
   const bulkActions = [
     {
-      label: 'Edit Selected Manifest',
+      label: 'Edit Selected Trip',
       icon: <Edit2 size={13} />,
       variant: 'primary' as const,
       onClick: (selectedRows: Trip[]) => {
