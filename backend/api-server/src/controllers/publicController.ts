@@ -26,15 +26,6 @@ export const getPublicTripEvidence = async (req: Request, res: Response) => {
             { ref_id: { equals: `TRP-${rawNumber.padStart(4, '0')}`, mode } },
             { ref_id: { endsWith: rawNumber, mode } }
           ] : [])
-=======
-
-    // Query trip by ref_id or ID
-    const trip = await prisma.trip.findFirst({
-      where: {
-        OR: [
-          { ref_id: cleanRef },
-          { id: cleanRef }
->>>>>>> e5255d74 (feat: Implement secured public trip evidence sharing links and gallery API)
         ],
         deletedAt: null
       },
@@ -53,8 +44,6 @@ export const getPublicTripEvidence = async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, error: { message: 'Trip evidence gallery not found or link expired.' } });
     }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
     const stopIds = trip.stops.map(s => s.id);
 
     // Query all real documents attached to this trip or any of its stops
@@ -66,18 +55,6 @@ export const getPublicTripEvidence = async (req: Request, res: Response) => {
           { entity_id: trip.ref_id || undefined },
           { entity_type: 'TripStop', entity_id: { in: stopIds } }
         ],
-=======
-=======
->>>>>>> e5255d74 (feat: Implement secured public trip evidence sharing links and gallery API)
-    // Query real documents attached to this trip
-    const documents = await prisma.document.findMany({
-      where: {
-        entity_type: 'Trip',
-        entity_id: trip.id,
-<<<<<<< HEAD
->>>>>>> e4b4b528 (feat: Implement secured public trip evidence sharing links and gallery API)
-=======
->>>>>>> e5255d74 (feat: Implement secured public trip evidence sharing links and gallery API)
         deletedAt: null
       },
       select: {
@@ -102,8 +79,6 @@ export const getPublicTripEvidence = async (req: Request, res: Response) => {
     const pickupStop = trip.stops.find(s => s.stop_type === 'Pickup') || trip.stops[0];
     const dropoffStop = trip.stops.find(s => s.stop_type === 'Dropoff') || trip.stops[trip.stops.length - 1];
 
-<<<<<<< HEAD
-<<<<<<< HEAD
     // Collect all documents, plus any direct pod_photo_url / delay_video_url directly on Trip or TripStops
     const allDocItems: Array<{
       id: string;
@@ -209,30 +184,6 @@ export const getPublicTripEvidence = async (req: Request, res: Response) => {
       return {
         id: doc.id,
         title: displayTitle,
-=======
-=======
->>>>>>> e5255d74 (feat: Implement secured public trip evidence sharing links and gallery API)
-    const formattedDocs = documents.map(doc => {
-      const u = (doc.file_url || '').toLowerCase();
-      const m = (doc.mime_type || '').toLowerCase();
-      const isVideo = m.startsWith('video/') || /\.(mp4|mov|webm|avi|mkv|3gp)(\?.*)?$/i.test(u);
-      
-      const aiJson: any = doc.ai_extracted_json || {};
-      const isDelay = doc.doc_type === 'Emergency' || (aiJson.operation || '').toLowerCase() === 'delay';
-
-      let category = 'Trip Evidence';
-      if (doc.doc_type === 'POD') category = 'POD Document';
-      else if (doc.doc_type === 'Emergency') category = 'Emergency Incident';
-      else if (isDelay) category = 'Delay Evidence';
-      else if (doc.doc_type === 'Waybill') category = 'Waybill Document';
-
-      return {
-        id: doc.id,
-        title: aiJson.notes || `${category} - ${new Date(doc.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
-<<<<<<< HEAD
->>>>>>> e4b4b528 (feat: Implement secured public trip evidence sharing links and gallery API)
-=======
->>>>>>> e5255d74 (feat: Implement secured public trip evidence sharing links and gallery API)
         url: doc.file_url,
         mime_type: doc.mime_type,
         isVideo,
@@ -240,21 +191,9 @@ export const getPublicTripEvidence = async (req: Request, res: Response) => {
         category,
         time: new Date(doc.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         date: new Date(doc.createdAt).toLocaleDateString(),
-<<<<<<< HEAD
-<<<<<<< HEAD
         lat: parsedJson.lat || pickupStop?.location_lat,
         lng: parsedJson.lng || pickupStop?.location_lng,
         location: parsedJson.locationName || pickupStop?.location_name || pickupStop?.location?.name || 'En Route Location'
-=======
-        lat: aiJson.lat || pickupStop?.location_lat,
-        lng: aiJson.lng || pickupStop?.location_lng,
-        location: aiJson.locationName || pickupStop?.location_name || pickupStop?.location?.name || 'En Route Location'
->>>>>>> e4b4b528 (feat: Implement secured public trip evidence sharing links and gallery API)
-=======
-        lat: aiJson.lat || pickupStop?.location_lat,
-        lng: aiJson.lng || pickupStop?.location_lng,
-        location: aiJson.locationName || pickupStop?.location_name || pickupStop?.location?.name || 'En Route Location'
->>>>>>> e5255d74 (feat: Implement secured public trip evidence sharing links and gallery API)
       };
     });
 
