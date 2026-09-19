@@ -149,7 +149,6 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
               }}
             >
               <div className="relative flex items-center justify-center">
-                <div className="absolute h-8 w-8 rounded-full bg-[#FA634E]/25 animate-ping" />
                 <img
                   src="/truck_3d_orange_transparent.png"
                   alt="3D Orange Truck"
@@ -232,7 +231,6 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
               }}
             >
               <div className="relative flex items-center justify-center">
-                <div className="absolute h-8 w-8 rounded-full bg-emerald-500/30 animate-ping" />
                 <img
                   src="/truck_3d_orange_transparent.png"
                   alt="3D Green Truck"
@@ -316,7 +314,6 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
               }}
             >
               <div className="relative flex items-center justify-center">
-                <div className="absolute h-8 w-8 rounded-full bg-blue-500/30 animate-ping" />
                 <img
                   src="/truck_3d_orange_transparent.png"
                   alt="3D Blue Truck"
@@ -472,7 +469,7 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
               <div className="h-2 w-2 rounded-full bg-red-500 ring-4 ring-red-500/20" />
             </div>
 
-            {/* 3D Red Truck with Floating Maintenance/Overdue Badge */}
+            {/* 3D Red Truck with Floating Overdue Badge */}
             <div
               className="absolute"
               style={{
@@ -484,15 +481,13 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
             >
               <div className="relative flex items-center justify-center">
                 <div
-                  className="absolute bottom-[22px] bg-red-600 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-md shadow-md flex items-center gap-1 animate-bounce"
+                  className="absolute bottom-[22px] bg-red-600 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-md shadow-md flex items-center gap-1"
                   style={{ whiteSpace: 'nowrap' }}
                 >
                   <AlertTriangle className="w-2.5 h-2.5 shrink-0" />
                   <span>OVERDUE</span>
                   <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-t-[4px] border-t-red-600" />
                 </div>
-
-                <div className="absolute h-8 w-8 rounded-full bg-red-500/20" />
 
                 <img
                   src="/truck_3d_orange_transparent.png"
