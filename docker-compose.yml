@@ -17,10 +17,14 @@ services:
     container_name: "${CLIENT_NAME:-mercon}-postgres"
     restart: unless-stopped
     # Caps so one container can't starve the others on a shared VPS (this host
-    # also runs unrelated non-Mercon containers). Override per-host via env if
-    # a client's VPS has more/less RAM to spare.
+    # also runs unrelated non-Mercon containers, AND its own prod+dev stacks
+    # side by side). `cpus` is a throttle ceiling, not a reservation, so
+    # stacks can safely oversubscribe it — but Docker hard-rejects any single
+    # service's `cpus` above the host's actual CPU count (this host has 1),
+    # so keep each service's default comfortably under 1.0. Override per-host
+    # via env if a client's VPS has more to spare.
     mem_limit: "${POSTGRES_MEM_LIMIT:-512m}"
-    cpus: "${POSTGRES_CPU_LIMIT:-1}"
+    cpus: "${POSTGRES_CPU_LIMIT:-0.5}"
     environment:
       POSTGRES_USER: "${POSTGRES_USER:?POSTGRES_USER must be provided (set it as a GitHub Actions secret / env var)}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be provided (set it as a GitHub Actions secret / env var)}"
@@ -43,7 +47,7 @@ services:
     container_name: "${CLIENT_NAME:-mercon}-api"
     restart: unless-stopped
     mem_limit: "${API_MEM_LIMIT:-768m}"
-    cpus: "${API_CPU_LIMIT:-1.5}"
+    cpus: "${API_CPU_LIMIT:-0.75}"
     ports:
       - "${API_PORT:-3050}:3000" # Exposed for Nginx proxy on a safe port
     environment:
@@ -98,7 +102,7 @@ services:
     container_name: "${CLIENT_NAME:-mercon}-frontend"
     restart: unless-stopped
     mem_limit: "${FRONTEND_MEM_LIMIT:-256m}"
-    cpus: "${FRONTEND_CPU_LIMIT:-0.5}"
+    cpus: "${FRONTEND_CPU_LIMIT:-0.25}"
     ports:
       - "${FRONTEND_PORT:-3060}:80" # Exposed for Nginx proxy on a safe port
 
