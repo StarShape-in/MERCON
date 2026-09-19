@@ -24,6 +24,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import DriverAvatar from '@/components/ui/DriverAvatar';
+import SlowScrollingDriverName from '@/components/ui/SlowScrollingDriverName';
+import DocumentsValidityFolder from '@/components/ui/DocumentsValidityFolder';
 import VisualRouteProgress from '@/components/trips/VisualRouteProgress';
 import { useDeploymentTimezone, formatInDeploymentTz } from '@/lib/datetime';
 
@@ -2116,13 +2118,13 @@ export default function CargoLoadingView() {
         <div className="xl:col-span-3 flex flex-col h-full min-h-[460px] overflow-hidden">
           <DocumentsValidityFolder 
             vehicleId={vehicle?.id || id} 
-            onSelectDocument={(docId) => {
+            onSelectDocument={(docId: string) => {
               setSelectedTripIdForPreview(null);
               setSelectedDocId(docId);
             }}
             selectedDocumentId={selectedDocId}
             deletedDocIds={deletedDocIds}
-            onDeleteDocument={(delId) => setDeletedDocIds((prev) => [...prev, delId])}
+            onDeleteDocument={(delId: string) => setDeletedDocIds((prev) => [...prev, delId])}
           />
         </div>
 
