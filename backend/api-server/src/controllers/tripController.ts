@@ -2088,39 +2088,40 @@ export const bulkDeleteTrips = async (req: Request, res: Response) => {
 
     const eligibleIds = eligibleTrips.map((t) => t.id);
 
+    // Soft-delete renames ref_id TRP-XXXX -> TRP-DEL-XXXX to free the number for reuse. A
+    // trip number can be reused after its original holder is deleted, so a later trip that
+    // reused the same number can collide with an already-deleted TRP-DEL-XXXX row on this
+    // rename. Postgres poisons the whole transaction on the first failed query inside it
+    // (25P02 "current transaction is aborted"), so a collision can't be retried mid-
+    // transaction — resolve every ref_id up front, before the transaction opens, so the
+    // transaction itself never has anything to fail on.
+    const intendedRefIds = eligibleTrips.map((t) =>
+      t.ref_id && t.ref_id.startsWith('TRP-') && !t.ref_id.startsWith('TRP-DEL-')
+        ? t.ref_id.replace('TRP-', 'TRP-DEL-')
+        : t.ref_id
+    );
+    const conflicting = await prisma.trip.findMany({
+      where: { ref_id: { in: intendedRefIds.filter((r): r is string => !!r) } },
+      select: { ref_id: true },
+    });
+    const takenRefIds = new Set(conflicting.map((t) => t.ref_id));
+    const finalRefIds = new Map<string, string | null>(); // tripId -> new ref_id
+    eligibleTrips.forEach((trip, i) => {
+      const intended = intendedRefIds[i];
+      finalRefIds.set(trip.id, intended && takenRefIds.has(intended) ? `${intended}-${trip.id.slice(0, 8)}` : intended);
+    });
+
     await prisma.$transaction(async (tx) => {
-      // Soft-delete trips: rename ref_id to TRP-DEL-XXXX to release sequence slot, mark isActive = false.
-      // A trip number can be reused after its original holder is deleted, so a second trip
-      // that later reused the same number can collide with an already-deleted TRP-DEL-XXXX
-      // row on this rename (P2002 on ref_id) — disambiguate with the trip's own id when that
-      // happens instead of failing the whole bulk delete.
       for (const trip of eligibleTrips) {
-        let newRefId = trip.ref_id;
-        if (newRefId && newRefId.startsWith('TRP-') && !newRefId.startsWith('TRP-DEL-')) {
-          newRefId = newRefId.replace('TRP-', 'TRP-DEL-');
-        }
-        try {
-          await tx.trip.update({
-            where: { id: trip.id },
-            data: {
-              ref_id: newRefId,
-              isActive: false,
-              deletedAt: new Date(),
-              deleted_by: getValidUuid(userId),
-            },
-          });
-        } catch (err: any) {
-          if (err?.code !== 'P2002') throw err;
-          await tx.trip.update({
-            where: { id: trip.id },
-            data: {
-              ref_id: `${newRefId}-${trip.id.slice(0, 8)}`,
-              isActive: false,
-              deletedAt: new Date(),
-              deleted_by: getValidUuid(userId),
-            },
-          });
-        }
+        await tx.trip.update({
+          where: { id: trip.id },
+          data: {
+            ref_id: finalRefIds.get(trip.id) ?? trip.ref_id,
+            isActive: false,
+            deletedAt: new Date(),
+            deleted_by: getValidUuid(userId),
+          },
+        });
       }
 
       // Release driver / vehicle if soft-deleting in-flight trips
