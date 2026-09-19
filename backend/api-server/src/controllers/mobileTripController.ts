@@ -9,9 +9,7 @@ import { buildTripRouteTimeline } from '../services/tripRouteTimeline';
 import { notifyOperatorsOfDelay } from './notificationController';
 import { getDrivingRoute, RoutingUnavailableError } from '../services/routing/routeProvider';
 import { compressUploadedImage } from '../services/imageCompressor';
-import { generateRefId } from '../utils/refId';
-import { analyzeExternalScreenshotWithAI } from '../services/ocrService';
-import { processExternalScreenshot } from '../services/externalScreenshotService';
+import { calculateBackendTripFinancials } from '../utils/tripFinancials';
 
 /**
  * Everything the driver's app needs about a trip, in one shape.
@@ -46,17 +44,21 @@ const tripInclude = {
     orderBy: { stop_sequence: 'asc' as const },
     include: { location: { select: { id: true, name: true, address: true, code: true } } },
   },
+  subcontract: true,
 };
 
 const formatMobileTrip = (trip: any) => {
   if (!trip) return trip;
-  const rawPayout = trip.driver_payout ?? trip.driver_charge ?? trip.trip_charges ?? trip.quotation?.driver_payout;
-  const payout = rawPayout != null ? Number(rawPayout) : 0;
+  // Single source of truth for driver payout — calculateBackendTripFinancials
+  // is the same function tripController.ts (web dashboard) uses, so the
+  // driver app can never disagree with the dashboard about what a trip pays.
+  const fin = calculateBackendTripFinancials(trip);
   return {
     ...trip,
-    driver_payout: payout,
-    driver_charge: payout,
-    trip_charges: payout,
+    driver_payout: fin.primaryDriverPayout,
+    driver_charge: fin.primaryDriverPayout,
+    trip_charges: fin.primaryDriverPayout,
+    co_driver_payout: fin.coDriverPayout,
     // Server-computed once, from the same function the web dashboard uses —
     // the app should render this directly instead of re-deriving its own
     // route timeline from raw stops.
@@ -293,18 +295,6 @@ export const updateTripStatus = async (req: Request, res: Response) => {
         include: tripInclude
       });
     });
-
-    // Mark pending external app screenshots as Verified on status update
-    if (updatedTrip && (trip as any).driver_workflow === 'EXTERNAL_APP') {
-      try {
-        await prisma.document.updateMany({
-          where: { entity_type: 'Trip', entity_id: id, status: 'PendingReview' },
-          data: { status: 'Verified' },
-        });
-      } catch (docErr) {
-        logger.warn({ err: docErr }, 'Failed to update pending document status:');
-      }
-    }
 
     if (delay) await notifyOperatorsOfDelay(delay);
 
@@ -571,41 +561,5 @@ export const recordDriverLocation = async (req: Request, res: Response) => {
   } catch (error: any) {
     logger.error({ err: error }, 'recordDriverLocation error:');
     return res.status(500).json({ success: false, error: { message: error?.message || 'Failed to record driver location' } });
-  }
-};
-
-export const uploadExternalScreenshot = async (req: Request, res: Response) => {
-  const driverId = (req as any).user?.driver_id;
-  const userId = (req as any).user?.id;
-  const tripId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-
-  if (!driverId) {
-    return res.status(403).json({ success: false, error: { message: 'Driver not authenticated' } });
-  }
-
-  if (!req.file) {
-    return res.status(400).json({ success: false, error: { message: 'No screenshot file uploaded' } });
-  }
-
-  try {
-    const autoApply = req.body?.auto_apply === 'true' || req.body?.auto_apply === true || req.query?.auto_apply === 'true';
-
-    const result = await processExternalScreenshot({
-      tripId,
-      filePath: req.file.path,
-      mimeType: req.file.mimetype,
-      userId,
-      driverId,
-      autoApply,
-    });
-
-    return res.json({
-      success: true,
-      data: result,
-    });
-  } catch (error: any) {
-    logger.error({ err: error }, 'uploadExternalScreenshot error:');
-    const statusCode = error.statusCode || 500;
-    return res.status(statusCode).json({ success: false, error: { message: error?.message || 'Failed to process screenshot' } });
   }
 };

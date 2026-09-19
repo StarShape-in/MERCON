@@ -3,13 +3,12 @@ import {
   getTrips, getTripById, createTrip, updateTripStatus,
   dispatchTrip, replaceDriver, pickupArrive, pickupVerify, deliveryVerify,
   bulkDeleteTrips, bulkUpdateTripStatus, bulkAssignTrips, getUnsettledCompletedTrips, updateTripFinancials,
-  logStopDelay, bulkImportTrips, updateTripStop, getMonthlyTripBoard, shareTripMediaToWhatsApp, uploadExternalScreenshot
+  logStopDelay, bulkImportTrips, updateTripStop, getMonthlyTripBoard, shareTripMediaToWhatsApp
 } from '../controllers/tripController';
 import { exportTrips } from '../controllers/tripExportController';
 import { authenticateJWT } from '../middlewares/auth';
 import { authorizeRoles, requireModuleEnabled } from '../middlewares/rbac';
 import { validate } from '../middlewares/validate';
-import { upload } from '../middlewares/upload';
 import { createTripBody, listQuery, logStopDelayBody, bulkImportTripsBody, updateTripStopBody } from '../schemas';
 
 import { getDriverRecommendations, getVehicleRecommendations } from '../controllers/fleetDispatchController';
@@ -57,9 +56,6 @@ router.post('/:id/delivery/verify', deliveryVerify);
 
 // Phase 3: Operator WhatsApp Media Dispatch
 router.post('/:id/share-whatsapp', shareTripMediaToWhatsApp);
-
-// External App Screenshot AI Web Endpoint
-router.post('/:id/external-screenshot', upload.single('file'), uploadExternalScreenshot);
 
 export default router;
 
