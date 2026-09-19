@@ -255,6 +255,10 @@ model Driver {
 
   @@index([status, deletedAt])
   @@index([deletedAt])
+  @@index([license_expiry])
+  @@index([first_name, last_name])
+  @@index([deletedAt, license_expiry])
+  @@index([deletedAt, createdAt])
 }
 
 model DriverVehicleAssignment {
@@ -435,6 +439,8 @@ model Trip {
   @@index([customerId, status, deletedAt])
   @@index([driverId, deletedAt])
   @@index([vehicleId, deletedAt])
+  @@index([driverId, status, deletedAt])
+  @@index([co_driver_id, status, deletedAt])
 }
 
 model TripAssignmentEvent {
@@ -1402,6 +1408,32 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// Aggregated, deduplicated application error events (backend + web dashboard).
+// Populated automatically from logger.error/fatal calls via a pino hook
+// (utils/logger.ts) and from the web dashboard's ErrorBoundary/window.onerror
+// (POST /api/client-errors) — see utils/errors.ts and services/errorCapture.ts.
+model ErrorEvent {
+  id            String   @id @default(uuid()) @db.Uuid
+  fingerprint   String   @unique
+  code          String
+  message       String
+  stack         String?  @db.Text
+  route         String
+  source        String // 'api' | 'web'
+  count         Int      @default(1)
+  status        String   @default("New") // New | Acknowledged | Resolved
+  lastRequestId String?
+  firstUserId   String?  @db.Uuid
+  notes         String?  @db.Text
+  createdAt     DateTime @default(now()) @db.Timestamptz
+  updatedAt     DateTime @updatedAt @db.Timestamptz
+
+  @@index([status])
+  @@index([source])
+  @@index([updatedAt])
+  @@map("error_events")
 }
 
 // -----------------------------------------

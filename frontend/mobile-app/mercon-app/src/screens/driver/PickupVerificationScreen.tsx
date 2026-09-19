@@ -135,6 +135,16 @@ const PickupVerificationScreen = () => {
       return;
     }
     if (loading || !trip || !pickupStop) return;
+    // Defense in depth: if the trip is already fully completed, never show a
+    // pickup screen for it — bounce straight to /trip/completed. Without
+    // this, a stale nav stack entry or a leg-classification edge case could
+    // land the driver back here post-completion and resolve `pickupStop` to
+    // an already-departed stop from a leg that's no longer relevant,
+    // producing the exact "back to a completed pickup" loop this guards.
+    if (ws === 'COMPLETED') {
+      router.replace('/trip/completed');
+      return;
+    }
     if (pickupStop.actual_departure) {
       const outStops = getOutboundIntermediateStops(trip);
       const retStops = getReturnIntermediateStops(trip);

@@ -26,6 +26,20 @@ export interface LightboxPhotoItem {
     city?: string | null;
     timestamp?: string | null;
   };
+  /**
+   * Populated only for external-app screenshot documents (the driver's
+   * "Analyse Screenshot" workflow) — what the AI actually extracted and
+   * decided, so an operator can see *why* a screenshot is Verified/Rejected
+   * instead of just the bare document status.
+   */
+  aiVerification?: {
+    eventType?: string | null;
+    confidence?: number | null;
+    isWrongTrip?: boolean;
+    validationReason?: string | null;
+    /** The Document's actual status (Verified/PendingReview/Rejected) — distinct from `status` above, which this component uses for a generic "Received" badge, not the real review state. */
+    docStatus?: string | null;
+  };
 }
 
 interface EvidenceLightboxModalProps {
@@ -162,6 +176,47 @@ export const EvidenceLightboxModal: React.FC<EvidenceLightboxModalProps> = ({
           </button>
         </div>
       </div>
+
+      {/* ── AI VERIFICATION BANNER (external-app screenshots only) ── */}
+      {currentPhoto.aiVerification && (
+        <div
+          className={`px-4 sm:px-6 py-2.5 border-b flex items-start gap-2.5 text-xs shrink-0 ${
+            currentPhoto.aiVerification.isWrongTrip || currentPhoto.aiVerification.docStatus === 'Rejected'
+              ? 'bg-rose-950/50 border-rose-500/30 text-rose-200'
+              : currentPhoto.aiVerification.docStatus === 'PendingReview'
+              ? 'bg-amber-950/40 border-amber-500/30 text-amber-200'
+              : 'bg-emerald-950/40 border-emerald-500/30 text-emerald-200'
+          }`}
+        >
+          {currentPhoto.aiVerification.isWrongTrip || currentPhoto.aiVerification.docStatus === 'Rejected' ? (
+            <AlertTriangle size={15} className="mt-0.5 shrink-0" />
+          ) : (
+            <CheckCircle2 size={15} className="mt-0.5 shrink-0" />
+          )}
+          <div className="min-w-0">
+            <span className="font-bold">
+              {currentPhoto.aiVerification.isWrongTrip || currentPhoto.aiVerification.docStatus === 'Rejected'
+                ? 'AI Verification Rejected'
+                : currentPhoto.aiVerification.docStatus === 'PendingReview'
+                ? 'AI Extracted — Awaiting Driver Confirmation'
+                : 'AI Verified'}
+            </span>
+            {currentPhoto.aiVerification.eventType && (
+              <span className="ml-2 opacity-90">
+                Milestone: {currentPhoto.aiVerification.eventType.replace(/_/g, ' ')}
+              </span>
+            )}
+            {typeof currentPhoto.aiVerification.confidence === 'number' && currentPhoto.aiVerification.confidence > 0 && (
+              <span className="ml-2 opacity-90">
+                • Confidence: {Math.round(currentPhoto.aiVerification.confidence * 100)}%
+              </span>
+            )}
+            {currentPhoto.aiVerification.validationReason && (
+              <div className="mt-0.5 opacity-90">{currentPhoto.aiVerification.validationReason}</div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── MAIN CONTENT AREA ── */}
       <div className="flex-1 min-h-0 relative flex items-center justify-center p-4">

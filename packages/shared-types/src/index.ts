@@ -171,6 +171,7 @@ export const MODULE_KEYS = [
   'third-party',
   'invoices',
   'aprodac-documents',
+  'learning',
   'recycle-bin',
 ] as const;
 export type ModuleKey = (typeof MODULE_KEYS)[number];

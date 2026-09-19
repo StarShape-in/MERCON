@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Trash2, Calendar, Clock, RotateCcw, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Calendar, Clock, RotateCcw, AlertCircle, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LocationCombobox from '@/components/quotations/LocationCombobox';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
@@ -29,6 +29,7 @@ interface RouteWorkspaceProps {
   handleRemoveSlotReturnIntermediate?: (slotId: string, idx: number) => void;
   handleUpdateSlotReturnIntermediate?: (slotId: string, idx: number, val: string) => void;
   fieldErrors?: Record<string, boolean>;
+  isRouteLocked?: boolean;
 }
 
 export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
@@ -50,6 +51,7 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
   handleRemoveSlotReturnIntermediate,
   handleUpdateSlotReturnIntermediate,
   fieldErrors = {},
+  isRouteLocked = false,
 }) => {
   const lineTypeTaxonomyOptions = getAllTaxonomyOptions('LINE_TYPE');
   const selectedTaxonomyOption = resolveTaxonomyOption('LINE_TYPE', contractRateCategory);
@@ -127,6 +129,7 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
             LINE TYPE:
           </span>
           <Select
+            disabled={isRouteLocked}
             value={contractRateCategory}
             onValueChange={(val) => {
               if (setContractRateCategory) setContractRateCategory(val);
@@ -134,7 +137,10 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
               if (triggerRateLookupForSlots) triggerRateLookupForSlots(undefined, val);
             }}
           >
-            <SelectTrigger className="h-7.5 rounded-lg border-slate-200/90 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 shadow-2xs w-auto min-w-[140px] max-w-[240px] px-2.5">
+            <SelectTrigger className={cn(
+              "h-7.5 rounded-lg border-slate-200/90 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 shadow-2xs w-auto min-w-[140px] max-w-[240px] px-2.5",
+              isRouteLocked && "bg-slate-100/90 dark:bg-slate-800/60 text-slate-400 cursor-not-allowed pointer-events-none border-slate-200 dark:border-slate-800"
+            )}>
               <div className="flex items-center gap-1.5 min-w-0">
                 {selectedTaxonomyOption ? (
                   <span
@@ -184,7 +190,7 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
         </div>
 
         {/* RIGHT: REMOVE SLOT (IF MULTI-SLOT) */}
-        {canRemoveSlot && (
+        {!isRouteLocked && canRemoveSlot && (
           <button
             type="button"
             onClick={() => handleRemoveTripSlot(slot.id)}
@@ -214,12 +220,22 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
                 id="step2-first-field"
                 customerId={contractCustomer}
                 value={slot.origin}
+                disabled={isRouteLocked}
                 hasError={Boolean(fieldErrors?.[`origin-${slot.id}`] || fieldErrors?.['origin'])}
                 onChange={(locName, locObj) => handleSlotLocationChange(slot.id, 'origin', locName, locObj)}
                 placeholder="Search starting origin (e.g. Riyadh Distribution Centre)..."
-                triggerClassName="h-9 border-slate-200 bg-white text-xs font-bold text-[#3E3C3D] dark:text-slate-100 shadow-2xs w-full"
+                triggerClassName={cn(
+                  "h-9 border-slate-200 bg-white text-xs font-bold text-[#3E3C3D] dark:text-slate-100 shadow-2xs w-full",
+                  isRouteLocked && "bg-slate-100/90 dark:bg-slate-800/60 text-slate-400 cursor-not-allowed pointer-events-none border-slate-200 dark:border-slate-800"
+                )}
                 precision={slot.originPrecision}
               />
+              {(fieldErrors?.[`origin-${slot.id}`] || fieldErrors?.['origin']) && (
+                <div className="flex items-center gap-1.5 mt-1 text-[11px] font-bold text-rose-600 dark:text-rose-400">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>Please select origin location</span>
+                </div>
+              )}
             </div>
 
             {/* COMBINED PICKUP DATE & TIME (4 COLS) */}
@@ -257,7 +273,7 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
                   placeholder="Select pickup time..."
                   buttonClassName={cn(
                     "h-9 rounded-xl border-slate-200 bg-white shadow-2xs font-semibold text-xs text-slate-800 px-3 w-full",
-                    (fieldErrors?.[`pickup-${slot.id}`] || fieldErrors?.[`schedule-${slot.id}`]) && "border-red-500 ring-1 ring-red-500"
+                    (fieldErrors?.[`pickup-${slot.id}`] || fieldErrors?.[`schedule-${slot.id}`]) && "border-red-500 ring-2 ring-red-500/30 bg-red-50/20 text-red-900"
                   )}
                 />
               ) : (
@@ -285,6 +301,12 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
                   showRelativeBadge={false}
                   className="h-9 rounded-xl border-slate-200 bg-white shadow-2xs text-xs font-semibold"
                 />
+              )}
+              {(fieldErrors?.[`pickup-${slot.id}`] || fieldErrors?.[`schedule-${slot.id}`]) && (
+                <div className="flex items-center gap-1.5 mt-1 text-[11px] font-bold text-rose-600 dark:text-rose-400">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>Please select pickup time</span>
+                </div>
               )}
             </div>
           </div>
@@ -321,17 +343,19 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
             </div>
           )}
 
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => handleAddSlotIntermediate(slot.id)}
-              className="h-6.5 text-[11px] font-bold border-dashed border-slate-300 hover:border-brand hover:bg-orange-50 text-slate-600 hover:text-brand gap-1 cursor-pointer"
-            >
-              <Plus className="w-3 h-3" /> Add Intermediate Stop
-            </Button>
-          </div>
+          {!isRouteLocked && (
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleAddSlotIntermediate(slot.id)}
+                className="h-6.5 text-[11px] font-bold border-dashed border-slate-300 hover:border-brand hover:bg-orange-50 text-slate-600 hover:text-brand gap-1 cursor-pointer"
+              >
+                <Plus className="w-3 h-3" /> Add Intermediate Stop
+              </Button>
+            </div>
+          )}
 
           {/* LINE 2: DESTINATION LOCATION + UNIFIED DROPOFF DATETIME */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-start pt-1 border-t border-slate-100 dark:border-slate-800">
@@ -348,12 +372,22 @@ export const RouteWorkspace: React.FC<RouteWorkspaceProps> = ({
               <LocationCombobox
                 customerId={contractCustomer}
                 value={slot.destination}
+                disabled={isRouteLocked}
                 hasError={Boolean(fieldErrors?.[`destination-${slot.id}`] || fieldErrors?.['destination'])}
                 onChange={(locName, locObj) => handleSlotLocationChange(slot.id, 'destination', locName, locObj)}
                 placeholder="Search delivery destination (e.g. Al Baha Station)..."
-                triggerClassName="h-9 border-slate-200 bg-white text-xs font-bold text-[#3E3C3D] dark:text-slate-100 shadow-2xs w-full"
+                triggerClassName={cn(
+                  "h-9 border-slate-200 bg-white text-xs font-bold text-[#3E3C3D] dark:text-slate-100 shadow-2xs w-full",
+                  isRouteLocked && "bg-slate-100/90 dark:bg-slate-800/60 text-slate-400 cursor-not-allowed pointer-events-none border-slate-200 dark:border-slate-800"
+                )}
                 precision={slot.destinationPrecision}
               />
+              {(fieldErrors?.[`destination-${slot.id}`] || fieldErrors?.['destination']) && (
+                <div className="flex items-center gap-1.5 mt-1 text-[11px] font-bold text-rose-600 dark:text-rose-400">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>Please select destination location</span>
+                </div>
+              )}
             </div>
 
             {/* COMBINED DROPOFF DATE & TIME (4 COLS) */}

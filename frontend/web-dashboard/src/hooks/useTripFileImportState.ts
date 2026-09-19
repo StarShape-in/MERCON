@@ -32,14 +32,28 @@ export function useTripFileImportState() {
             const val = cells[idx] || '';
             if (h.includes('customer') || h.includes('company')) rowObj.customer_name = val;
             else if (h.includes('date') || h.includes('start')) rowObj.planned_start = val;
-            else if (h.includes('driver')) rowObj.driver_name = val;
+            else if (h.includes('driver') && !h.includes('payout')) rowObj.driver_name = val;
             else if (h.includes('vehicle') || h.includes('plate')) rowObj.vehicle_plate = val;
             else if (h.includes('origin') || h.includes('from')) rowObj.origin = val;
             else if (h.includes('dest') || h.includes('to')) rowObj.destination = val;
             else if (h.includes('category')) rowObj.rate_category = val;
             else if (h.includes('type')) rowObj.vehicle_type = val;
-            else if (h.includes('amount') || h.includes('price')) rowObj.billing_amount = Number(val) || undefined;
+            else if (h.includes('additional') || h.includes('extra') || h.includes('surcharge')) rowObj.additional_charge = Number(val) || undefined;
+            else if (h.includes('payout') || (h.includes('trip') && h.includes('charge'))) rowObj.driver_payout = Number(val) || undefined;
+            else if (h.includes('amount') || h.includes('price') || h.includes('rate')) rowObj.billing_amount = Number(val) || undefined;
+            else if (h.includes('stop') || h.includes('waypoint')) rowObj.stops_raw = val;
           });
+
+          if (rowObj.stops_raw) {
+            const parts = String(rowObj.stops_raw).split(',').map(s => s.trim()).filter(s => s.length > 0);
+            if (parts.length > 0) {
+              rowObj.stops = parts.map((name, idx) => ({
+                stop_sequence: idx + 1,
+                stop_type: 'Rest',
+                location_name: name
+              }));
+            }
+          }
 
           if (rowObj.customer_name) {
             rows.push(rowObj);
@@ -48,17 +62,34 @@ export function useTripFileImportState() {
         setParsedRows(rows);
       } else {
         const result = await parseSheet(file, TRIP_COLUMNS, 'trip');
-        const rows: BulkImportTripRow[] = result.rows.map((r) => ({
-          customer_name: String(r.customer_name || ''),
-          planned_start: r.planned_start ? String(r.planned_start) : undefined,
-          driver_name: r.driver_name ? String(r.driver_name) : undefined,
-          vehicle_plate: r.vehicle_plate ? String(r.vehicle_plate) : undefined,
-          rate_category: r.rate_category ? String(r.rate_category) : undefined,
-          vehicle_type: r.vehicle_type ? String(r.vehicle_type) : undefined,
-          origin: r.origin ? String(r.origin) : undefined,
-          destination: r.destination ? String(r.destination) : undefined,
-          billing_amount: r.billing_amount ? Number(r.billing_amount) : undefined,
-        })).filter((r) => Boolean(r.customer_name));
+        const rows: BulkImportTripRow[] = result.rows.map((r) => {
+          let parsedStops = undefined;
+          if (r.stops) {
+            const parts = String(r.stops).split(',').map(s => s.trim()).filter(s => s.length > 0);
+            if (parts.length > 0) {
+              parsedStops = parts.map((name, idx) => ({
+                stop_sequence: idx + 1,
+                stop_type: 'Rest',
+                location_name: name
+              }));
+            }
+          }
+          
+          return {
+            customer_name: String(r.customer_name || ''),
+            planned_start: r.planned_start ? String(r.planned_start) : undefined,
+            driver_name: r.driver_name ? String(r.driver_name) : undefined,
+            vehicle_plate: r.vehicle_plate ? String(r.vehicle_plate) : undefined,
+            rate_category: r.rate_category ? String(r.rate_category) : undefined,
+            vehicle_type: r.vehicle_type ? String(r.vehicle_type) : undefined,
+            origin: r.origin ? String(r.origin) : undefined,
+            destination: r.destination ? String(r.destination) : undefined,
+            billing_amount: r.billing_amount ? Number(r.billing_amount) : undefined,
+            driver_payout: r.driver_payout ? Number(r.driver_payout) : undefined,
+            additional_charge: r.additional_charge ? Number(r.additional_charge) : undefined,
+            stops: parsedStops,
+          };
+        }).filter((r) => Boolean(r.customer_name));
         setParsedRows(rows);
       }
     } catch (e: any) {

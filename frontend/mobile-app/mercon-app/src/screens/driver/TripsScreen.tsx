@@ -14,7 +14,7 @@ import { SearchInput, DriverChargePill } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
 import { useScheduledTrips } from '../../lib/use-scheduled-trips';
 import { useTripHistory } from '../../lib/use-trip-history';
-import { statusLabel, stopLabel, type MobileTrip, type TripStatus } from '../../lib/trips';
+import { statusLabel, stopLabel, getTripChargeValue, type MobileTrip, type TripStatus } from '../../lib/trips';
 import { matchesSearch } from '../../lib/search';
 import { useLanguage, formatCurrency, getLocalizedStatus, LanguageMode } from '../../lib/language-context';
 import { API_URL } from '../../lib/api';
@@ -41,28 +41,6 @@ function formatRelativeDate(iso?: string | null, lang: LanguageMode = 'en'): str
   if (diffDays === 1) return lang === 'ur' ? 'کل' : 'Tomorrow';
   if (diffDays > 1 && diffDays <= 7) return lang === 'ur' ? `${diffDays} دنوں میں` : `In ${diffDays} days`;
   return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
-}
-
-function extractChargeNumber(val: any): number {
-  if (val === null || val === undefined) return 0;
-  if (typeof val === 'number') return val;
-  if (typeof val === 'string') {
-    const parsed = parseFloat(val);
-    return Number.isNaN(parsed) ? 0 : parsed;
-  }
-  if (typeof val === 'object') {
-    if (val.toNumber && typeof val.toNumber === 'function') {
-      return val.toNumber();
-    }
-    const parsed = parseFloat(String(val));
-    return Number.isNaN(parsed) ? 0 : parsed;
-  }
-  return 0;
-}
-
-export function getTripChargeValue(t: MobileTrip | any): number {
-  if (!t) return 0;
-  return extractChargeNumber(t.driver_payout ?? t.driver_charge ?? t.trip_charges ?? t.quotation?.driver_payout);
 }
 
 interface CardData {

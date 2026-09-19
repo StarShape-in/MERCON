@@ -11,9 +11,12 @@ import { resolveVehicleLocation, resolveVehicleLocationsForTrips } from '../serv
 import { parseOptionalFloat, getValidUuid } from '../utils/uuid';
 import { buildSearchAnd } from '../utils/search';
 import { getCompanyLegalName } from './settingsController';
-import { computeTripChargesTotal, calculateBackendTripFinancials } from '../utils/tripFinancials';
+import { computeTripChargesTotal, calculateBackendTripFinancials, resolveDriverPayout, resolveInitialTripStatus, splitCoDriverPayout } from '../utils/tripFinancials';
+import { resolveMonth, toDayKey } from '../utils/tripBoard';
 import { validateTripDrivers, TripDriverInput, validateTripSchedule, validateTripStops } from '../services/tripValidationService';
 import { recordAssignmentEvent } from '../services/fleetDispatchService';
+import { buildTripRouteTimeline } from '../services/tripRouteTimeline';
+import { parseFullTripStops } from '../services/legacyStopStringParser';
 import { whatsappService } from '../services/whatsappService';
 
 /** Fields the trip ledger search bar looks at. */
@@ -475,9 +478,8 @@ export const getTrips = async (req: Request, res: Response) => {
       success: false,
       error: {
         code: 'SERVER_ERROR',
-        message: error?.message || 'Failed to fetch trips',
-        stack: error?.stack,
-        details: String(error)
+        message: 'Failed to fetch trips',
+        requestId: (req as any).id,
       }
     });
   }
@@ -575,9 +577,11 @@ export const getTripById = async (req: Request, res: Response) => {
       balance_due: fin.balanceDue,
       total_amount: fin.totalCustomerBilling,
       charges_total: fin.chargesTotal,
-      per_trip_billing: fin.perTripBilling,
-      driver_payout: fin.totalDriverPayout,
-      driver_charge: fin.totalDriverPayout,
+      primary_driver_payout: fin.primaryDriverPayout,
+      co_driver_payout: fin.coDriverPayout,
+      total_driver_payout: fin.totalDriverPayout,
+      driver_payout: fin.primaryDriverPayout,
+      driver_charge: fin.primaryDriverPayout,
       balance_margin: fin.balanceMargin,
       margin_percent: fin.marginPercent,
       vehicle: trip.vehicle
@@ -587,19 +591,18 @@ export const getTripById = async (req: Request, res: Response) => {
           }
         : null,
       rateCard: mappedRateCard,
+      route_timeline: buildTripRouteTimeline(trip as any),
     };
 
     res.json({ success: true, data: tripData });
   } catch (error: any) {
-    console.error('Failed to fetch trip by id:', error);
     logger.error({ err: error }, 'Failed to fetch trip by id');
     res.status(500).json({
       success: false,
       error: {
         code: 'SERVER_ERROR',
-        message: error?.message || 'Failed to fetch trip',
-        stack: error?.stack,
-        details: String(error)
+        message: 'Failed to fetch trip',
+        requestId: (req as any).id,
       }
     });
   }
@@ -674,18 +677,7 @@ export const createTrip = async (req: Request, res: Response) => {
     //   without locking driver/vehicle to OnTrip until actively dispatched.
     const isDispatchingNow = false;
     let targetStatus = requestedStatus || TripStatus.Scheduled;
-
-    // Past-time trips can NEVER be Scheduled:
-    // If planned_start is past current time, initial status must be Delayed
-    if (parsedPlannedStart) {
-      const now = new Date();
-      const diffMs = now.getTime() - parsedPlannedStart.getTime();
-      if (diffMs >= 0) {
-        if (!requestedStatus || requestedStatus === TripStatus.Scheduled || requestedStatus === TripStatus.Draft || (requestedStatus as string) === 'Scheduled') {
-          targetStatus = TripStatus.Delayed;
-        }
-      }
-    }
+    targetStatus = resolveInitialTripStatus(targetStatus, requestedStatus, parsedPlannedStart);
 
     const carrierName = await getCompanyLegalName();
 
@@ -698,7 +690,7 @@ export const createTrip = async (req: Request, res: Response) => {
       attempts++;
       try {
         const ref_id = await generateRefId('TRP', () =>
-          prisma.trip.findMany({ select: { ref_id: true } }));
+          prisma.trip.findMany({ where: { deletedAt: null }, select: { ref_id: true } }));
 
         trip = await prisma.$transaction(async (tx) => {
           const customer = await tx.customer.findFirst({ where: { id: customer_id, deletedAt: null } });
@@ -859,17 +851,23 @@ export const createTrip = async (req: Request, res: Response) => {
           }
 
           const rawTripCharges = trip_charges ?? req.body.driver_payout ?? req.body.driver_charge;
-          const finalTripCharges = (rawTripCharges !== undefined && rawTripCharges !== null && !isNaN(Number(rawTripCharges)))
+          const totalPayout = (rawTripCharges !== undefined && rawTripCharges !== null && !isNaN(Number(rawTripCharges)))
             ? Number(rawTripCharges)
             : (appliedQuotation?.driver_payout ? Number(appliedQuotation.driver_payout) : 0);
+
+          const { driverPayout: finalDriverPayout, coDriverPayout: finalCoDriverPayout } = splitCoDriverPayout({
+            totalPayout,
+            hasCoDriver: Boolean(co_driver_id),
+            explicitCoDriverPayout: co_driver_payout,
+          });
 
           const updateQuotationPayout = req.body.update_quotation_driver_payout === true || req.body.update_quotation_payout === true;
           if (updateQuotationPayout && appliedQuotation) {
             const oldPayout = appliedQuotation.driver_payout != null ? Number(appliedQuotation.driver_payout) : null;
-            if (oldPayout !== finalTripCharges) {
+            if (oldPayout !== totalPayout) {
               await tx.quotation.update({
                 where: { id: appliedQuotation.id },
-                data: { driver_payout: finalTripCharges, updated_by: createdBy },
+                data: { driver_payout: totalPayout, updated_by: createdBy },
               });
 
               try {
@@ -880,7 +878,7 @@ export const createTrip = async (req: Request, res: Response) => {
                   data: {
                     quotationId: appliedQuotation.id,
                     old_driver_payout: oldPayout,
-                    new_driver_payout: finalTripCharges,
+                    new_driver_payout: totalPayout,
                     changed_by: userName,
                     changed_by_user_id: createdBy,
                     changed_by_name: userName,
@@ -902,7 +900,7 @@ export const createTrip = async (req: Request, res: Response) => {
               ...(driver_id ? { driverId: driver_id } : {}),
               ...(co_driver_id ? { co_driver_id: co_driver_id } : {}),
               ...(vehicle_id ? { vehicleId: vehicle_id } : {}),
-              co_driver_payout: co_driver_payout !== undefined ? Number(co_driver_payout) : 0,
+              co_driver_payout: finalCoDriverPayout,
               planned_start: parsedPlannedStart,
               planned_end: parsedPlannedEnd,
               status: targetStatus,
@@ -926,7 +924,7 @@ export const createTrip = async (req: Request, res: Response) => {
               ...(finalRateCategory !== null ? { rate_category: finalRateCategory } : {}),
               ...(finalBillingType !== null ? { operation_type: finalBillingType } : {}),
               ...(defaultBilling !== null ? { billing_amount: defaultBilling } : {}),
-              driver_payout: finalTripCharges,
+              driver_payout: finalDriverPayout,
               is_third_party: is_third_party === true,
               ...(is_third_party ? {
                 subcontract: {
@@ -1003,7 +1001,16 @@ export const createTrip = async (req: Request, res: Response) => {
 
     res.status(201).json({ success: true, data: trip });
   } catch (error: any) {
-    logger.error({ err: error, body: req.body }, 'Failed to create trip');
+    logger.error(
+      {
+        err: error,
+        customer_id: req.body?.customer_id,
+        driver_id: req.body?.driver_id,
+        co_driver_id: req.body?.co_driver_id,
+        vehicle_id: req.body?.vehicle_id,
+      },
+      'Failed to create trip'
+    );
     if (
       error.message === 'CUSTOMER_NOT_FOUND' ||
       error.message === 'DRIVER_NOT_FOUND' ||
@@ -1017,75 +1024,6 @@ export const createTrip = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message || 'Failed to create trip' } });
   }
 };
-
-/** One trip per CSV row, matched to existing customers/drivers/vehicles by
- *  name/plate (the sheet can't know internal ids). Rows are independent —
- *  a bad row is reported and skipped rather than failing the whole import. */
-function parseFullTripStops(originStr: string, destinationStr: string) {
-  const stopsList: Array<{
-    stop_sequence: number;
-    leg_index: number;
-    stop_type: 'Pickup' | 'Dropoff';
-    location_name: string;
-    location_id?: string | null;
-    lat?: number | null;
-    lng?: number | null;
-  }> = [];
-  let seq = 1;
-
-  const originClean = originStr.trim();
-  if (originClean) {
-    stopsList.push({ stop_sequence: seq++, leg_index: 0, stop_type: 'Pickup', location_name: originClean });
-  }
-
-  let outboundStr = destinationStr.trim();
-  let returnStr = '';
-
-  if (destinationStr.includes('[RETURN:')) {
-    const parts = destinationStr.split(/\[RETURN:\s*/i);
-    outboundStr = parts[0].trim();
-    returnStr = parts[1].replace(']', '').trim();
-  }
-
-  const splitChain = (str: string) => {
-    if (!str) return [];
-    let s = str.trim().replace(/^(SHIPA|IMILE|JDL|AKS|GFS|RTL|HORIZON|ARKAN)\s+/i, '').trim();
-    let norm = s.replace(/→|->|-->/g, ' + ').replace(/\//g, ' + ').replace(/&/g, ' + ');
-    const chunks = norm.split('+').map(c => c.trim()).filter(Boolean);
-    const items: string[] = [];
-    const KNOWN_CODES = ['RUH','JED','DMM','BUR','UNZ','HAI','HAIL','KHA','ABH','TAI','TAIF','MAK','MAD','HOF','QUR','TAB','TABUK','ALB','JIZ','NAJ','WAD','TUB','SUD','DAM','AHSAR','AHSAN'];
-    for (const chunk of chunks) {
-      if (/\s+-\s+/.test(chunk) || /^[A-Z0-9]+-[A-Z0-9]+-[A-Z0-9]+/i.test(chunk)) {
-        items.push(...chunk.split('-').map(sp => sp.trim()).filter(Boolean));
-      } else {
-        const words = chunk.split(/\s+/).map(w => w.trim()).filter(Boolean);
-        if (words.length >= 2 && words.every(w => KNOWN_CODES.includes(w.toUpperCase()) || w.length <= 6)) {
-          items.push(...words);
-        } else {
-          items.push(chunk);
-        }
-      }
-    }
-    return items;
-  };
-
-  const outboundItems = splitChain(outboundStr);
-  outboundItems.forEach((item) => {
-    stopsList.push({ stop_sequence: seq++, leg_index: 0, stop_type: 'Dropoff', location_name: item });
-  });
-
-  if (returnStr) {
-    const returnItems = splitChain(returnStr);
-    if (returnItems.length > 0) {
-      stopsList.push({ stop_sequence: seq++, leg_index: 1, stop_type: 'Pickup', location_name: returnItems[0] });
-      returnItems.slice(1).forEach((item) => {
-        stopsList.push({ stop_sequence: seq++, leg_index: 1, stop_type: 'Dropoff', location_name: item });
-      });
-    }
-  }
-
-  return stopsList;
-}
 
 function parseDestinationAndStops(destinationStr: string): { destinationName: string; returnDestinationName: string | null } {
   if (destinationStr.includes('[RETURN:')) {
@@ -1137,6 +1075,7 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
         third_party_vehicle_plate?: string;
         third_party_vehicle_type?: string;
         third_party_cost?: number;
+        additional_charge?: number;
       }>;
     };
     const createdBy = isUuid((req as any).user?.id) ? (req as any).user.id : null;
@@ -1215,22 +1154,11 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
         let targetStatus: TripStatus = row.status && Object.values(TripStatus).includes(row.status)
           ? row.status
           : TripStatus.Scheduled;
-
-        // Past-time trips can NEVER be Scheduled:
-        // If planned_start is past current time, initial status must be Delayed
-        if (parsedPlannedStart) {
-          const now = new Date();
-          const diffMs = now.getTime() - parsedPlannedStart.getTime();
-          if (diffMs >= 0) {
-            if (!row.status || row.status === TripStatus.Scheduled || row.status === TripStatus.Draft) {
-              targetStatus = TripStatus.Delayed;
-            }
-          }
-        }
+        targetStatus = resolveInitialTripStatus(targetStatus, row.status, parsedPlannedStart);
 
 
         const ref_id = await generateRefId('TRP', () =>
-          prisma.trip.findMany({ select: { ref_id: true } }));
+          prisma.trip.findMany({ where: { deletedAt: null }, select: { ref_id: true } }));
 
         const parsedDest = parseDestinationAndStops(row.destination || '');
         const originCoords = row.origin ? await resolveStopCoords(row.origin, customer.id) : null;
@@ -1250,19 +1178,25 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
           });
         }
 
+        // Structured `row.stops` (leg_index-aware, built by the trip wizard) is the
+        // authoritative source whenever it's present. `parseFullTripStops` only
+        // exists to derive stops from the legacy origin/destination strings for
+        // rows that don't carry structured stops (true CSV imports). It used to
+        // run unconditionally and splice its own first/last stop onto the front
+        // and back of `row.stops` even when structured stops were already
+        // correct — silently duplicating the origin and destination on every
+        // trip created through the wizard (see TRP-0252 investigation).
         let parsedStops = Array.isArray(row.stops) && row.stops.length > 0
           ? row.stops.map((st, idx) => ({
               stop_sequence: st.stop_sequence ?? (idx + 1),
               leg_index: st.leg_index !== undefined ? Number(st.leg_index) : 0,
-              stop_type: (st.stop_type || (idx === 0 ? 'Pickup' : 'Dropoff')) as 'Pickup' | 'Dropoff',
+              stop_type: (st.stop_type || 'Rest') as 'Pickup' | 'Dropoff' | 'Rest',
               location_name: String(st.location_name ?? '').trim(),
               location_id: st.location_id || null,
               lat: st.lat ?? null,
               lng: st.lng ?? null,
             }))
-          : ((row.origin || row.destination)
-              ? parseFullTripStops(row.origin || '', row.destination || '')
-              : []);
+          : ((row.origin || row.destination) ? parseFullTripStops(row.origin || '', row.destination || '') : []);
 
         if (parsedStops.length === 0 && appliedQuotation?.stops && appliedQuotation.stops.length > 0) {
           const isQuoRound = (appliedQuotation.line_type || row.rate_category || '').toLowerCase().includes('round');
@@ -1275,6 +1209,13 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
             lat: qs.lat ?? qs.location?.lat ?? null,
             lng: qs.lng ?? qs.location?.lng ?? null,
           }));
+        }
+
+        if (parsedStops.length > 0) {
+          const stopValidation = validateTripStops(parsedStops);
+          if (!stopValidation.isValid) {
+            throw new Error(stopValidation.error || 'Invalid trip stops configuration.');
+          }
         }
 
         const resolvedImportStops = await Promise.all(
@@ -1320,6 +1261,17 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
           })
         );
 
+        const rawRowPayout = (row as any).driver_payout ?? (row as any).driver_charge ?? (row as any).trip_charges;
+        const totalRowPayout = (rawRowPayout !== undefined && rawRowPayout !== null && !isNaN(Number(rawRowPayout)))
+          ? Number(rawRowPayout)
+          : (thirdPartyCostVal !== undefined ? thirdPartyCostVal : (appliedQuotation?.driver_payout != null ? Number(appliedQuotation.driver_payout) : 0));
+
+        const { driverPayout: finalRowDriverPayout, coDriverPayout: finalRowCoDriverPayout } = splitCoDriverPayout({
+          totalPayout: totalRowPayout,
+          hasCoDriver: Boolean(row.co_driver_id),
+          explicitCoDriverPayout: row.co_driver_payout,
+        });
+
         const trip = await prisma.$transaction(async (tx) => {
           return tx.trip.create({
             data: {
@@ -1328,7 +1280,7 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
               driver_workflow: customer.driver_workflow || 'NATIVE',
               ...(driverId ? { driverId } : {}),
               ...(row.co_driver_id ? { co_driver_id: row.co_driver_id } : {}),
-              ...(row.co_driver_payout !== undefined && !isNaN(Number(row.co_driver_payout)) ? { co_driver_payout: Number(row.co_driver_payout) } : {}),
+              co_driver_payout: finalRowCoDriverPayout,
               ...(vehicleId ? { vehicleId } : {}),
               ...(appliedQuotation ? { quotationId: appliedQuotation.id } : {}),
               is_third_party: Boolean(row.is_third_party),
@@ -1366,17 +1318,23 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
               ...(row.billing_amount !== undefined && row.billing_amount !== null && !isNaN(Number(row.billing_amount))
                 ? { billing_amount: Number(row.billing_amount) }
                 : (appliedQuotation?.rate != null ? { billing_amount: Number(appliedQuotation.rate) } : {})),
-              ...(((row as any).driver_payout !== undefined || (row as any).driver_charge !== undefined || (row as any).trip_charges !== undefined) && !isNaN(Number((row as any).driver_payout ?? (row as any).driver_charge ?? (row as any).trip_charges))
-                ? { driver_payout: Number((row as any).driver_payout ?? (row as any).driver_charge ?? (row as any).trip_charges) }
-                : (thirdPartyCostVal !== undefined ? { driver_payout: thirdPartyCostVal } : (appliedQuotation?.driver_payout != null ? { driver_payout: Number(appliedQuotation.driver_payout) } : {}))),
+              driver_payout: finalRowDriverPayout,
               ...(createdBy ? { created_by: createdBy } : {}),
-              carrier_name: carrierName,
+              ...(row.additional_charge !== undefined && row.additional_charge !== null && !isNaN(Number(row.additional_charge)) && Number(row.additional_charge) > 0 ? {
+                charges: {
+                  create: [{
+                    amount: Number(row.additional_charge),
+                    description: 'Additional Charge',
+                    ...(createdBy ? { created_by: createdBy } : {})
+                  }]
+                }
+              } : {}),
               ...(resolvedImportStops.length > 0 ? {
                 stops: {
                   create: resolvedImportStops,
                 }
               } : {})
-            },
+            } as any,
           });
         });
 
@@ -2047,15 +2005,41 @@ export const bulkDeleteTrips = async (req: Request, res: Response) => {
 
     const eligibleIds = eligibleTrips.map((t) => t.id);
 
+    // Soft-delete renames ref_id TRP-XXXX -> TRP-DEL-XXXX to free the number for reuse. A
+    // trip number can be reused after its original holder is deleted, so a later trip that
+    // reused the same number can collide with an already-deleted TRP-DEL-XXXX row on this
+    // rename. Postgres poisons the whole transaction on the first failed query inside it
+    // (25P02 "current transaction is aborted"), so a collision can't be retried mid-
+    // transaction — resolve every ref_id up front, before the transaction opens, so the
+    // transaction itself never has anything to fail on.
+    const intendedRefIds = eligibleTrips.map((t) =>
+      t.ref_id && t.ref_id.startsWith('TRP-') && !t.ref_id.startsWith('TRP-DEL-')
+        ? t.ref_id.replace('TRP-', 'TRP-DEL-')
+        : t.ref_id
+    );
+    const conflicting = await prisma.trip.findMany({
+      where: { ref_id: { in: intendedRefIds.filter((r): r is string => !!r) } },
+      select: { ref_id: true },
+    });
+    const takenRefIds = new Set(conflicting.map((t) => t.ref_id));
+    const finalRefIds = new Map<string, string | null>(); // tripId -> new ref_id
+    eligibleTrips.forEach((trip, i) => {
+      const intended = intendedRefIds[i];
+      finalRefIds.set(trip.id, intended && takenRefIds.has(intended) ? `${intended}-${trip.id.slice(0, 8)}` : intended);
+    });
+
     await prisma.$transaction(async (tx) => {
-      // Perform soft delete ONLY — do NOT delete child tables (TripStop, TripCharge, TripLocation, etc.)
-      await tx.trip.updateMany({
-        where: { id: { in: eligibleIds } },
-        data: {
-          deletedAt: new Date(),
-          deleted_by: getValidUuid(userId),
-        },
-      });
+      for (const trip of eligibleTrips) {
+        await tx.trip.update({
+          where: { id: trip.id },
+          data: {
+            ref_id: finalRefIds.get(trip.id) ?? trip.ref_id,
+            isActive: false,
+            deletedAt: new Date(),
+            deleted_by: getValidUuid(userId),
+          },
+        });
+      }
 
       // Release driver / vehicle if soft-deleting in-flight trips
       const inFlightTrips = eligibleTrips.filter((t) => IN_FLIGHT_STATUSES.includes(t.status as TripStatus));
@@ -2309,26 +2293,16 @@ export const updateTripFinancials = async (req: Request, res: Response) => {
 
       if (!trip) throw new Error('NOT_FOUND');
 
-      // Auto-fill the driver payout only when the caller didn't send one:
-      // MERCON's own driver pulls the lane's agreed payout off the rate card;
-      // a third-party job pulls the subcontractor cost already on the trip.
-      // Either way it stays a suggestion, not a lock — an explicit value in
-      // the request always wins, and the settlement form can still override
-      // it before submitting.
-      // trip.trip_charges / third_party_cost / quotation.driver_payout are all
-      // Decimal at runtime — normalised to number here so this stays a plain
-      // number through every branch below (Prisma accepts a number for a
-      // Decimal field write, so nothing is lost storing it back as one).
-      let nextTripCharges = Number(trip.driver_payout ?? (trip as any).driver_charge);
-      const inputCharges = req.body.driver_payout !== undefined ? req.body.driver_payout : (req.body.driver_charge !== undefined ? req.body.driver_charge : trip_charges);
-      if (inputCharges !== undefined) {
-        nextTripCharges = parseOptionalFloat(inputCharges) ?? 0;
-      } else if (trip.is_third_party) {
-        const subCost = (trip as any).subcontract?.cost ?? (trip as any).third_party_cost;
-        if (subCost !== null && subCost !== undefined) {
-          nextTripCharges = Number(subCost);
-        }
-      }
+      // Auto-fill the driver payout only when the caller didn't send one —
+      // see resolveDriverPayout() for the actual rule. Prisma accepts a
+      // number for a Decimal field write, so nextTripCharges stays a plain
+      // number through storage below.
+      const nextTripCharges = resolveDriverPayout({
+        currentDriverPayout: trip.driver_payout ?? (trip as any).driver_charge,
+        isThirdParty: trip.is_third_party,
+        subcontractCost: (trip as any).subcontract?.cost ?? (trip as any).third_party_cost,
+        requestedPayoutRaw: req.body.driver_payout !== undefined ? req.body.driver_payout : (req.body.driver_charge !== undefined ? req.body.driver_charge : trip_charges),
+      });
 
       if (charges !== undefined) {
         await tx.tripCharge.deleteMany({ where: { tripId: trip.id } });
@@ -2427,43 +2401,6 @@ export const updateTripFinancials = async (req: Request, res: Response) => {
 
 /** A month of trips is bounded work; this only guards against a runaway query. */
 const MONTHLY_BOARD_TRIP_CAP = 5000;
-
-/** Local YYYY-MM-DD — never toISOString(), which shifts the date across UTC. */
-const toDayKey = (d: Date | string | null | undefined): string => {
-  if (!d) return '1970-01-01';
-  const dateObj = d instanceof Date ? d : new Date(d);
-  if (isNaN(dateObj.getTime())) return '1970-01-01';
-  return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
-};
-
-/**
- * The month the board is showing. Accepts `YYYY-MM`; anything else (including
- * a missing param) falls back to the current month rather than erroring, since
- * the page opens with no month chosen.
- */
-function resolveMonth(raw: unknown): { month: string; start: Date; end: Date } {
-  const now = new Date();
-  let year = now.getFullYear();
-  let monthIndex = now.getMonth();
-
-  if (typeof raw === 'string') {
-    const match = /^(\d{4})-(\d{2})$/.exec(raw.trim());
-    if (match) {
-      const parsedYear = Number(match[1]);
-      const parsedMonth = Number(match[2]);
-      if (parsedYear >= 2000 && parsedYear <= 2100 && parsedMonth >= 1 && parsedMonth <= 12) {
-        year = parsedYear;
-        monthIndex = parsedMonth - 1;
-      }
-    }
-  }
-
-  return {
-    month: `${year}-${String(monthIndex + 1).padStart(2, '0')}`,
-    start: new Date(year, monthIndex, 1, 0, 0, 0, 0),
-    end: new Date(year, monthIndex + 1, 0, 23, 59, 59, 999),
-  };
-}
 
 export const getMonthlyTripBoard = async (req: Request, res: Response) => {
   try {

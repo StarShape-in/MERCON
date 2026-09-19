@@ -533,19 +533,30 @@ export function useTripSubmission(
             ? assignment.coDriverId
             : (masterCoDriver && masterCoDriver !== 'unassigned' ? masterCoDriver : undefined);
 
-          const slotDriverPayout = slot.driverPayout !== undefined ? Number(slot.driverPayout) : (Number(slot.tripCharges) || 0);
+          const baseRateCardPayout = Number(
+            slot.driverPayout ??
+            slot.tripCharges ??
+            slot.matchedRateCard?.driver_payout ??
+            (slot as any).quotation?.driver_payout ??
+            0
+          );
           const shouldUpdateQuotation = Boolean(slot.updateQuotationPayout || slot.driverPayoutModified);
 
-          let finalDriverPayout = slotDriverPayout;
+          let finalDriverPayout = baseRateCardPayout;
           let finalCoDriverPayout = 0;
 
           if (coDriverId) {
-            // Default 50/50 split if co-driver is present
-            finalDriverPayout = assignment.driverPayoutOverride !== undefined ? assignment.driverPayoutOverride : (slotDriverPayout / 2);
-            finalCoDriverPayout = assignment.coDriverPayoutOverride !== undefined ? assignment.coDriverPayoutOverride : (slotDriverPayout / 2);
+            // Default equal 50/50 split of the saved rate card payout if co-driver is present
+            finalDriverPayout = assignment.driverPayoutOverride !== undefined
+              ? Number(assignment.driverPayoutOverride)
+              : Math.round((baseRateCardPayout / 2) * 100) / 100;
+
+            finalCoDriverPayout = assignment.coDriverPayoutOverride !== undefined
+              ? Number(assignment.coDriverPayoutOverride)
+              : Math.round((baseRateCardPayout / 2) * 100) / 100;
           } else {
             if (assignment.driverPayoutOverride !== undefined) {
-               finalDriverPayout = assignment.driverPayoutOverride;
+              finalDriverPayout = Number(assignment.driverPayoutOverride);
             }
           }
 
@@ -563,7 +574,7 @@ export function useTripSubmission(
             destination: destString || undefined,
             stops: structuredStops,
             billing_amount: totalAmount > 0 ? totalAmount : undefined,
-            trip_charges: slotDriverPayout, // total combined charges
+            trip_charges: baseRateCardPayout, // total combined charges
             driver_charge: finalDriverPayout, // alias for legacy
             driver_payout: finalDriverPayout,
             co_driver_payout: finalCoDriverPayout,

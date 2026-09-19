@@ -15,12 +15,10 @@ import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens
 import { Badge, DelayReportModal, DriverChargePill, BilingualText } from '../../components';
 import { useAuth } from '../../lib/auth-context';
 import { useCurrentTrip } from '../../lib/use-current-trip';
-import { tripService, statusLabel, stopAddress, stopLabel, isRoundTrip, getEffectiveWorkflowState, type TripStatus, type MobileTrip } from '../../lib/trips';
+import { tripService, statusLabel, stopAddress, stopLabel, isRoundTrip, getEffectiveWorkflowState, getNextExternalAppAction, getTripChargeValue, type TripStatus, type MobileTrip } from '../../lib/trips';
 import { getApiErrorMessage } from '../../lib/api';
 import { useLanguage, getLocalizedStatus } from '../../lib/language-context';
 import { parseTripRouteNodes, getIntermediateStops, getOutboundIntermediateStops, getReturnIntermediateStops, type TimelineStop } from '../../lib/routeParser';
-
-import { getTripChargeValue } from './DriverChargesScreen';
 
 const WORKFLOW_URDU_LABEL: Record<string, string> = {
   ASSIGNED: 'ٹرپ شروع کریں',
@@ -204,9 +202,14 @@ const HomeScreen = () => {
   const displayTrip = trip || (scheduledTrips.length > 0 ? scheduledTrips[0] : null);
   const remainingScheduled = scheduledTrips.filter((st) => st.id !== displayTrip?.id);
 
-  const pickupStop = displayTrip?.stops?.find((s) => s.stop_sequence === 1 || s.stop_type === 'Pickup') ?? displayTrip?.stops?.[0];
-  const dropoffStop = displayTrip?.stops?.find((s) => s.stop_sequence === (displayTrip?.stops?.length ?? 2) || s.stop_type === 'Dropoff') ?? displayTrip?.stops?.[displayTrip?.stops?.length - 1];
-  const intermediateStops = (displayTrip?.stops ?? []).filter((s) => s.id !== pickupStop?.id && s.id !== dropoffStop?.id);
+  // `.find()` for stop_type === 'Dropoff' alone would match the OUTBOUND
+  // delivery on a round trip (the first Dropoff in sequence), not the true
+  // final destination on the return leg. Take the pickup from the front and
+  // the dropoff from the back so a round trip's return delivery wins.
+  const sortedDisplayStops = [...(displayTrip?.stops ?? [])].sort((a, b) => a.stop_sequence - b.stop_sequence);
+  const pickupStop = sortedDisplayStops.find((s) => s.stop_type === 'Pickup') ?? sortedDisplayStops[0];
+  const dropoffStop = [...sortedDisplayStops].reverse().find((s) => s.stop_type === 'Dropoff') ?? sortedDisplayStops[sortedDisplayStops.length - 1];
+  const intermediateStops = sortedDisplayStops.filter((s) => s.id !== pickupStop?.id && s.id !== dropoffStop?.id);
 
   const langTag = language === 'en' ? 'EN' : language === 'ur' ? 'اردو' : 'اردو / EN';
 
@@ -220,9 +223,10 @@ const HomeScreen = () => {
     if (t.driver_workflow === 'EXTERNAL_APP') {
       const ws = getEffectiveWorkflowState(t);
       const isAssigned = ws === 'ASSIGNED';
+      const nextAction = getNextExternalAppAction(t);
       return {
         badgeLabel: isAssigned ? 'Assigned (External)' : 'External App',
-        btnLabel: isAssigned ? 'Start Trip' : 'Upload App Screenshot',
+        btnLabel: isAssigned ? 'Start Trip' : (nextAction?.label ?? 'Trip Completed'),
         onPress: async () => {
           if (isAssigned) {
             setAdvancing(true);
@@ -770,8 +774,9 @@ const HomeScreen = () => {
             </View>
 
             {remainingScheduled.map((st) => {
-              const p = st.stops?.find((s) => s.stop_sequence === 1 || s.stop_type === 'Pickup') ?? st.stops?.[0];
-              const d = st.stops?.find((s) => s.stop_sequence === (st.stops?.length ?? 2) || s.stop_type === 'Dropoff') ?? st.stops?.[st.stops?.length - 1];
+              const sortedStStops = [...(st.stops ?? [])].sort((a, b) => a.stop_sequence - b.stop_sequence);
+              const p = sortedStStops.find((s) => s.stop_type === 'Pickup') ?? sortedStStops[0];
+              const d = [...sortedStStops].reverse().find((s) => s.stop_type === 'Dropoff') ?? sortedStStops[sortedStStops.length - 1];
               const quoNameParts = (st as any).quotation?.name ? (st as any).quotation.name.split(/\s*(?:→|->|–|-)\s*/).map((s: string) => s.trim()).filter(Boolean) : [];
               const originLabel = stopLabel(p) || (st.stops?.length ? null : quoNameParts[0]) || st.origin || 'Pickup';
               const destLabel = stopLabel(d) || (st.stops?.length ? null : quoNameParts[1]) || st.destination || 'Delivery';

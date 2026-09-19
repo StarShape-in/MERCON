@@ -72,6 +72,13 @@ interface TripStep1UnifiedWorkspaceProps {
   dayAssignments?: Record<string, { driverId: string; vehicleId: string }>;
   setDayAssignments?: React.Dispatch<React.SetStateAction<Record<string, { driverId: string; vehicleId: string }>>>;
   fieldErrors?: Record<string, boolean>;
+  isEditMode?: boolean;
+  isRouteLocked?: boolean;
+  isScheduleLocked?: boolean;
+  isAssignmentLocked?: boolean;
+  isBaseBillingLocked?: boolean;
+  isFinancialsLocked?: boolean;
+  status?: string;
 }
 
 export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps> = ({
@@ -134,6 +141,13 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
   dayAssignments = {},
   setDayAssignments,
   fieldErrors = {},
+  isEditMode = false,
+  isRouteLocked = false,
+  isScheduleLocked = false,
+  isAssignmentLocked = false,
+  isBaseBillingLocked = false,
+  isFinancialsLocked = false,
+  status = '',
 }) => {
   const primarySlot = contractSlots[0] || {};
   const isRoundTrip = isRoundTripProp ?? (isRoundTripCategory ? isRoundTripCategory(contractRateCategory) : contractRateCategory === 'Round Trip');
@@ -172,9 +186,10 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
             customerOptions={customerOptions}
             fieldErrors={fieldErrors}
             assignmentType={assignmentType}
+            isEditMode={isEditMode}
           />
 
-          {/* ROUTE WORKSPACE (ALWAYS 100% INTERACTIVE) */}
+          {/* ROUTE WORKSPACE (ALWAYS 100% INTERACTIVE UNLESS ROUTE LOCKED) */}
           <div className="space-y-3">
             {contractSlots.map((slot) => (
               <RouteWorkspace
@@ -197,6 +212,7 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
                 handleRemoveSlotReturnIntermediate={handleRemoveSlotReturnIntermediate}
                 handleUpdateSlotReturnIntermediate={handleUpdateSlotReturnIntermediate}
                 fieldErrors={fieldErrors}
+                isRouteLocked={isRouteLocked}
               />
             ))}
           </div>
@@ -205,7 +221,7 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
         {/* RIGHT WORKSPACE (lg:col-span-5): EXECUTION ASSIGNMENT (TOP) & FINANCIAL SUMMARY (BELOW) */}
         <div className="lg:col-span-5">
           <div className="sticky top-4 space-y-3">
-            <div className={cn("transition-opacity duration-200 space-y-3", !isQuotationDefinedOrSelected && "opacity-50 pointer-events-none select-none")}>
+            <div className={cn("transition-opacity duration-200 space-y-3", !isEditMode && !isQuotationDefinedOrSelected && "opacity-50 pointer-events-none select-none")}>
               {/* REQUIREMENT 3: For Monthly trips, DO NOT show Assignment on Page 1 */}
               {contractBillingType?.toLowerCase() !== 'monthly' && (
                 <ExecutionAssignmentSection
@@ -233,6 +249,9 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
                   setContractVehicleType={setContractVehicleType}
                   contractBillingType={contractBillingType}
                   fieldErrors={fieldErrors}
+                  vehicles={vehicles}
+                  isAssignmentLocked={isAssignmentLocked}
+                  status={status}
                 />
               )}
 
@@ -245,6 +264,8 @@ export const TripStep1UnifiedWorkspace: React.FC<TripStep1UnifiedWorkspaceProps>
                 contractCustomer={contractCustomer}
                 customers={customers}
                 handleUpdateTripSlot={handleUpdateTripSlot}
+                isBaseBillingLocked={isBaseBillingLocked}
+                isFinancialsLocked={isFinancialsLocked}
               />
             </div>
           </div>

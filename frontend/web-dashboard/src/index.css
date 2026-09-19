@@ -55,7 +55,7 @@
   --color-purple-bg:    #F5F3FF;
 
   /* Typography */
-  --font-sans: 'Geist Mono Numbers', 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
 
   /* Radius */
   --radius-sm:   6px; /* CI/CD pipeline dev speed benchmark */
@@ -162,28 +162,34 @@
 }
 
 /* ─── KPI Card Page Border Utilities ─────────────────────────────────────── */
-/* Clean solid card background with page base color border                   */
-.kpi-tint-trips       { border-color: rgba(232, 69, 15, 0.28) !important; background: #FFFFFF !important; }
-.kpi-tint-monthly     { border-color: rgba(124, 58, 237, 0.28) !important; background: #FFFFFF !important; }
-.kpi-tint-drivers     { border-color: rgba(16, 185, 129, 0.28) !important; background: #FFFFFF !important; }
-.kpi-tint-vehicles    { border-color: rgba(59, 130, 246, 0.28) !important; background: #FFFFFF !important; }
-.kpi-tint-third-party { border-color: rgba(15, 159, 154, 0.28) !important; background: #FFFFFF !important; }
-.kpi-tint-maintenance { border-color: rgba(239, 51, 64, 0.28) !important; background: #FFFFFF !important; }
-.kpi-tint-customers   { border-color: rgba(37, 99, 235, 0.28) !important; background: #FFFFFF !important; }
-.kpi-tint-invoices    { border-color: rgba(217, 119, 6, 0.28) !important; background: #FFFFFF !important; }
-.kpi-tint-expenses    { border-color: rgba(217, 119, 6, 0.28) !important; background: #FFFFFF !important; }
-.kpi-tint-documents   { border-color: rgba(99, 102, 241, 0.28) !important; background: #FFFFFF !important; }
-.kpi-tint-reports     { border-color: rgba(14, 165, 233, 0.28) !important; background: #FFFFFF !important; }
+/* Clean solid card background with dynamic variant border */
+.kpi-tint-trips,
+.kpi-tint-monthly,
+.kpi-tint-drivers,
+.kpi-tint-vehicles,
+.kpi-tint-third-party,
+.kpi-tint-maintenance,
+.kpi-tint-customers,
+.kpi-tint-invoices,
+.kpi-tint-expenses,
+.kpi-tint-documents,
+.kpi-tint-reports {
+  background: #FFFFFF !important;
+}
 
-.dark .kpi-tint-trips       { border-color: rgba(232, 69, 15, 0.40) !important; background: var(--card) !important; }
-.dark .kpi-tint-monthly     { border-color: rgba(124, 58, 237, 0.40) !important; background: var(--card) !important; }
-.dark .kpi-tint-drivers     { border-color: rgba(16, 185, 129, 0.40) !important; background: var(--card) !important; }
-.dark .kpi-tint-vehicles    { border-color: rgba(59, 130, 246, 0.40) !important; background: var(--card) !important; }
-.dark .kpi-tint-third-party { border-color: rgba(15, 159, 154, 0.40) !important; background: var(--card) !important; }
-.dark .kpi-tint-maintenance { border-color: rgba(239, 51, 64, 0.40) !important; background: var(--card) !important; }
-.dark .kpi-tint-customers   { border-color: rgba(37, 99, 235, 0.40) !important; background: var(--card) !important; }
-.dark .kpi-tint-invoices    { border-color: rgba(217, 119, 6, 0.40) !important; background: var(--card) !important; }
-.dark .kpi-tint-expenses    { border-color: rgba(217, 119, 6, 0.40) !important; background: var(--card) !important; }
+.dark .kpi-tint-trips,
+.dark .kpi-tint-monthly,
+.dark .kpi-tint-drivers,
+.dark .kpi-tint-vehicles,
+.dark .kpi-tint-third-party,
+.dark .kpi-tint-maintenance,
+.dark .kpi-tint-customers,
+.dark .kpi-tint-invoices,
+.dark .kpi-tint-expenses,
+.dark .kpi-tint-documents,
+.dark .kpi-tint-reports {
+  background: var(--card) !important;
+}
 
 /* ─── Global Reset ────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
@@ -359,7 +365,7 @@ body {
   --color-info-bg:        var(--color-info-bg);
 
   --font-heading:        var(--font-sans);
-  --font-sans:        'Geist Mono Numbers', 'Geist Variable', sans-serif;
+  --font-sans:        'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
   --font-mono:        'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --color-sidebar-ring:        var(--sidebar-ring);
   --color-sidebar-border:        var(--sidebar-border);
@@ -473,6 +479,15 @@ body {
 @keyframes entrance-scale-dialog {
   0% { opacity: 0; transform: translate(-50%, -50%) scale(0.96); filter: blur(4px); }
   100% { opacity: 1; transform: translate(-50%, -50%) scale(1); filter: blur(0); }
+}
+
+@keyframes slowDriverNameScroll {
+  0%, 18% {
+    transform: translateX(0);
+  }
+  82%, 100% {
+    transform: translateX(var(--scroll-dist, 0px));
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

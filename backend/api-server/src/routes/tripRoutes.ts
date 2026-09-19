@@ -57,6 +57,5 @@ router.post('/:id/delivery/verify', deliveryVerify);
 // Phase 3: Operator WhatsApp Media Dispatch
 router.post('/:id/share-whatsapp', shareTripMediaToWhatsApp);
 
-
 export default router;
 

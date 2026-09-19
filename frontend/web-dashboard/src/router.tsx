@@ -105,6 +105,9 @@ const ReportBuilderLandingPage   = lazyWithRetry(() => import('@/pages/report-bu
 const QuickReportPage            = lazyWithRetry(() => import('@/pages/report-builder/QuickReportPage'));
 const AdvancedBuilderPage        = lazyWithRetry(() => import('@/pages/report-builder/AdvancedBuilderPage'));
 
+// Learning & Academy
+const LearningPage               = lazyWithRetry(() => import('@/pages/learning/LearningPage'));
+
 // Settings & Governance
 const OperatorProfilePage     = lazyWithRetry(() => import('@/pages/settings/OperatorProfilePage'));
 const SettingsPage            = lazyWithRetry(() => import('@/pages/settings/SettingsPage'));
@@ -114,6 +117,9 @@ const TaxonomySettingsPage    = lazyWithRetry(() => import('@/pages/settings/Tax
 const BrandingSettingsPage    = lazyWithRetry(() => import('@/pages/settings/BrandingSettingsPage'));
 const SystemHealthPage        = lazyWithRetry(() => import('@/pages/settings/SystemHealthPage'));
 const ModuleGovernancePage    = lazyWithRetry(() => import('@/pages/settings/ModuleGovernancePage'));
+const ErrorConsolePage        = lazyWithRetry(() => import('@/pages/settings/ErrorConsolePage'));
+const ErrorEventDetailPage    = lazyWithRetry(() => import('@/pages/settings/ErrorEventDetailPage'));
+const RecycleBinPage          = lazyWithRetry(() => import('@/pages/recycle-bin/RecycleBinPage'));
 
 /* ─── Protected Route wrapper ────────────────────────────────────────────── */
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -286,6 +292,9 @@ export default function AppRouter() {
             <Route path="/report-builder/quick"    element={<RequireModule moduleKey="report-builder"><QuickReportPage /></RequireModule>} />
             <Route path="/report-builder/advanced" element={<RequireModule moduleKey="report-builder"><AdvancedBuilderPage /></RequireModule>} />
 
+            {/* Learning & Academy */}
+            <Route path="/learning"                element={<RequireModule moduleKey="learning"><LearningPage /></RequireModule>} />
+
             {/* Settings & Governance */}
             <Route path="/settings"                 element={<SettingsPage />} />
             <Route path="/settings/profile"         element={<Navigate to="/settings" replace />} />
@@ -295,6 +304,12 @@ export default function AppRouter() {
             <Route path="/settings/branding"        element={<RequireRole roles={['SuperAdmin']}><BrandingSettingsPage /></RequireRole>} />
             <Route path="/settings/system-health"   element={<RequireRole roles={['SuperAdmin']}><SystemHealthPage /></RequireRole>} />
             <Route path="/settings/module-governance" element={<RequireRole roles={['SuperAdmin']}><ModuleGovernancePage /></RequireRole>} />
+            <Route path="/settings/error-console"     element={<RequireRole roles={['Admin']}><ErrorConsolePage /></RequireRole>} />
+            <Route path="/settings/error-console/:id" element={<RequireRole roles={['Admin']}><ErrorEventDetailPage /></RequireRole>} />
+            <Route path="/settings/recycle-bin"     element={<RequireModule moduleKey="recycle-bin"><RecycleBinPage /></RequireModule>} />
+            <Route path="/recycle-bin font-medium"  element={<Navigate to="/settings/recycle-bin" replace />} />
+            <Route path="/recycle-bin"              element={<Navigate to="/settings/recycle-bin" replace />} />
+            <Route path="/trash"                    element={<Navigate to="/settings/recycle-bin" replace />} />
           </Route>
 
           {/* Fallback */}

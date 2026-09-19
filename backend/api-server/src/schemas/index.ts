@@ -137,7 +137,10 @@ export const listQuery = z.object({
   search: z.string().trim().optional(),
   sort_by: z.string().trim().optional(),
   sort_dir: z.enum(['asc', 'desc']).default('desc'),
+  sort_order: z.enum(['asc', 'desc']).optional(),
   status: z.string().trim().optional(),
+  license_status: z.enum(['All', 'Valid', 'Expired']).optional(),
+  license_filter: z.enum(['All', 'Valid', 'Expired']).optional(),
   customer_id: z.string().uuid().optional(),
 }).passthrough();
 
@@ -366,6 +369,7 @@ export const bulkImportTripsBody = z.object({
     driver_payout: z.coerce.number().nullable().optional(),
     co_driver_id: z.string().trim().nullable().optional(),
     co_driver_payout: z.coerce.number().nullable().optional(),
+    additional_charge: z.coerce.number().nullable().optional(),
     update_quotation_driver_payout: z.boolean().optional(),
     stops: z.array(z.object({
       stop_sequence: z.number().int().optional(),
@@ -580,4 +584,15 @@ export const createScheduledReportBody = z.object({
 });
 
 export const updateScheduledReportBody = createScheduledReportBody.partial();
+
+export const updateErrorEventBody = z.object({
+  status: z.enum(['New', 'Acknowledged', 'Resolved']),
+  notes: z.string().trim().max(2000).optional(),
+});
+
+export const clientErrorBody = z.object({
+  message: z.string().trim().min(1).max(2000),
+  stack: z.string().trim().max(8000).optional(),
+  route: z.string().trim().min(1).max(500),
+});
 

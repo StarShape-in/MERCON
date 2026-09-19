@@ -9,6 +9,11 @@ Read the existing code, schema, and docs relevant to your task **before**
 editing. Do not invent features, fields, enum values, pages, or roles that
 are not already in the codebase or explicitly requested by the owner.
 
+## Rule 0.1: Strict target branch is `hysam`
+
+ALL commits, code updates, and git pushes initiated by AI agents or IDE tools MUST strictly target the **`hysam`** branch (`origin/hysam` / local `HYSAM`). Never push directly to `main` or `dev`. Always verify active branch (`git branch`) and push explicitly via `git push origin HYSAM:hysam`.
+
+
 ## Rule 0.5: Keep PROGRESS.md in sync
 
 `PROGRESS.md` (repo root) is the single source of truth for "where is the
@@ -95,3 +100,9 @@ creating drivers itself.
 - When adding any role-gated feature, enforce it in **both** places: backend
   route middleware (`authorizeRoles(...)`) and frontend (`RequireRole` /
   conditional nav). Frontend-only gating is not security.
+
+## Git Branch Policy (`midlaj` Only)
+- **Only pull and push to `midlaj` branch**: All changes, commits, and pushes must be exclusively on `midlaj`.
+- **Syncing from `dev`**: Pull/fetch from `origin/dev` and rebase `midlaj` on top of `origin/dev` without dropping or removing any existing work.
+- See `GIT_WORKFLOW.md` for complete workflow guidelines.
+

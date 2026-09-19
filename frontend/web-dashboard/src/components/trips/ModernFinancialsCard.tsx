@@ -56,6 +56,7 @@ export default function ModernFinancialsCard({
     baseRate,
     monthlyRate: monthlyContractRate,
     driverPayout,
+    coDriverPayout,
     is3PL,
     extraDriverPayment,
     additionalCharges,
@@ -63,7 +64,7 @@ export default function ModernFinancialsCard({
   });
 
   const billingVal = fin.resolvedBilling;
-  const driverPayoutVal = fin.resolvedDriverPayout;
+  const driverPayoutVal = fin.primaryDriverPayout;
   const addChargesVal = fin.additionalChargesTotal;
   const resolvedMargin = balanceMargin !== undefined ? balanceMargin : fin.balanceMargin;
   const resolvedMarginPercent = marginPercent !== undefined ? String(marginPercent) : `${fin.marginPercent.toFixed(1)}`;

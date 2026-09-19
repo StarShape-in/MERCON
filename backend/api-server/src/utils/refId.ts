@@ -30,6 +30,7 @@ export async function generateSequentialRefId(
 
   for (const record of records) {
     if (!record.ref_id || !record.ref_id.startsWith(fullPrefix)) continue;
+    if (record.ref_id.includes('-DEL-') || record.ref_id.startsWith(`${prefix}-DEL-`)) continue;
     const numPart = record.ref_id.slice(fullPrefix.length);
     const num = parseInt(numPart, 10);
     if (!isNaN(num) && num > 0) {
