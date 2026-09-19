@@ -298,17 +298,30 @@ jobs:
           ICCES_USER: ${{ secrets.ICCES_USER }}
           ICCES_PASS: ${{ secrets.ICCES_PASS }}
           ICCES_ACCT: ${{ secrets.ICCES_ACCT }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || 'AQ.Ab8RN6K3a4t83gB0yRI607axYGS8_JJIHhRuJZkYkLwxDDsNZA' }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: ${{ secrets.GEMINI_MODEL || 'gemini-flash-latest' }}
           VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
         run: |
           set -euo pipefail
           echo "Deploying production stack for Release Target SHA $RELEASE_TARGET_SHA..."
           git checkout "$RELEASE_TARGET_SHA"
-          
-          echo "Building production Docker containers..."
-          docker compose up -d --build
-          
+
+          echo "Building production Docker containers (running container remains untouched during build)..."
+          docker compose build
+
+          # This step's own name promises migrations are applied here — until now
+          # that promise wasn't kept: nothing in this workflow ever ran
+          # `prisma migrate deploy` against the production database, so schema
+          # changes silently never reached prod. Building the image first and
+          # running the migration against it (mirroring ci-cd-dev.yml) means the
+          # migration executes with the code that expects that schema, before
+          # any old container is replaced.
+          echo "Executing Prisma database migrations against production database..."
+          docker compose run --rm --no-deps mercon-api npx prisma migrate deploy
+
+          echo "Recreating and restarting production containers..."
+          docker compose up -d --no-build
+
           sleep 8
           echo "Production containers running."
 
