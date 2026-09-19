@@ -2089,21 +2089,38 @@ export const bulkDeleteTrips = async (req: Request, res: Response) => {
     const eligibleIds = eligibleTrips.map((t) => t.id);
 
     await prisma.$transaction(async (tx) => {
-      // Soft-delete trips: rename ref_id to TRP-DEL-XXXX to release sequence slot, mark isActive = false
+      // Soft-delete trips: rename ref_id to TRP-DEL-XXXX to release sequence slot, mark isActive = false.
+      // A trip number can be reused after its original holder is deleted, so a second trip
+      // that later reused the same number can collide with an already-deleted TRP-DEL-XXXX
+      // row on this rename (P2002 on ref_id) — disambiguate with the trip's own id when that
+      // happens instead of failing the whole bulk delete.
       for (const trip of eligibleTrips) {
         let newRefId = trip.ref_id;
         if (newRefId && newRefId.startsWith('TRP-') && !newRefId.startsWith('TRP-DEL-')) {
           newRefId = newRefId.replace('TRP-', 'TRP-DEL-');
         }
-        await tx.trip.update({
-          where: { id: trip.id },
-          data: {
-            ref_id: newRefId,
-            isActive: false,
-            deletedAt: new Date(),
-            deleted_by: getValidUuid(userId),
-          },
-        });
+        try {
+          await tx.trip.update({
+            where: { id: trip.id },
+            data: {
+              ref_id: newRefId,
+              isActive: false,
+              deletedAt: new Date(),
+              deleted_by: getValidUuid(userId),
+            },
+          });
+        } catch (err: any) {
+          if (err?.code !== 'P2002') throw err;
+          await tx.trip.update({
+            where: { id: trip.id },
+            data: {
+              ref_id: `${newRefId}-${trip.id.slice(0, 8)}`,
+              isActive: false,
+              deletedAt: new Date(),
+              deleted_by: getValidUuid(userId),
+            },
+          });
+        }
       }
 
       // Release driver / vehicle if soft-deleting in-flight trips
