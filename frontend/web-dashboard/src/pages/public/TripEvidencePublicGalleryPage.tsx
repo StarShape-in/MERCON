@@ -15,7 +15,10 @@ function resolveDocUrl(url?: string | null): string {
   const trimmed = url.trim();
   if (trimmed.startsWith('data:') || trimmed.startsWith('blob:')) return trimmed;
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
-  const base = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '') : '';
+  let base = import.meta.env.VITE_API_URL || '';
+  if (base.includes('/api')) {
+    base = base.split('/api')[0];
+  }
   return `${base}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
 }
 
