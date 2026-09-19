@@ -249,6 +249,9 @@ export default function WhatsappShareModal({
         text += `\nNotes: ${(selectedTrip as any).notes}\n`;
       }
 
+      const tripRef = selectedTrip.ref_id || selectedTrip.id;
+      text += `\n🔗 *Secured Evidence Link*:\n${window.location.origin}/trips/evidence-gallery?ref=${encodeURIComponent(tripRef)}\n`;
+
       text += `\n_MERCON Operations Center_`;
       return text;
     }
