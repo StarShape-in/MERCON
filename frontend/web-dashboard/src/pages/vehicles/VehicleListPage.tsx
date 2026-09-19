@@ -25,6 +25,7 @@ import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
 import { SortDropdown, SortOption } from '@/components/ui/SortDropdown';
 import { GpsHealthBadge } from '@/components/fleet/GpsHealthBadge';
+import { Vector2DTruck } from '@/components/trips/TripKpiCards';
 
 const VEHICLE_EXPORT_COLUMNS: ExportColumn<Vehicle>[] = [
   { id: 'ref_id', label: 'Vehicle ID', accessor: (v) => v.ref_id || `TRK-${v.id.slice(0, 5).toUpperCase()}` },
@@ -161,16 +162,18 @@ function createVehicleMapIcon(plateNumber: string, status: string, isDarkTheme: 
         </div>
       ` : ''}
 
-      <!-- Pulsing Aura (flashing radar ring below the 3D vehicle) -->
-      ${(status === 'Available' || status === 'OnTrip') ? `<div class="animate-ping" style="position: absolute; width: 36px; height: 36px; border-radius: 50%; background-color: ${glowColor}; opacity: 0.35; z-index: 1;"></div>` : ''}
+      <!-- Pulsing Aura (radar ring below the vehicle) -->
+      ${(status === 'Available' || status === 'OnTrip') ? `<div style="position: absolute; width: 36px; height: 36px; border-radius: 50%; background-color: ${glowColor}; opacity: 0.25; z-index: 1;"></div>` : ''}
       
-      <!-- 3D Google Maps style container truck image -->
-      <div style="position: relative; z-index: 2; transform: translateY(-2px); width: 44px; height: 44px;">
-        <img 
-          src="/truck_3d_orange_transparent.png" 
-          alt="3D Truck Marker" 
-          style="width: 100%; height: 100%; object-fit: contain; filter: ${imgFilter};" 
-        />
+      <!-- 2D Vector Truck Marker -->
+      <div style="position: relative; z-index: 2; transform: translateY(-2px); width: 40px; height: 32px; display: flex; align-items: center; justify-content: center; color: ${glowColor};">
+        <svg viewBox="0 0 28 18" fill="currentColor" style="width: 32px; height: 22px;">
+          <rect x="0" y="2" width="18" height="11" rx="1.5" />
+          <path d="M19 6h5a2 2 0 0 1 2 2v5h-7V6z" />
+          <path d="M21 7.5h3.5v3H21v-3z" fill="white" fill-opacity="0.55" />
+          <circle cx="5" cy="14.5" r="2.2" fill="#1E293B" stroke="white" stroke-width="0.8" />
+          <circle cx="21.5" cy="14.5" r="2.2" fill="#1E293B" stroke="white" stroke-width="0.8" />
+        </svg>
       </div>
 
       <!-- Plate number tag -->
@@ -1400,18 +1403,13 @@ export default function VehicleListPage() {
                     className="absolute"
                     style={{
                       left: '28%',
-                      top: '35%',
-                      transform: 'translate(-50%, -50%) scale(0.55)',
+                      top: '45%',
+                      transform: 'translate(-50%, -50%)',
                       zIndex: 10
                     }}
                   >
                     <div className="relative flex items-center justify-center">
-                      <div className="absolute h-8 w-8 rounded-full bg-orange-500/25 animate-ping" />
-                      <img 
-                        src="/truck_3d_orange_transparent.png" 
-                        alt="Active Truck 1" 
-                        className="h-9 w-9 object-contain"
-                      />
+                      <Vector2DTruck className="w-7 h-5 text-[#FA634E]" />
                     </div>
                   </div>
 
@@ -1419,19 +1417,13 @@ export default function VehicleListPage() {
                     className="absolute"
                     style={{
                       left: '68%',
-                      top: '55%',
-                      transform: 'translate(-50%, -50%) scale(0.55)',
+                      top: '45%',
+                      transform: 'translate(-50%, -50%)',
                       zIndex: 10
                     }}
                   >
                     <div className="relative flex items-center justify-center">
-                      <div className="absolute h-8 w-8 rounded-full bg-emerald-500/25 animate-ping" />
-                      <img 
-                        src="/truck_3d_orange_transparent.png" 
-                        alt="Active Truck 2" 
-                        className="h-9 w-9 object-contain"
-                        style={{ filter: 'hue-rotate(100deg) saturate(1.3) brightness(0.95)' }}
-                      />
+                      <Vector2DTruck className="w-7 h-5 text-[#10B981]" />
                     </div>
                   </div>
                 </div>
@@ -1504,19 +1496,13 @@ export default function VehicleListPage() {
                     className="absolute"
                     style={{
                       left: '42%',
-                      top: '40%',
-                      transform: 'translate(-50%, -50%) scale(0.65)',
+                      top: '45%',
+                      transform: 'translate(-50%, -50%)',
                       zIndex: 10
                     }}
                   >
                     <div className="relative flex items-center justify-center">
-                      <div className="absolute h-8 w-8 rounded-full bg-blue-500/30 animate-ping" />
-                      <img 
-                        src="/truck_3d_orange_transparent.png" 
-                        alt="Mini Map Truck" 
-                        className="h-9 w-9 object-contain"
-                        style={{ filter: 'hue-rotate(200deg) saturate(1.2) brightness(0.95)' }}
-                      />
+                      <Vector2DTruck className="w-7 h-5 text-[#2563EB]" />
                     </div>
                   </div>
                 </div>
@@ -1589,14 +1575,14 @@ export default function VehicleListPage() {
                     className="absolute"
                     style={{
                       left: '52%',
-                      top: '50%',
-                      transform: 'translate(-50%, -50%) scale(0.68)',
+                      top: '45%',
+                      transform: 'translate(-50%, -50%)',
                       zIndex: 10
                     }}
                   >
                     <div className="relative flex items-center justify-center">
                       <div 
-                        className="absolute bottom-[18px] bg-red-600 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-md shadow-md flex items-center gap-1 animate-bounce"
+                        className="absolute bottom-[20px] bg-red-600 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-md shadow-md flex items-center gap-1 animate-bounce"
                         style={{ whiteSpace: 'nowrap' }}
                       >
                         <AlertTriangle className="w-2.5 h-2.5 shrink-0" />
@@ -1604,14 +1590,7 @@ export default function VehicleListPage() {
                         <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-t-[4px] border-t-red-600" />
                       </div>
 
-                      <div className="absolute h-8 w-8 rounded-full bg-red-500/20" />
-                      
-                      <img 
-                        src="/truck_3d_orange_transparent.png" 
-                        alt="Servicing Truck" 
-                        className="h-9 w-9 object-contain"
-                        style={{ filter: 'hue-rotate(335deg) saturate(0.8) brightness(0.9)' }}
-                      />
+                      <Vector2DTruck className="w-7 h-5 text-[#DC2626]" />
                     </div>
                   </div>
                 </div>
@@ -1684,19 +1663,13 @@ export default function VehicleListPage() {
                     className="absolute"
                     style={{
                       left: '52%',
-                      top: '50%',
-                      transform: 'translate(-50%, -50%) scale(0.68)',
+                      top: '45%',
+                      transform: 'translate(-50%, -50%)',
                       zIndex: 10
                     }}
                   >
                     <div className="relative flex items-center justify-center">
-                      <div className="absolute h-8 w-8 rounded-full bg-emerald-500/20 animate-ping" />
-                      <img 
-                        src="/truck_3d_orange_transparent.png" 
-                        alt="En Route Truck" 
-                        className="h-9 w-9 object-contain"
-                        style={{ filter: 'hue-rotate(100deg) saturate(1.3) brightness(0.95)' }}
-                      />
+                      <Vector2DTruck className="w-7 h-5 text-[#10B981]" />
                     </div>
                   </div>
                 </div>

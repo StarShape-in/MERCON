@@ -24,6 +24,21 @@ export interface TripKpiCardsProps {
   delayedCount: number;
 }
 
+/** 2D Vector Box Truck Icon with Dynamic Theme Color */
+export const Vector2DTruck = ({ className = "w-7 h-5" }: { className?: string }) => (
+  <svg viewBox="0 0 28 18" fill="currentColor" className={cn("shrink-0 drop-shadow-2xs", className)}>
+    {/* Main Freight Box Container */}
+    <rect x="0" y="2" width="18" height="11" rx="1.5" />
+    {/* Driver Cabin */}
+    <path d="M19 6h5a2 2 0 0 1 2 2v5h-7V6z" />
+    {/* Cabin Window */}
+    <path d="M21 7.5h3.5v3H21v-3z" fill="white" fillOpacity="0.55" />
+    {/* Wheels */}
+    <circle cx="5" cy="14.5" r="2.2" fill="#1E293B" stroke="white" strokeWidth="0.8" />
+    <circle cx="21.5" cy="14.5" r="2.2" fill="#1E293B" stroke="white" strokeWidth="0.8" />
+  </svg>
+);
+
 export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
   kpiTitle,
   kpiPeriod,
@@ -138,23 +153,17 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
               <div className="h-2 w-2 rounded-full bg-[#FA634E] ring-4 ring-[#FA634E]/20" />
             </div>
 
-            {/* 3D Truck Container */}
+            {/* 2D Orange Vector Truck */}
             <div
               className="absolute"
               style={{
                 left: '45%',
-                top: '40%',
-                transform: 'translate(-50%, -50%) scale(0.6)',
+                top: '45%',
+                transform: 'translate(-50%, -50%)',
                 zIndex: 10
               }}
             >
-              <div className="relative flex items-center justify-center">
-                <img
-                  src="/truck_3d_orange_transparent.png"
-                  alt="3D Orange Truck"
-                  className="h-9 w-9 object-contain"
-                />
-              </div>
+              <Vector2DTruck className="w-7 h-5 text-[#FA634E]" />
             </div>
           </div>
         }
@@ -220,24 +229,17 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
               <div className="h-2 w-2 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" />
             </div>
 
-            {/* 3D Green-Tinted Truck */}
+            {/* 2D Green Vector Truck */}
             <div
               className="absolute"
               style={{
                 left: '50%',
-                top: '40%',
-                transform: 'translate(-50%, -50%) scale(0.6)',
+                top: '45%',
+                transform: 'translate(-50%, -50%)',
                 zIndex: 10
               }}
             >
-              <div className="relative flex items-center justify-center">
-                <img
-                  src="/truck_3d_orange_transparent.png"
-                  alt="3D Green Truck"
-                  className="h-9 w-9 object-contain"
-                  style={{ filter: 'hue-rotate(100deg) saturate(1.3) brightness(0.95)' }}
-                />
-              </div>
+              <Vector2DTruck className="w-7 h-5 text-[#10B981]" />
             </div>
           </div>
         }
@@ -303,24 +305,17 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
               <div className="h-2 w-2 rounded-full bg-blue-500 ring-4 ring-blue-500/20" />
             </div>
 
-            {/* 3D Blue Truck at Finish Line */}
+            {/* 2D Blue Vector Truck at Finish Line */}
             <div
               className="absolute"
               style={{
                 left: '78%',
-                top: '40%',
-                transform: 'translate(-50%, -50%) scale(0.6)',
+                top: '45%',
+                transform: 'translate(-50%, -50%)',
                 zIndex: 10
               }}
             >
-              <div className="relative flex items-center justify-center">
-                <img
-                  src="/truck_3d_orange_transparent.png"
-                  alt="3D Blue Truck"
-                  className="h-9 w-9 object-contain"
-                  style={{ filter: 'hue-rotate(200deg) saturate(1.2) brightness(0.95)' }}
-                />
-              </div>
+              <Vector2DTruck className="w-7 h-5 text-[#2563EB]" />
             </div>
 
             {/* Checkered Flag at End */}
@@ -386,24 +381,17 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
               <div className="h-2 w-2 rounded-full bg-slate-500 ring-4 ring-slate-400/20" />
             </div>
 
-            {/* 3D Neutral Gray Truck Early on Path */}
+            {/* 2D Slate Vector Truck */}
             <div
               className="absolute"
               style={{
                 left: '30%',
-                top: '40%',
-                transform: 'translate(-50%, -50%) scale(0.6)',
+                top: '45%',
+                transform: 'translate(-50%, -50%)',
                 zIndex: 10
               }}
             >
-              <div className="relative flex items-center justify-center">
-                <img
-                  src="/truck_3d_orange_transparent.png"
-                  alt="3D Slate Truck"
-                  className="h-9 w-9 object-contain"
-                  style={{ filter: 'grayscale(0.85) opacity(0.85)' }}
-                />
-              </div>
+              <Vector2DTruck className="w-7 h-5 text-[#64748B]" />
             </div>
           </div>
         }
@@ -469,19 +457,19 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
               <div className="h-2 w-2 rounded-full bg-red-500 ring-4 ring-red-500/20" />
             </div>
 
-            {/* 3D Red Truck with Floating Overdue Badge */}
+            {/* 2D Red Vector Truck with Floating Overdue Badge */}
             <div
               className="absolute"
               style={{
                 left: '52%',
-                top: '40%',
-                transform: 'translate(-50%, -50%) scale(0.65)',
+                top: '45%',
+                transform: 'translate(-50%, -50%)',
                 zIndex: 10
               }}
             >
               <div className="relative flex items-center justify-center">
                 <div
-                  className="absolute bottom-[22px] bg-red-600 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-md shadow-md flex items-center gap-1"
+                  className="absolute bottom-[20px] bg-red-600 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-md shadow-md flex items-center gap-1"
                   style={{ whiteSpace: 'nowrap' }}
                 >
                   <AlertTriangle className="w-2.5 h-2.5 shrink-0" />
@@ -489,12 +477,7 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
                   <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-t-[4px] border-t-red-600" />
                 </div>
 
-                <img
-                  src="/truck_3d_orange_transparent.png"
-                  alt="Delayed Truck"
-                  className="h-9 w-9 object-contain"
-                  style={{ filter: 'hue-rotate(335deg) saturate(0.8) brightness(0.9)' }}
-                />
+                <Vector2DTruck className="w-7 h-5 text-[#DC2626]" />
               </div>
             </div>
           </div>
