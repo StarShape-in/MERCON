@@ -42,12 +42,12 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
   delayedCount,
 }) => {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 shrink-0">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 shrink-0 items-stretch">
       
       {/* ── CARD 1: TODAY'S TRIPS (Total Period) ────────────────────────── */}
       <KpiCard
         title={kpiTitle}
-        className="border-orange-300/80 hover:border-[#FA634E] dark:border-orange-500/40 cursor-pointer"
+        className="rounded-2xl border-orange-300/80 hover:border-[#FA634E] dark:border-orange-500/40 cursor-pointer h-full transition-all duration-200"
         value={
           <span>
             {periodCount}
@@ -55,6 +55,9 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
           </span>
         }
         variant="slate"
+        trend="up"
+        trendValue={`${periodInTransitCount} Active`}
+        description={`Done: ${periodCompletedCount} | Pending: ${periodQueueCount}`}
         icon={Truck}
         isActive={selectedStatus === 'All'}
         onClick={() => {
@@ -95,24 +98,8 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
             })}
           </div>
         }
-        description={
-          <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 mt-1">
-            <span className="flex items-center gap-1 text-emerald-600">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              {periodCompletedCount} Done
-            </span>
-            <span className="flex items-center gap-1 text-orange-600">
-              <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
-              {periodInTransitCount} Active
-            </span>
-            <span className="flex items-center gap-1 text-slate-500">
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-              {periodQueueCount} Pending
-            </span>
-          </div>
-        }
         customFooter={
-          <div className="relative h-9 mt-4 -mx-4 overflow-hidden rounded-b-lg bg-orange-50/40 dark:bg-orange-950/20 border-t border-orange-200/50">
+          <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-orange-50/40 dark:bg-orange-950/20 border-t border-orange-200/60 dark:border-orange-900/40">
             <style>{`
               @keyframes routeDashOrange {
                 to { stroke-dashoffset: -12; }
@@ -177,7 +164,7 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
       {/* ── CARD 2: IN TRANSIT ────────────────────────────────────────── */}
       <KpiCard
         title="IN TRANSIT"
-        className="border-emerald-300/80 hover:border-emerald-500 dark:border-emerald-500/40 cursor-pointer"
+        className="rounded-2xl border-emerald-300/80 hover:border-emerald-500 dark:border-emerald-500/40 cursor-pointer h-full transition-all duration-200"
         value={
           <span>
             {inTransitCount}
@@ -185,15 +172,17 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
           </span>
         }
         variant="emerald"
+        trend="up"
+        trendValue={`${inTransitCount} Active`}
+        description="Trucks on the road now"
         icon={MapPin}
-        description="Trucks currently moving on duty"
         isActive={selectedStatus === 'InTransit'}
         onClick={() => {
           setSelectedStatus('InTransit');
           setCurrentPage(1);
         }}
         customFooter={
-          <div className="relative h-9 mt-4 -mx-4 overflow-hidden rounded-b-lg bg-[#E8F5E9] dark:bg-[#1B5E20]/15 border-t border-emerald-500/10">
+          <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-[#E8F5E9] dark:bg-[#1B5E20]/15 border-t border-emerald-500/10">
             <style>{`
               @keyframes routeDashGreen {
                 to { stroke-dashoffset: -12; }
@@ -259,7 +248,7 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
       {/* ── CARD 3: DELIVERED & COMPLETED ─────────────────────────────── */}
       <KpiCard
         title="DELIVERED & COMPLETED"
-        className="border-blue-300/80 hover:border-blue-500 dark:border-blue-500/40 cursor-pointer"
+        className="rounded-2xl border-blue-300/80 hover:border-blue-500 dark:border-blue-500/40 cursor-pointer h-full transition-all duration-200"
         value={
           <span>
             {completedCount}
@@ -267,15 +256,17 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
           </span>
         }
         variant="blue"
-        icon={CheckCircle2}
+        trend="up"
+        trendValue={`${completedCount} Delivered`}
         description="Successfully finished deliveries"
+        icon={CheckCircle2}
         isActive={selectedStatus === 'Completed,Invoiced' || selectedStatus === 'Completed' || selectedStatus === 'Invoiced'}
         onClick={() => {
           setSelectedStatus('Completed,Invoiced');
           setCurrentPage(1);
         }}
         customFooter={
-          <div className="relative h-9 mt-4 -mx-4 overflow-hidden rounded-b-lg bg-[#EFF6FF] dark:bg-[#1E40AF]/15 border-t border-blue-500/10">
+          <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-[#EFF6FF] dark:bg-[#1E40AF]/15 border-t border-blue-500/10">
             <style>{`
               @keyframes routeDashBlue {
                 to { stroke-dashoffset: -12; }
@@ -348,7 +339,7 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
       {/* ── CARD 4: SCHEDULED TRIPS ───────────────────────────────────── */}
       <KpiCard
         title="SCHEDULED TRIPS"
-        className="border-slate-300/80 hover:border-slate-500 dark:border-slate-600/40 cursor-pointer"
+        className="rounded-2xl border-slate-300/80 hover:border-slate-500 dark:border-slate-600/40 cursor-pointer h-full transition-all duration-200"
         value={
           <span>
             {scheduledCount}
@@ -356,15 +347,17 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
           </span>
         }
         variant="slate"
-        icon={Calendar}
+        trend="neutral"
+        trendValue={`${scheduledCount} Queued`}
         description="Planned and queued dispatch"
+        icon={Calendar}
         isActive={selectedStatus === 'Draft'}
         onClick={() => {
           setSelectedStatus('Draft');
           setCurrentPage(1);
         }}
         customFooter={
-          <div className="relative h-9 mt-4 -mx-4 overflow-hidden rounded-b-lg bg-slate-100/70 dark:bg-slate-800/40 border-t border-slate-200">
+          <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-slate-100/70 dark:bg-slate-800/40 border-t border-slate-200">
             <style>{`
               @keyframes routeDashSlate {
                 to { stroke-dashoffset: -12; }
@@ -422,7 +415,7 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
       {/* ── CARD 5: DELAYED TRIPS ─────────────────────────────────────── */}
       <KpiCard
         title="DELAYED TRIPS"
-        className="border-rose-300/80 hover:border-rose-500 dark:border-rose-500/40 cursor-pointer"
+        className="rounded-2xl border-rose-300/80 hover:border-rose-500 dark:border-rose-500/40 cursor-pointer h-full transition-all duration-200"
         value={
           <span>
             {delayedCount}
@@ -430,15 +423,17 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
           </span>
         }
         variant="rose"
-        icon={AlertTriangle}
+        trend={delayedCount > 0 ? 'down' : 'neutral'}
+        trendValue={delayedCount > 0 ? `${delayedCount} Overdue` : 'All Clear'}
         description="Active trips past scheduled timing"
+        icon={AlertTriangle}
         isActive={selectedStatus === 'Issues'}
         onClick={() => {
           setSelectedStatus('Issues');
           setCurrentPage(1);
         }}
         customFooter={
-          <div className="relative h-9 mt-4 -mx-4 overflow-hidden rounded-b-lg bg-[#FFF5F5] dark:bg-[#DC2626]/10 border-t border-red-500/10">
+          <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-[#FFF5F5] dark:bg-[#DC2626]/10 border-t border-red-500/10">
             <style>{`
               @keyframes routeDashRed {
                 to { stroke-dashoffset: -12; }
