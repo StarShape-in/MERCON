@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { DocType } from '@prisma/client';
 import { env } from '../config/env';
+import { validateExternalScreenshotExtraction } from '../schemas/externalScreenshotSchema';
 
 export interface OcrResult {
   doc_type: DocType;
@@ -295,6 +296,7 @@ Respond ONLY with valid JSON inside a json code block.
 }
 
 export interface ExternalScreenshotResult {
+  schema_valid?: boolean;
   detected_event_type: 'ARRIVED_AT_PICKUP' | 'LOADING_COMPLETED' | 'DEPARTED_PICKUP' | 'ARRIVED_AT_DELIVERY' | 'DELIVERY_COMPLETED' | 'DELAYED' | null;
   event_timestamp: string | null;
   stop_location_name?: string | null;
@@ -329,7 +331,7 @@ export async function analyzeExternalScreenshotWithAI(
     };
   }
 
-  const apiKey = (env.GEMINI_API_KEY || '').trim();
+  const apiKey = (process.env.GEMINI_API_KEY || env.GEMINI_API_KEY || '').trim();
   if (!apiKey) {
     return {
       detected_event_type: null,
@@ -349,42 +351,58 @@ export async function analyzeExternalScreenshotWithAI(
     const base64Data = fileBuffer.toString('base64');
 
     const expectedContext = expectedTrip ? `
-Expected Trip Details for Validation:
-- Trip Reference / Order ID: ${expectedTrip.ref_id || 'N/A'}
-- Waybill Number: ${expectedTrip.waybill_number || 'N/A'}
-- Customer Name: ${expectedTrip.customer_name || 'N/A'}
-- Origin Location: ${expectedTrip.origin || 'N/A'}
-- Destination Location: ${expectedTrip.destination || 'N/A'}
+Expected Trip Details for Validation Context:
+- Expected Trip Reference / Order ID: ${expectedTrip.ref_id || 'N/A'}
+- Expected Waybill Number: ${expectedTrip.waybill_number || 'N/A'}
+- Expected Customer Name: ${expectedTrip.customer_name || 'N/A'}
+- Expected Origin Location: ${expectedTrip.origin || 'N/A'}
+- Expected Destination Location: ${expectedTrip.destination || 'N/A'}
 ` : '';
 
     const promptText = `
-You are an operational logistics AI system analyzing a mobile screenshot from a driver's third-party / customer logistics app.
-Do NOT assume a specific app (do not hardcode app names like DHL, iMile, Shiptrack). Reason strictly from visible UI elements, text, status badges, timestamps, and locations in the screenshot.
+You are an operational logistics AI system analyzing a mobile screenshot from a driver's third-party / customer logistics software application.
+
+CRITICAL INSTRUCTIONS FOR SOFTWARE UI SCREENSHOT ANALYSIS:
+- This image is most likely a screenshot of a software application used for logistics/driver operations.
+- Treat the image primarily as a SOFTWARE UI SCREENSHOT, not as a conventional photograph or physical document.
+- Read and interpret: visible text, status labels, badges, timestamps, reference numbers, order/waybill numbers, location names, driver/vehicle identifiers, buttons, icons, headings, and surrounding UI context.
+- Use textual and UI evidence before making an event classification.
+- Do not infer an operational event solely from visual appearance or background graphics.
+- If the screenshot does not contain reliable evidence to identify an operational milestone, return detected_event_type = null.
+- If generic UI status text like "Trip", "Active", "Assigned", or "In Progress" is present without explicit milestone evidence, return detected_event_type = null.
+- If multiple events are visible and there is no clear indication of which event represents the current operational state, return null rather than guessing.
+- Never invent text, identifiers, timestamps, locations, or statuses.
+
 ${expectedContext}
 
-Determine if the screenshot represents an operational trip milestone event.
 Allowed milestone event types:
-- "ARRIVED_AT_PICKUP" (Driver has arrived at origin / pickup location)
-- "LOADING_COMPLETED" (Loading goods finished, cargo loaded)
-- "DEPARTED_PICKUP" (Departed origin / started transit)
-- "ARRIVED_AT_DELIVERY" (Driver arrived at destination / dropoff location)
-- "DELIVERY_COMPLETED" (Delivery finished, POD signed, unloader confirmed)
-- "DELAYED" (Traffic, exception, delay notification displayed)
-- null (If screenshot does not clearly show an operational milestone)
+- "ARRIVED_AT_PICKUP" (Evidence: "Arrived", "Arrived at Pickup", "At Pickup", pickup arrival status badge)
+- "LOADING_COMPLETED" (Evidence: "Loading Completed", "Loaded", "Loading Finished")
+- "DEPARTED_PICKUP" (Evidence: "Departed", "Trip Started", "En Route", pickup departure status badge)
+- "ARRIVED_AT_DELIVERY" (Evidence: "Arrived at Delivery", "At Destination", delivery arrival status badge)
+- "DELIVERY_COMPLETED" (Evidence: "Delivered", "Delivery Completed", "POD Completed", delivery completion status badge)
+- "DELAYED" (Evidence: explicit "Delayed" status label or exception notification)
+- null (If evidence is ambiguous, generic, or insufficient)
 
-Compare visible text on screenshot with expected trip details if provided.
-If screenshot clearly shows a DIFFERENT trip ref ID, different order number, or different customer than expected, set "is_wrong_trip": true.
+WRONG-TRIP DETECTION:
+- Compare visible screenshot reference numbers and customer details against expected trip details if provided.
+- If the screenshot contains explicit evidence of a DIFFERENT order #, waybill #, or customer than expected, set "is_wrong_trip": true.
+- If there is simply insufficient information to verify, set "is_wrong_trip": false. (Do NOT treat uncertainty as wrong trip).
 
-Extract into a JSON object matching this schema:
+TIMESTAMP & LOCATION EXTRACTION:
+- Extract event_timestamp ONLY if clearly associated with the detected event. If ambiguous or missing, return null.
+- Extract stop_location_name ONLY if a readable text label is visible. Do NOT infer location from maps alone.
+
+Output must match this exact JSON schema:
 {
   "detected_event_type": "ARRIVED_AT_PICKUP" | "LOADING_COMPLETED" | "DEPARTED_PICKUP" | "ARRIVED_AT_DELIVERY" | "DELIVERY_COMPLETED" | "DELAYED" | null,
-  "event_timestamp": "YYYY-MM-DDTHH:mm:ssZ" or "YYYY-MM-DD HH:mm:ss" or null (ISO string or standard date-time string if visible in screenshot),
-  "stop_location_name": string or null (Origin, pickup, destination, or stop location name displayed if visible),
-  "external_reference": string or null (Waybill #, Order #, Trip #, Tracking # shown on screenshot),
-  "is_wrong_trip": boolean (true if screenshot clearly belongs to another trip/order/customer),
-  "confidence": number between 0.0 and 1.0 (How confident you are in the detected event and timestamp),
-  "notes": string or null (Short summary of what was visible in screenshot),
-  "detected_text": string or null (Main header text or status text visible)
+  "event_timestamp": "YYYY-MM-DDTHH:mm:ssZ" or "YYYY-MM-DD HH:mm:ss" or null,
+  "external_reference": string or null,
+  "stop_location_name": string or null,
+  "is_wrong_trip": boolean,
+  "confidence": number between 0.0 and 1.0,
+  "notes": string or null (Short summary of visual UI evidence used),
+  "detected_text": string or null (Concise representation of visible UI text supporting classification)
 }
 
 Respond ONLY with valid JSON inside a json code block.
@@ -452,19 +470,19 @@ Respond ONLY with valid JSON inside a json code block.
       }
     }
 
-    const parsed = JSON.parse(jsonString);
-    const validEventTypes = ['ARRIVED_AT_PICKUP', 'LOADING_COMPLETED', 'DEPARTED_PICKUP', 'ARRIVED_AT_DELIVERY', 'DELIVERY_COMPLETED', 'DELAYED'];
-    const detectedType = validEventTypes.includes(parsed.detected_event_type) ? parsed.detected_event_type : null;
+    const parsedRaw = JSON.parse(jsonString);
+    const validatedResult = validateExternalScreenshotExtraction(parsedRaw);
 
     return {
-      detected_event_type: detectedType as any,
-      event_timestamp: parsed.event_timestamp || null,
-      stop_location_name: parsed.stop_location_name || null,
-      external_reference: parsed.external_reference || null,
-      is_wrong_trip: Boolean(parsed.is_wrong_trip),
-      confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.8,
-      notes: parsed.notes || (detectedType ? `Detected ${detectedType.replace(/_/g, ' ')} status` : 'No operational milestone text (Pickup, Loading, Delivery, POD) was recognized in screenshot'),
-      detected_text: parsed.detected_text || null,
+      schema_valid: validatedResult.schema_valid,
+      detected_event_type: validatedResult.detected_event_type,
+      event_timestamp: validatedResult.event_timestamp,
+      stop_location_name: validatedResult.stop_location_name,
+      external_reference: validatedResult.external_reference,
+      is_wrong_trip: validatedResult.is_wrong_trip,
+      confidence: validatedResult.confidence,
+      notes: validatedResult.notes || (validatedResult.detected_event_type ? `Detected ${validatedResult.detected_event_type.replace(/_/g, ' ')} status` : 'No operational milestone text recognized'),
+      detected_text: validatedResult.detected_text,
     };
   } catch (err: any) {
     return {

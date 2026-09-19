@@ -11,6 +11,7 @@ import { getDrivingRoute, RoutingUnavailableError } from '../services/routing/ro
 import { compressUploadedImage } from '../services/imageCompressor';
 import { generateRefId } from '../utils/refId';
 import { analyzeExternalScreenshotWithAI } from '../services/ocrService';
+import { processExternalScreenshot } from '../services/externalScreenshotService';
 
 /**
  * Everything the driver's app needs about a trip, in one shape.
@@ -575,6 +576,7 @@ export const recordDriverLocation = async (req: Request, res: Response) => {
 
 export const uploadExternalScreenshot = async (req: Request, res: Response) => {
   const driverId = (req as any).user?.driver_id;
+  const userId = (req as any).user?.id;
   const tripId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
 
   if (!driverId) {
@@ -586,211 +588,24 @@ export const uploadExternalScreenshot = async (req: Request, res: Response) => {
   }
 
   try {
-    const trip = await prisma.trip.findFirst({
-      where: { id: tripId, deletedAt: null },
-      include: tripInclude,
-    });
-
-    if (!trip) {
-      return res.status(404).json({ success: false, error: { message: 'Trip not found' } });
-    }
-
-    if (trip.driverId !== driverId) {
-      return res.status(403).json({ success: false, error: { message: 'Driver is not assigned to this trip' } });
-    }
-
-    if (trip.driver_workflow !== 'EXTERNAL_APP') {
-      return res.status(400).json({
-        success: false,
-        error: { message: 'This trip does not use the EXTERNAL_APP driver workflow' },
-      });
-    }
-
-    // 1. Compress image
-    let localFilePath = req.file.path;
-    try {
-      localFilePath = await compressUploadedImage(req.file.path);
-    } catch (compressErr) {
-      logger.warn({ err: compressErr }, 'Failed to compress screenshot image, using raw file');
-    }
-
-    const fileName = path.basename(localFilePath);
-    const fileUrl = `/uploads/${fileName}`;
-
-    // 2. Run Gemini Vision screenshot extraction with expected trip context
-    const firstStop = trip.stops?.[0];
-    const lastStop = trip.stops?.[trip.stops.length - 1];
-    const aiResult = await analyzeExternalScreenshotWithAI(localFilePath, {
-      ref_id: trip.ref_id || undefined,
-      waybill_number: (trip as any).waybill_number || undefined,
-      customer_name: trip.customer?.name,
-      origin: firstStop?.location_name || firstStop?.location?.name || undefined,
-      destination: lastStop?.location_name || lastStop?.location?.name || undefined,
-    });
-
-    // 3. Validation and lifecycle transition logic
     const autoApply = req.body?.auto_apply === 'true' || req.body?.auto_apply === true || req.query?.auto_apply === 'true';
-    let applied = false;
-    let canConfirm = false;
-    let transitionReason: string | null = null;
-    let delayNotification: DelayDetection | null = null;
-    let targetStatus: TripStatus | null = null;
-    let targetWorkflowState: string | null = null;
 
-    const detectedEvent = aiResult.detected_event_type;
-    const confidence = aiResult.confidence ?? 0;
-    const isWrongTrip = aiResult.is_wrong_trip || false;
-    const hasAiError = Boolean(aiResult.extraction_error);
-
-    const getExpectedMilestoneForStatus = (st: TripStatus) => {
-      if (st === TripStatus.Scheduled || st === TripStatus.Draft) return 'Arrived at Pickup or Loading Completed';
-      if (st === TripStatus.Loading) return 'Departed Pickup (In Transit)';
-      if (st === TripStatus.InTransit) return 'Arrived at Delivery or Delivery Completed';
-      if (st === TripStatus.Completed || st === TripStatus.Invoiced) return 'Trip already completed';
-      return 'Next operational milestone';
-    };
-
-    if (hasAiError) {
-      if (aiResult.extraction_error === 'INVALID_GEMINI_API_KEY' || aiResult.notes?.includes('API key')) {
-        transitionReason = 'Invalid Gemini API Key: The server has an invalid GEMINI_API_KEY configured in environment settings. Please set a valid Google AI Studio key starting with AIzaSy...';
-      } else {
-        transitionReason = `AI Processing Error: ${aiResult.notes || 'Unable to process image via Gemini AI. Please upload a clear screenshot.'}`;
-      }
-    } else if (isWrongTrip) {
-      transitionReason = `Wrong trip screenshot! Screenshot shows reference (${aiResult.external_reference || 'other order'}) which does not match current trip TRP-${trip.ref_id}. Please upload screenshot for this trip only.`;
-    } else if (detectedEvent && confidence >= 0.70) {
-      if (detectedEvent === 'ARRIVED_AT_PICKUP') {
-        targetStatus = TripStatus.Loading;
-        targetWorkflowState = 'ARRIVED_AT_PICKUP';
-      } else if (detectedEvent === 'LOADING_COMPLETED') {
-        targetStatus = TripStatus.Loading;
-        targetWorkflowState = 'LOADING_COMPLETED';
-      } else if (detectedEvent === 'DEPARTED_PICKUP') {
-        targetStatus = TripStatus.InTransit;
-        targetWorkflowState = 'IN_TRANSIT';
-      } else if (detectedEvent === 'ARRIVED_AT_DELIVERY') {
-        targetStatus = TripStatus.InTransit;
-        targetWorkflowState = 'ARRIVED_AT_DELIVERY';
-      } else if (detectedEvent === 'DELIVERY_COMPLETED') {
-        targetStatus = TripStatus.Completed;
-        targetWorkflowState = 'COMPLETED';
-      } else if (detectedEvent === 'DELAYED') {
-        targetStatus = TripStatus.Delayed;
-        targetWorkflowState = trip.driver_workflow_state || 'DELAYED';
-      }
-
-      if (targetStatus && isValidTransition(trip.status, targetStatus)) {
-        const nextStatus = targetStatus;
-        const nextWorkflowState = targetWorkflowState || 'IN_TRANSIT';
-        canConfirm = true;
-        if (autoApply) {
-          try {
-            delayNotification = await prisma.$transaction(async (tx) => {
-              let delay: DelayDetection | null = null;
-              if (nextStatus === TripStatus.Completed) {
-                await stampWorkflowTransition(tx, trip.id, 'COMPLETED', undefined);
-                await completeTripAndInvoice(tx, trip.id, (req as any).user?.id);
-                await tx.trip.update({
-                  where: { id: trip.id },
-                  data: {
-                    driver_workflow_state: 'COMPLETED',
-                    updated_by: (req as any).user?.id || null,
-                  },
-                });
-              } else {
-                delay = await stampStopTransition(tx, trip.id, nextStatus);
-                await stampWorkflowTransition(tx, trip.id, nextWorkflowState, undefined);
-                await tx.trip.update({
-                  where: { id: trip.id },
-                  data: {
-                    status: nextStatus,
-                    driver_workflow_state: nextWorkflowState,
-                    updated_by: (req as any).user?.id || null,
-                  },
-                });
-              }
-              return delay;
-            });
-            applied = true;
-          } catch (txErr: any) {
-            logger.error({ err: txErr }, 'Failed to apply extracted lifecycle transition:');
-            transitionReason = `Lifecycle execution error: ${txErr?.message || 'Unknown error'}`;
-            canConfirm = false;
-          }
-        }
-      } else {
-        transitionReason = `Out-of-sequence milestone: Screenshot shows '${detectedEvent.replace(/_/g, ' ')}', but the trip is currently in '${trip.status}' state. Expected milestone for this stage: ${getExpectedMilestoneForStatus(trip.status)}.`;
-      }
-    } else if (detectedEvent && confidence < 0.70) {
-      transitionReason = `Low AI confidence score (${Math.round(confidence * 100)}%). Text in screenshot was not clear enough to automatically verify.`;
-    } else {
-      transitionReason = `No operational milestone recognized: The screenshot does not show clear status text like "Arrived at Pickup", "Cargo Loaded", "In Transit", "Arrived at Delivery", or "Delivery Completed". Expected milestone for this stage: ${getExpectedMilestoneForStatus(trip.status)}.`;
-    }
-
-    // 4. Save Document record
-    const extraction_status = applied ? 'SUCCESS' : (hasAiError ? 'FAILED' : (isWrongTrip ? 'FAILED' : (canConfirm ? 'NEEDS_REVIEW' : 'FAILED')));
-    const docTypeVal = detectedEvent === 'DELAYED' ? DocType.Emergency : DocType.POD;
-
-    const document = await prisma.document.create({
-      data: {
-        entity_type: 'Trip',
-        entity_id: trip.id,
-        doc_type: docTypeVal,
-        file_url: fileUrl,
-        mime_type: req.file.mimetype || 'image/jpeg',
-        created_by: (req as any).user?.id || null,
-        executorDriverId: driverId,
-        status: applied ? 'Verified' : 'PendingReview',
-        ai_extracted_json: {
-          ...aiResult,
-          applied,
-          canConfirm,
-          targetStatus,
-          targetWorkflowState,
-          extraction_status,
-          validation_reason: transitionReason,
-          uploaded_at: new Date().toISOString(),
-        },
-      },
+    const result = await processExternalScreenshot({
+      tripId,
+      filePath: req.file.path,
+      mimeType: req.file.mimetype,
+      userId,
+      driverId,
+      autoApply,
     });
-
-    if (delayNotification) {
-      notifyOperatorsOfDelay(delayNotification).catch((err) =>
-        logger.warn({ err }, 'Failed to send delay notification for screenshot transition:')
-      );
-    }
-
-    // 5. Fetch updated trip state
-    const updatedTrip = await prisma.trip.findFirst({
-      where: { id: trip.id, deletedAt: null },
-      include: tripInclude,
-    });
-    const enrichedTrip = updatedTrip ? await attachTripDocuments(updatedTrip) : null;
 
     return res.json({
       success: true,
-      data: {
-        document_id: document.id,
-        extraction_status,
-        event_type: aiResult.detected_event_type,
-        event_timestamp: aiResult.event_timestamp,
-        stop_location_name: aiResult.stop_location_name,
-        external_reference: aiResult.external_reference,
-        detected_text: aiResult.detected_text,
-        is_wrong_trip: isWrongTrip,
-        extraction_error: aiResult.extraction_error,
-        confidence: aiResult.confidence,
-        applied,
-        can_confirm: canConfirm,
-        target_status: targetStatus,
-        target_workflow_state: targetWorkflowState,
-        notes: aiResult.notes,
-        validation_reason: transitionReason,
-        trip: enrichedTrip,
-      },
+      data: result,
     });
   } catch (error: any) {
     logger.error({ err: error }, 'uploadExternalScreenshot error:');
-    return res.status(500).json({ success: false, error: { message: error?.message || 'Failed to process screenshot' } });
+    const statusCode = error.statusCode || 500;
+    return res.status(statusCode).json({ success: false, error: { message: error?.message || 'Failed to process screenshot' } });
   }
 };

@@ -216,4 +216,245 @@ describe('External Driver Workflow — Complete Test Suite', () => {
       assert.equal(freshTrip?.status, 'Scheduled');
     });
   });
+
+  describe('ZOD SCHEMA & AI EXTRACTION CONTRACT SUITE', () => {
+    const { validateExternalScreenshotExtraction } = require('../schemas/externalScreenshotSchema');
+
+    it('1. ARRIVED_AT_PICKUP payload', () => {
+      const input = {
+        detected_event_type: 'ARRIVED_AT_PICKUP',
+        event_timestamp: '2026-09-19T10:00:00Z',
+        external_reference: 'WB-1001',
+        stop_location_name: 'Riyadh Depot',
+        is_wrong_trip: false,
+        confidence: 0.95,
+        notes: 'Driver app status reads Arrived at Pickup',
+        detected_text: 'WB-1001 | Arrived at Pickup | 10:00',
+      };
+      const res = validateExternalScreenshotExtraction(input);
+      assert.equal(res.schema_valid, true);
+      assert.equal(res.detected_event_type, 'ARRIVED_AT_PICKUP');
+      assert.equal(res.external_reference, 'WB-1001');
+      assert.equal(res.confidence, 0.95);
+      assert.equal(res.is_wrong_trip, false);
+    });
+
+    it('2. LOADING_COMPLETED payload', () => {
+      const input = {
+        detected_event_type: 'LOADING_COMPLETED',
+        event_timestamp: '2026-09-19T10:30:00Z',
+        external_reference: 'WB-1001',
+        stop_location_name: 'Riyadh Depot',
+        is_wrong_trip: false,
+        confidence: 0.92,
+        notes: 'Status badge displays Loading Completed',
+        detected_text: 'WB-1001 | Loaded',
+      };
+      const res = validateExternalScreenshotExtraction(input);
+      assert.equal(res.schema_valid, true);
+      assert.equal(res.detected_event_type, 'LOADING_COMPLETED');
+    });
+
+    it('3. DEPARTED_PICKUP payload', () => {
+      const input = {
+        detected_event_type: 'DEPARTED_PICKUP',
+        event_timestamp: '2026-09-19T10:45:00Z',
+        external_reference: 'WB-1001',
+        stop_location_name: 'Riyadh Depot',
+        is_wrong_trip: false,
+        confidence: 0.90,
+        notes: 'Status shows En Route / Departed',
+        detected_text: 'En Route to Jeddah',
+      };
+      const res = validateExternalScreenshotExtraction(input);
+      assert.equal(res.schema_valid, true);
+      assert.equal(res.detected_event_type, 'DEPARTED_PICKUP');
+    });
+
+    it('4. ARRIVED_AT_DELIVERY payload', () => {
+      const input = {
+        detected_event_type: 'ARRIVED_AT_DELIVERY',
+        event_timestamp: '2026-09-19T14:00:00Z',
+        external_reference: 'WB-1001',
+        stop_location_name: 'Jeddah Yard',
+        is_wrong_trip: false,
+        confidence: 0.91,
+        notes: 'Status badge shows Arrived at Destination',
+        detected_text: 'At Destination',
+      };
+      const res = validateExternalScreenshotExtraction(input);
+      assert.equal(res.schema_valid, true);
+      assert.equal(res.detected_event_type, 'ARRIVED_AT_DELIVERY');
+    });
+
+    it('5. DELIVERY_COMPLETED payload', () => {
+      const input = {
+        detected_event_type: 'DELIVERY_COMPLETED',
+        event_timestamp: '2026-09-19T14:30:00Z',
+        external_reference: 'WB-1001',
+        stop_location_name: 'Jeddah Yard',
+        is_wrong_trip: false,
+        confidence: 0.98,
+        notes: 'POD screen confirmed with signature',
+        detected_text: 'Delivered Successfully',
+      };
+      const res = validateExternalScreenshotExtraction(input);
+      assert.equal(res.schema_valid, true);
+      assert.equal(res.detected_event_type, 'DELIVERY_COMPLETED');
+    });
+
+    it('6. DELAYED payload', () => {
+      const input = {
+        detected_event_type: 'DELAYED',
+        event_timestamp: '2026-09-19T11:00:00Z',
+        external_reference: 'WB-1001',
+        stop_location_name: null,
+        is_wrong_trip: false,
+        confidence: 0.88,
+        notes: 'Traffic delay alert displayed in driver app UI',
+        detected_text: 'Heavy Traffic Delay +45m',
+      };
+      const res = validateExternalScreenshotExtraction(input);
+      assert.equal(res.schema_valid, true);
+      assert.equal(res.detected_event_type, 'DELAYED');
+    });
+
+    it('7. No identifiable event payload (valid extraction, null event)', () => {
+      const input = {
+        detected_event_type: null,
+        event_timestamp: null,
+        external_reference: 'WB-1001',
+        stop_location_name: null,
+        is_wrong_trip: false,
+        confidence: 0.20,
+        notes: 'No status badge or operational milestone text found',
+        detected_text: 'Welcome Driver John',
+      };
+      const res = validateExternalScreenshotExtraction(input);
+      assert.equal(res.schema_valid, true);
+      assert.equal(res.detected_event_type, null);
+    });
+
+    it('8. Blurry or invalid payload structure', () => {
+      const input = {
+        detected_event_type: 'INVALID_EVENT_STRING',
+        confidence: 0.1,
+      };
+      const res = validateExternalScreenshotExtraction(input);
+      assert.equal(res.schema_valid, false);
+      assert.equal(res.detected_event_type, null);
+    });
+
+    it('9. Wrong-trip reference payload', () => {
+      const input = {
+        detected_event_type: 'DELIVERY_COMPLETED',
+        event_timestamp: '2026-09-19T12:00:00Z',
+        external_reference: 'WB-OTHER-9999',
+        stop_location_name: 'Damman Port',
+        is_wrong_trip: true,
+        confidence: 0.95,
+        notes: 'Waybill number WB-OTHER-9999 does not match expected trip TRP-1042',
+        detected_text: 'Order WB-OTHER-9999 Delivered',
+      };
+      const res = validateExternalScreenshotExtraction(input);
+      assert.equal(res.schema_valid, true);
+      assert.equal(res.is_wrong_trip, true);
+    });
+
+    it('10. Missing timestamp payload', () => {
+      const input = {
+        detected_event_type: 'ARRIVED_AT_PICKUP',
+        event_timestamp: null,
+        external_reference: 'WB-1001',
+        stop_location_name: null,
+        is_wrong_trip: false,
+        confidence: 0.85,
+        notes: 'Status clear but no timestamp displayed in screenshot',
+        detected_text: 'Arrived at Pickup',
+      };
+      const res = validateExternalScreenshotExtraction(input);
+      assert.equal(res.schema_valid, true);
+      assert.equal(res.detected_event_type, 'ARRIVED_AT_PICKUP');
+      assert.equal(res.event_timestamp, null);
+    });
+
+    it('11. Missing external reference payload', () => {
+      const input = {
+        detected_event_type: 'LOADING_COMPLETED',
+        event_timestamp: '2026-09-19T10:15:00Z',
+        external_reference: null,
+        stop_location_name: 'Pickup Yard A',
+        is_wrong_trip: false,
+        confidence: 0.80,
+        notes: 'Loading completed badge visible without order reference',
+        detected_text: 'Loaded',
+      };
+      const res = validateExternalScreenshotExtraction(input);
+      assert.equal(res.schema_valid, true);
+      assert.equal(res.external_reference, null);
+    });
+
+    it('12. Invalid Gemini raw output format (non-object or missing mandatory fields)', () => {
+      const res = validateExternalScreenshotExtraction({ unexpected_field: 12345 });
+      assert.equal(res.schema_valid, false);
+      assert.equal(res.detected_event_type, null);
+    });
+
+    it('13. Confidence value above 1.0 triggers schema validation failure', () => {
+      const inputBadConfidence = {
+        detected_event_type: 'DEPARTED_PICKUP',
+        confidence: 5.5, // invalid > 1.0
+      };
+      const res = validateExternalScreenshotExtraction(inputBadConfidence);
+      assert.equal(res.schema_valid, false);
+      assert.equal(res.confidence, 0.0);
+    });
+
+    it('14. Wrong-trip boolean validation and preservation', () => {
+      const input = {
+        detected_event_type: 'ARRIVED_AT_DELIVERY',
+        is_wrong_trip: true,
+        confidence: 0.90,
+      };
+      const res = validateExternalScreenshotExtraction(input);
+      assert.equal(res.schema_valid, true);
+      assert.equal(res.is_wrong_trip, true);
+    });
+
+    it('15. Generic UI text without explicit milestone returns valid null-event extraction', () => {
+      const inputGeneric = {
+        detected_event_type: null,
+        event_timestamp: null,
+        external_reference: 'TRP-100',
+        stop_location_name: null,
+        is_wrong_trip: false,
+        confidence: 0.5,
+        notes: 'UI displays generic text: "Trip Active" without milestone badge',
+        detected_text: 'Trip Active',
+      };
+      const res = validateExternalScreenshotExtraction(inputGeneric);
+      assert.equal(res.schema_valid, true);
+      assert.equal(res.detected_event_type, null);
+    });
+
+    it('16. Invalid event type string triggers schema validation failure', () => {
+      const inputInvalidEvent = {
+        detected_event_type: 'UNKNOWN_CUSTOM_MILESTONE',
+        confidence: 0.8,
+      };
+      const res = validateExternalScreenshotExtraction(inputInvalidEvent);
+      assert.equal(res.schema_valid, false);
+      assert.equal(res.detected_event_type, null);
+    });
+
+    it('17. Invalid field type for confidence triggers schema validation failure', () => {
+      const inputWrongType = {
+        detected_event_type: 'DELIVERY_COMPLETED',
+        confidence: 'INVALID_STRING_CONFIDENCE',
+      };
+      const res = validateExternalScreenshotExtraction(inputWrongType);
+      assert.equal(res.schema_valid, false);
+      assert.equal(res.confidence, 0.0);
+    });
+  });
 });
