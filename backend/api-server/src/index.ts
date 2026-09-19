@@ -73,6 +73,12 @@ import settingsRoutes from './routes/settingsRoutes';
 import thirdPartyRoutes from './routes/thirdPartyRoutes';
 import geocodingRoutes from './routes/geocodingRoutes';
 import vehicleCompatibilityRoutes from './routes/vehicleCompatibilityRoutes';
+import publicRoutes from './routes/publicRoutes';
+import errorEventRoutes from './routes/errorEventRoutes';
+import { reportClientError } from './controllers/clientErrorController';
+import { validate } from './middlewares/validate';
+import { clientErrorBody } from './schemas';
+import { authenticateJWT } from './middlewares/auth';
 import { initFleetTracking } from './services/icces/fleetPoller';
 import { normalizeMobileLocationUpdate } from './services/tracking/locationUpdate';
 import { initTripDelayMonitor } from './services/tracking/tripDelayMonitor';
@@ -151,6 +157,9 @@ apiRouter.use('/settings', settingsRoutes);
 apiRouter.use('/third-party-providers', thirdPartyRoutes);
 apiRouter.use('/geocoding', geocodingRoutes);
 apiRouter.use('/vehicle-compatibility', vehicleCompatibilityRoutes);
+apiRouter.use('/public', publicRoutes);
+apiRouter.use('/error-events', errorEventRoutes);
+apiRouter.post('/client-errors', authenticateJWT, validate({ body: clientErrorBody }), reportClientError);
 
 // Mount router on both /api and root for maximum proxy compatibility
 app.use('/api', apiRouter);

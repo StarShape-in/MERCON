@@ -3,6 +3,7 @@ import { env } from '../config/env';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../db';
 import { logger } from '../utils/logger';
+import { setRequestUserId } from './requestContext';
 
 export interface AuthenticatedUser {
   id: string;
@@ -45,6 +46,7 @@ export const authenticateJWT = async (req: AuthenticatedRequest, res: Response, 
           ...freshUser,
           driver_id: decoded.driver_id ?? null,
         };
+        setRequestUserId(freshUser.id);
         return next();
       }
 
@@ -67,6 +69,7 @@ export const authenticateJWT = async (req: AuthenticatedRequest, res: Response, 
           name: `${driver.first_name} ${driver.last_name}`.trim(),
           driver_id: driver.id,
         };
+        setRequestUserId(driver.id);
         return next();
       }
 

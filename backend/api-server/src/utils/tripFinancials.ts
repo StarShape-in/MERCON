@@ -5,6 +5,7 @@
  * Operational N-Days Scheduling, Balance Margin (Profit), and Margin Percentage.
  */
 
+import { TripStatus } from '@prisma/client';
 import { parseOptionalFloat } from './uuid';
 
 type Money = number | string | null | undefined | { toNumber(): number };
@@ -103,6 +104,79 @@ export function resolveDriverPayout(input: ResolveDriverPayoutInput): number {
     return asNumber(subcontractCost);
   }
   return asNumber(currentDriverPayout);
+}
+
+/**
+ * Past-time trips can never be created as Scheduled/Draft: if the planned
+ * start has already passed, the initial status must be Delayed regardless of
+ * what was requested, since "Scheduled for the past" is a contradiction the
+ * rest of the app isn't built to handle.
+ *
+ * `initialStatus` is whatever the caller already resolved the status to
+ * (callers differ here — e.g. bulk-import validates the raw value against
+ * the TripStatus enum first, a single create doesn't — so that step stays
+ * with each caller). `requestedStatusRaw` is the original, unvalidated value
+ * the caller received, which is what the override condition itself checks
+ * against, matching both callers' existing behavior exactly.
+ */
+export function resolveInitialTripStatus(
+  initialStatus: TripStatus,
+  requestedStatusRaw: TripStatus | string | null | undefined,
+  plannedStart: Date | null
+): TripStatus {
+  if (plannedStart) {
+    const diffMs = Date.now() - plannedStart.getTime();
+    if (diffMs >= 0) {
+      if (
+        !requestedStatusRaw ||
+        requestedStatusRaw === TripStatus.Scheduled ||
+        requestedStatusRaw === TripStatus.Draft ||
+        (requestedStatusRaw as string) === 'Scheduled'
+      ) {
+        return TripStatus.Delayed;
+      }
+    }
+  }
+
+  return initialStatus;
+}
+
+export interface CoDriverPayoutSplitInput {
+  totalPayout: number;
+  /** Truthy when a co-driver is assigned (co_driver_id on the trip/row). */
+  hasCoDriver: boolean;
+  /**
+   * The raw (unparsed) co_driver_payout value — `undefined`/`null` is what
+   * distinguishes "caller didn't send a co-driver payout" (split evenly)
+   * from "caller explicitly set one" (use it as-is, don't touch the split).
+   */
+  explicitCoDriverPayout: unknown;
+}
+
+export interface CoDriverPayoutSplit {
+  driverPayout: number;
+  coDriverPayout: number;
+}
+
+/**
+ * When a co-driver is assigned and the caller didn't send an explicit
+ * co-driver payout, the total payout is split evenly between the two
+ * drivers rather than the primary driver keeping all of it.
+ */
+export function splitCoDriverPayout(input: CoDriverPayoutSplitInput): CoDriverPayoutSplit {
+  const { totalPayout, hasCoDriver, explicitCoDriverPayout } = input;
+
+  let driverPayout = totalPayout;
+  let coDriverPayout = explicitCoDriverPayout !== undefined && explicitCoDriverPayout !== null
+    ? asNumber(explicitCoDriverPayout as Money)
+    : 0;
+
+  if (hasCoDriver && (explicitCoDriverPayout === undefined || explicitCoDriverPayout === null) && totalPayout > 0) {
+    driverPayout = Math.round((totalPayout / 2) * 100) / 100;
+    coDriverPayout = Math.round((totalPayout / 2) * 100) / 100;
+  }
+
+  return { driverPayout, coDriverPayout };
 }
 
 /** Base billing price for the customer. */

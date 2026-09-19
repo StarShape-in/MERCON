@@ -11,9 +11,12 @@ import { resolveVehicleLocation, resolveVehicleLocationsForTrips } from '../serv
 import { parseOptionalFloat, getValidUuid } from '../utils/uuid';
 import { buildSearchAnd } from '../utils/search';
 import { getCompanyLegalName } from './settingsController';
-import { computeTripChargesTotal, calculateBackendTripFinancials, resolveDriverPayout } from '../utils/tripFinancials';
+import { computeTripChargesTotal, calculateBackendTripFinancials, resolveDriverPayout, resolveInitialTripStatus, splitCoDriverPayout } from '../utils/tripFinancials';
+import { resolveMonth, toDayKey } from '../utils/tripBoard';
 import { validateTripDrivers, TripDriverInput, validateTripSchedule, validateTripStops } from '../services/tripValidationService';
 import { recordAssignmentEvent } from '../services/fleetDispatchService';
+import { buildTripRouteTimeline } from '../services/tripRouteTimeline';
+import { parseFullTripStops } from '../services/legacyStopStringParser';
 import { whatsappService } from '../services/whatsappService';
 import { processExternalScreenshot } from '../services/externalScreenshotService';
 
@@ -589,6 +592,7 @@ export const getTripById = async (req: Request, res: Response) => {
           }
         : null,
       rateCard: mappedRateCard,
+      route_timeline: buildTripRouteTimeline(trip as any),
     };
 
     res.json({ success: true, data: tripData });
@@ -674,18 +678,7 @@ export const createTrip = async (req: Request, res: Response) => {
     //   without locking driver/vehicle to OnTrip until actively dispatched.
     const isDispatchingNow = false;
     let targetStatus = requestedStatus || TripStatus.Scheduled;
-
-    // Past-time trips can NEVER be Scheduled:
-    // If planned_start is past current time, initial status must be Delayed
-    if (parsedPlannedStart) {
-      const now = new Date();
-      const diffMs = now.getTime() - parsedPlannedStart.getTime();
-      if (diffMs >= 0) {
-        if (!requestedStatus || requestedStatus === TripStatus.Scheduled || requestedStatus === TripStatus.Draft || (requestedStatus as string) === 'Scheduled') {
-          targetStatus = TripStatus.Delayed;
-        }
-      }
-    }
+    targetStatus = resolveInitialTripStatus(targetStatus, requestedStatus, parsedPlannedStart);
 
     const carrierName = await getCompanyLegalName();
 
@@ -863,13 +856,11 @@ export const createTrip = async (req: Request, res: Response) => {
             ? Number(rawTripCharges)
             : (appliedQuotation?.driver_payout ? Number(appliedQuotation.driver_payout) : 0);
 
-          let finalDriverPayout = totalPayout;
-          let finalCoDriverPayout = co_driver_payout !== undefined && co_driver_payout !== null ? Number(co_driver_payout) : 0;
-
-          if (co_driver_id && (co_driver_payout === undefined || co_driver_payout === null) && totalPayout > 0) {
-            finalDriverPayout = Math.round((totalPayout / 2) * 100) / 100;
-            finalCoDriverPayout = Math.round((totalPayout / 2) * 100) / 100;
-          }
+          const { driverPayout: finalDriverPayout, coDriverPayout: finalCoDriverPayout } = splitCoDriverPayout({
+            totalPayout,
+            hasCoDriver: Boolean(co_driver_id),
+            explicitCoDriverPayout: co_driver_payout,
+          });
 
           const updateQuotationPayout = req.body.update_quotation_driver_payout === true || req.body.update_quotation_payout === true;
           if (updateQuotationPayout && appliedQuotation) {
@@ -1035,75 +1026,6 @@ export const createTrip = async (req: Request, res: Response) => {
   }
 };
 
-/** One trip per CSV row, matched to existing customers/drivers/vehicles by
- *  name/plate (the sheet can't know internal ids). Rows are independent —
- *  a bad row is reported and skipped rather than failing the whole import. */
-function parseFullTripStops(originStr: string, destinationStr: string) {
-  const stopsList: Array<{
-    stop_sequence: number;
-    leg_index: number;
-    stop_type: 'Pickup' | 'Dropoff';
-    location_name: string;
-    location_id?: string | null;
-    lat?: number | null;
-    lng?: number | null;
-  }> = [];
-  let seq = 1;
-
-  const originClean = originStr.trim();
-  if (originClean) {
-    stopsList.push({ stop_sequence: seq++, leg_index: 0, stop_type: 'Pickup', location_name: originClean });
-  }
-
-  let outboundStr = destinationStr.trim();
-  let returnStr = '';
-
-  if (destinationStr.includes('[RETURN:')) {
-    const parts = destinationStr.split(/\[RETURN:\s*/i);
-    outboundStr = parts[0].trim();
-    returnStr = parts[1].replace(']', '').trim();
-  }
-
-  const splitChain = (str: string) => {
-    if (!str) return [];
-    let s = str.trim().replace(/^(SHIPA|IMILE|JDL|AKS|GFS|RTL|HORIZON|ARKAN)\s+/i, '').trim();
-    let norm = s.replace(/→|->|-->/g, ' + ').replace(/\//g, ' + ').replace(/&/g, ' + ');
-    const chunks = norm.split('+').map(c => c.trim()).filter(Boolean);
-    const items: string[] = [];
-    const KNOWN_CODES = ['RUH','JED','DMM','BUR','UNZ','HAI','HAIL','KHA','ABH','TAI','TAIF','MAK','MAD','HOF','QUR','TAB','TABUK','ALB','JIZ','NAJ','WAD','TUB','SUD','DAM','AHSAR','AHSAN'];
-    for (const chunk of chunks) {
-      if (/\s+-\s+/.test(chunk) || /^[A-Z0-9]+-[A-Z0-9]+-[A-Z0-9]+/i.test(chunk)) {
-        items.push(...chunk.split('-').map(sp => sp.trim()).filter(Boolean));
-      } else {
-        const words = chunk.split(/\s+/).map(w => w.trim()).filter(Boolean);
-        if (words.length >= 2 && words.every(w => KNOWN_CODES.includes(w.toUpperCase()) || w.length <= 6)) {
-          items.push(...words);
-        } else {
-          items.push(chunk);
-        }
-      }
-    }
-    return items;
-  };
-
-  const outboundItems = splitChain(outboundStr);
-  outboundItems.forEach((item) => {
-    stopsList.push({ stop_sequence: seq++, leg_index: 0, stop_type: 'Dropoff', location_name: item });
-  });
-
-  if (returnStr) {
-    const returnItems = splitChain(returnStr);
-    if (returnItems.length > 0) {
-      stopsList.push({ stop_sequence: seq++, leg_index: 1, stop_type: 'Pickup', location_name: returnItems[0] });
-      returnItems.slice(1).forEach((item) => {
-        stopsList.push({ stop_sequence: seq++, leg_index: 1, stop_type: 'Dropoff', location_name: item });
-      });
-    }
-  }
-
-  return stopsList;
-}
-
 function parseDestinationAndStops(destinationStr: string): { destinationName: string; returnDestinationName: string | null } {
   if (destinationStr.includes('[RETURN:')) {
     const parts = destinationStr.split('[RETURN:');
@@ -1233,18 +1155,7 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
         let targetStatus: TripStatus = row.status && Object.values(TripStatus).includes(row.status)
           ? row.status
           : TripStatus.Scheduled;
-
-        // Past-time trips can NEVER be Scheduled:
-        // If planned_start is past current time, initial status must be Delayed
-        if (parsedPlannedStart) {
-          const now = new Date();
-          const diffMs = now.getTime() - parsedPlannedStart.getTime();
-          if (diffMs >= 0) {
-            if (!row.status || row.status === TripStatus.Scheduled || row.status === TripStatus.Draft) {
-              targetStatus = TripStatus.Delayed;
-            }
-          }
-        }
+        targetStatus = resolveInitialTripStatus(targetStatus, row.status, parsedPlannedStart);
 
 
         const ref_id = await generateRefId('TRP', () =>
@@ -1268,22 +1179,25 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
           });
         }
 
-        const baseStops = (row.origin || row.destination) ? parseFullTripStops(row.origin || '', row.destination || '') : [];
+        // Structured `row.stops` (leg_index-aware, built by the trip wizard) is the
+        // authoritative source whenever it's present. `parseFullTripStops` only
+        // exists to derive stops from the legacy origin/destination strings for
+        // rows that don't carry structured stops (true CSV imports). It used to
+        // run unconditionally and splice its own first/last stop onto the front
+        // and back of `row.stops` even when structured stops were already
+        // correct — silently duplicating the origin and destination on every
+        // trip created through the wizard (see TRP-0252 investigation).
         let parsedStops = Array.isArray(row.stops) && row.stops.length > 0
-          ? [
-              ...(baseStops[0] ? [baseStops[0]] : []),
-              ...row.stops.map((st, idx) => ({
-                stop_sequence: st.stop_sequence ?? (idx + 2), // Shift sequence
-                leg_index: st.leg_index !== undefined ? Number(st.leg_index) : 0,
-                stop_type: (st.stop_type || 'Rest') as 'Pickup' | 'Dropoff' | 'Rest',
-                location_name: String(st.location_name ?? '').trim(),
-                location_id: st.location_id || null,
-                lat: st.lat ?? null,
-                lng: st.lng ?? null,
-              })),
-              ...(baseStops[1] ? [{ ...baseStops[1], stop_sequence: (row.stops.length + (baseStops[0] ? 2 : 1)) }] : [])
-            ]
-          : baseStops;
+          ? row.stops.map((st, idx) => ({
+              stop_sequence: st.stop_sequence ?? (idx + 1),
+              leg_index: st.leg_index !== undefined ? Number(st.leg_index) : 0,
+              stop_type: (st.stop_type || 'Rest') as 'Pickup' | 'Dropoff' | 'Rest',
+              location_name: String(st.location_name ?? '').trim(),
+              location_id: st.location_id || null,
+              lat: st.lat ?? null,
+              lng: st.lng ?? null,
+            }))
+          : ((row.origin || row.destination) ? parseFullTripStops(row.origin || '', row.destination || '') : []);
 
         if (parsedStops.length === 0 && appliedQuotation?.stops && appliedQuotation.stops.length > 0) {
           const isQuoRound = (appliedQuotation.line_type || row.rate_category || '').toLowerCase().includes('round');
@@ -1296,6 +1210,13 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
             lat: qs.lat ?? qs.location?.lat ?? null,
             lng: qs.lng ?? qs.location?.lng ?? null,
           }));
+        }
+
+        if (parsedStops.length > 0) {
+          const stopValidation = validateTripStops(parsedStops);
+          if (!stopValidation.isValid) {
+            throw new Error(stopValidation.error || 'Invalid trip stops configuration.');
+          }
         }
 
         const resolvedImportStops = await Promise.all(
@@ -1346,15 +1267,11 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
           ? Number(rawRowPayout)
           : (thirdPartyCostVal !== undefined ? thirdPartyCostVal : (appliedQuotation?.driver_payout != null ? Number(appliedQuotation.driver_payout) : 0));
 
-        let finalRowDriverPayout = totalRowPayout;
-        let finalRowCoDriverPayout = (row.co_driver_payout !== undefined && row.co_driver_payout !== null && !isNaN(Number(row.co_driver_payout)))
-          ? Number(row.co_driver_payout)
-          : 0;
-
-        if (row.co_driver_id && (row.co_driver_payout === undefined || row.co_driver_payout === null) && totalRowPayout > 0) {
-          finalRowDriverPayout = Math.round((totalRowPayout / 2) * 100) / 100;
-          finalRowCoDriverPayout = Math.round((totalRowPayout / 2) * 100) / 100;
-        }
+        const { driverPayout: finalRowDriverPayout, coDriverPayout: finalRowCoDriverPayout } = splitCoDriverPayout({
+          totalPayout: totalRowPayout,
+          hasCoDriver: Boolean(row.co_driver_id),
+          explicitCoDriverPayout: row.co_driver_payout,
+        });
 
         const trip = await prisma.$transaction(async (tx) => {
           return tx.trip.create({
@@ -2089,17 +2006,35 @@ export const bulkDeleteTrips = async (req: Request, res: Response) => {
 
     const eligibleIds = eligibleTrips.map((t) => t.id);
 
+    // Soft-delete renames ref_id TRP-XXXX -> TRP-DEL-XXXX to free the number for reuse. A
+    // trip number can be reused after its original holder is deleted, so a later trip that
+    // reused the same number can collide with an already-deleted TRP-DEL-XXXX row on this
+    // rename. Postgres poisons the whole transaction on the first failed query inside it
+    // (25P02 "current transaction is aborted"), so a collision can't be retried mid-
+    // transaction — resolve every ref_id up front, before the transaction opens, so the
+    // transaction itself never has anything to fail on.
+    const intendedRefIds = eligibleTrips.map((t) =>
+      t.ref_id && t.ref_id.startsWith('TRP-') && !t.ref_id.startsWith('TRP-DEL-')
+        ? t.ref_id.replace('TRP-', 'TRP-DEL-')
+        : t.ref_id
+    );
+    const conflicting = await prisma.trip.findMany({
+      where: { ref_id: { in: intendedRefIds.filter((r): r is string => !!r) } },
+      select: { ref_id: true },
+    });
+    const takenRefIds = new Set(conflicting.map((t) => t.ref_id));
+    const finalRefIds = new Map<string, string | null>(); // tripId -> new ref_id
+    eligibleTrips.forEach((trip, i) => {
+      const intended = intendedRefIds[i];
+      finalRefIds.set(trip.id, intended && takenRefIds.has(intended) ? `${intended}-${trip.id.slice(0, 8)}` : intended);
+    });
+
     await prisma.$transaction(async (tx) => {
-      // Soft-delete trips: rename ref_id to TRP-DEL-XXXX to release sequence slot, mark isActive = false
       for (const trip of eligibleTrips) {
-        let newRefId = trip.ref_id;
-        if (newRefId && newRefId.startsWith('TRP-') && !newRefId.startsWith('TRP-DEL-')) {
-          newRefId = newRefId.replace('TRP-', 'TRP-DEL-');
-        }
         await tx.trip.update({
           where: { id: trip.id },
           data: {
-            ref_id: newRefId,
+            ref_id: finalRefIds.get(trip.id) ?? trip.ref_id,
             isActive: false,
             deletedAt: new Date(),
             deleted_by: getValidUuid(userId),
@@ -2467,43 +2402,6 @@ export const updateTripFinancials = async (req: Request, res: Response) => {
 
 /** A month of trips is bounded work; this only guards against a runaway query. */
 const MONTHLY_BOARD_TRIP_CAP = 5000;
-
-/** Local YYYY-MM-DD — never toISOString(), which shifts the date across UTC. */
-const toDayKey = (d: Date | string | null | undefined): string => {
-  if (!d) return '1970-01-01';
-  const dateObj = d instanceof Date ? d : new Date(d);
-  if (isNaN(dateObj.getTime())) return '1970-01-01';
-  return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
-};
-
-/**
- * The month the board is showing. Accepts `YYYY-MM`; anything else (including
- * a missing param) falls back to the current month rather than erroring, since
- * the page opens with no month chosen.
- */
-function resolveMonth(raw: unknown): { month: string; start: Date; end: Date } {
-  const now = new Date();
-  let year = now.getFullYear();
-  let monthIndex = now.getMonth();
-
-  if (typeof raw === 'string') {
-    const match = /^(\d{4})-(\d{2})$/.exec(raw.trim());
-    if (match) {
-      const parsedYear = Number(match[1]);
-      const parsedMonth = Number(match[2]);
-      if (parsedYear >= 2000 && parsedYear <= 2100 && parsedMonth >= 1 && parsedMonth <= 12) {
-        year = parsedYear;
-        monthIndex = parsedMonth - 1;
-      }
-    }
-  }
-
-  return {
-    month: `${year}-${String(monthIndex + 1).padStart(2, '0')}`,
-    start: new Date(year, monthIndex, 1, 0, 0, 0, 0),
-    end: new Date(year, monthIndex + 1, 0, 23, 59, 59, 999),
-  };
-}
 
 export const getMonthlyTripBoard = async (req: Request, res: Response) => {
   try {

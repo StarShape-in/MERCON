@@ -2114,17 +2114,17 @@ export default function CargoLoadingView() {
           )}
         </div>
 
-        {/* Right Column: Documents & Validity (Stretches to combined height of Middle column) */}
-        <div className="xl:col-span-3 flex flex-col h-full min-h-0">
+        {/* Right Column: Documents & Validity (Matches Trips box height, locked, inner scrollable) */}
+        <div className="xl:col-span-3 flex flex-col h-full min-h-[460px] overflow-hidden">
           <DocumentsValidityFolder 
             vehicleId={vehicle?.id || id} 
-            onSelectDocument={(docId) => {
+            onSelectDocument={(docId: string) => {
               setSelectedTripIdForPreview(null);
               setSelectedDocId(docId);
             }}
             selectedDocumentId={selectedDocId}
             deletedDocIds={deletedDocIds}
-            onDeleteDocument={(delId) => setDeletedDocIds((prev) => [...prev, delId])}
+            onDeleteDocument={(delId: string) => setDeletedDocIds((prev) => [...prev, delId])}
           />
         </div>
 

@@ -1410,6 +1410,32 @@ model AuditLog {
   @@map("audit_logs")
 }
 
+// Aggregated, deduplicated application error events (backend + web dashboard).
+// Populated automatically from logger.error/fatal calls via a pino hook
+// (utils/logger.ts) and from the web dashboard's ErrorBoundary/window.onerror
+// (POST /api/client-errors) — see utils/errors.ts and services/errorCapture.ts.
+model ErrorEvent {
+  id            String   @id @default(uuid()) @db.Uuid
+  fingerprint   String   @unique
+  code          String
+  message       String
+  stack         String?  @db.Text
+  route         String
+  source        String // 'api' | 'web'
+  count         Int      @default(1)
+  status        String   @default("New") // New | Acknowledged | Resolved
+  lastRequestId String?
+  firstUserId   String?  @db.Uuid
+  notes         String?  @db.Text
+  createdAt     DateTime @default(now()) @db.Timestamptz
+  updatedAt     DateTime @updatedAt @db.Timestamptz
+
+  @@index([status])
+  @@index([source])
+  @@index([updatedAt])
+  @@map("error_events")
+}
+
 // -----------------------------------------
 // 22. MASTER DATA TAXONOMY & VEHICLE COMPATIBILITY
 // -----------------------------------------

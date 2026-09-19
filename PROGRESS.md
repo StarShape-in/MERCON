@@ -1,6 +1,6 @@
 # MERCON — Project Progress (Living Status)
 
-**This is the single source of truth for "where is the project."** Last updated: **2026-09-19** (**Backend error-handling audit Phase 1**: fixed the two client-facing stack-trace leaks and the hardcoded Gemini key fallback, added request-ID correlation + process crash handlers — see §7) · Previously (**Health-check/observability hardening**: a
+**This is the single source of truth for "where is the project."** Last updated: **2026-09-19** (**Round-trip stop data corruption fix + timeline consolidation**: found and fixed the real cause of a round trip showing a different route on web/mobile/wizard — a data-corruption bug in `bulkImportTrips` that duplicated the origin/destination stop on every trip created through the wizard, plus consolidated 3 disagreeing client-side route-timeline algorithms into one server-computed source — see §8) · Previously (**Error-handling audit Phase 2**: added error_events table + Admin Error Console (backend + web) — see §7) · Previously (**Backend error-handling audit Phase 1**: fixed the two client-facing stack-trace leaks and the hardcoded Gemini key fallback, added request-ID correlation + process crash handlers — see §7) · Previously (**Health-check/observability hardening**: a
 `cpus` default from the Docker-hardening pass earlier the same day (api 1.5)
 broke the next dev deploy — the VPS only has 1 CPU and Docker hard-rejects any
 single service's `cpus` above the host's core count; lowered defaults
@@ -528,13 +528,103 @@ Windows file-lock (`EPERM` renaming `query_engine-windows.dll.node`) unrelated t
 change — not something to chase for a backend-only TS change; `tsc --noEmit` is the
 meaningful check here and passed.
 
-**Not done yet (Phase 2/3 of the audit roadmap, not started)**: rewriting the other ~210
-generic `res.status(500)` call sites, an `AppError` class hierarchy, mapping Prisma `P2025`
-to 404, an `error_events` table + Admin-only Error Console page, Slack alerting on error
-spikes, and frontend/mobile error-capture wiring (web has an `ErrorBoundary` but no
-`window.onerror`/monitoring integration; mobile has neither an error boundary nor crash
-reporting, and silently swallows failed proof-of-delivery photo uploads via
-`console.warn`). See the full audit + roadmap from this session for details.
+**Phase 2 (backend + web dashboard) — done, same session.** Scope: an `error_events` table
+plus an Admin-only Error Console, built so the ~35 controllers' existing `logger.error({err},
+...)` calls populate it automatically with zero call-site rewrites:
+
+- ✅ `prisma/schema.prisma` — new additive `ErrorEvent` model (`error_events` table):
+  fingerprint (deduped), code, message, stack, route, source (`api`/`web`), count, status
+  (`New`/`Acknowledged`/`Resolved`), lastRequestId, firstUserId, notes. `npx prisma db push`
+  applied locally; production picks it up on next deploy via the existing
+  `prisma db push --accept-data-loss` step.
+- ✅ `middlewares/requestContext.ts` extended (route + userId, set from `middlewares/auth.ts`
+  once the caller is resolved) so error captures carry rich context with no call-site changes.
+- ✅ `services/errorCapture.ts` — dedup-by-fingerprint upsert into `error_events`; never logs
+  through `logger` itself (would recurse into the hook below), only `console.error` on its own
+  failure.
+- ✅ `utils/logger.ts` — added a pino `hooks.logMethod` that fires `captureError()` for every
+  `logger.error`/`.fatal({ err, ... })` call project-wide (level ≥ 50), automatically. Verified
+  live: identical errors from the same throw site collapse into one row with `count`
+  incrementing, not duplicate rows.
+- ✅ `utils/errors.ts` — `AppError`/`NotFoundError`/`ConflictError` + `mapPrismaError` (P2002→
+  Conflict, P2025→NotFound). Provided for new/touched code to adopt going forward — **not**
+  retrofitted across the other ~210 existing `res.status(500)` call sites this round.
+- ✅ New `GET/PATCH /api/error-events`, `GET /api/error-events/:id` (Admin-only via
+  `authorizeRoles('Admin')`, SuperAdmin passes through) and `POST /api/client-errors`
+  (authenticated, any role) — all verified live end-to-end (list/get/patch, and a 403 for an
+  Operator token).
+- ✅ Web dashboard: `/settings/error-console` (list, filterable by status/source) and
+  `/settings/error-console/:id` (detail: message, stack, occurrence count, first/last seen,
+  request id, status + notes editor), gated `RequireRole roles={['Admin']}`, linked from the
+  Sidebar's Account group. `ErrorBoundary.componentDidCatch` and a new global
+  `window.onerror`/`unhandledrejection` listener (`lib/errorReporting.ts`, installed once from
+  `main.tsx`) both report to it.
+- ✅ **The actual UX fix from the audit**: `lib/api.ts`'s `extractApiErrorMessage` no longer
+  forwards the backend's raw message for any `>= 500` response (that's what produced the
+  `"Database / Schema Error: ..."` leak) — now always a generic message + `(Ref: <X-Request-Id>)`
+  using the header Phase 1 already sets on every response. Client errors (4xx) are unchanged —
+  those are intentionally user-facing.
+
+Slack/webhook alerting intentionally deferred (needs a webhook URL from the owner). Mobile app
+changes (RN error boundary, crash reporting, upload-retry UX) deferred to a follow-up round —
+mobile still has neither an error boundary nor crash reporting, and still silently swallows
+failed proof-of-delivery photo uploads via `console.warn` (unchanged from Phase 1's note).
+Also still not done: retrofitting `AppError`/`mapPrismaError` across the other ~210 existing
+call sites, and fingerprint-based rate limiting of the capture path under a true error storm.
+
+**Note (unrelated to this change, found while working)**: at commit time,
+`frontend/web-dashboard/src/pages/customers/AddCustomerPage.tsx` and `EditCustomerPage.tsx`
+had unstaged local modifications (removing `trade_alias`/`industry`/`cr_number`/`vat_number`/
+`email`/`billing_address` fields, capping contacts at 2) that this session did not make and
+left untouched/uncommitted — flagged to the owner rather than bundled into this commit.
+
+---
+
+## 8. Round-trip stop data corruption + timeline consolidation (2026-09-19)
+
+Investigated a user-reported round trip (TRP-0252) that showed a different, wrong route on
+three surfaces: web Trip Details ended at "Medina" instead of the real return destination
+"Riyadh"; the driver app showed a phantom extra "Intermediate Stop" that was never configured;
+the trip creation wizard showed the correct 4-point route. Root-caused to two separate bugs,
+both fixed on branch `ilan`:
+
+- ✅ **Data corruption at creation (the actual root cause)** — `tripController.ts`
+  `bulkImportTrips` (the endpoint the wizard's "Review & Confirm" step and CSV import both call
+  via `POST /api/trips/bulk-import`) unconditionally re-parsed the legacy `origin`/`destination`
+  display strings via `parseFullTripStops()` even when the request already carried a correct,
+  structured `stops[]` array (leg_index/stop_type-aware, built by
+  `useTripSubmission.ts`) — then spliced that re-parsed function's first and last stops onto the
+  front and back of the real array. Every trip created through the wizard got a duplicate origin
+  stop prepended and a duplicate destination stop appended (worse on round trips: the duplicate
+  destination stop lands *after* the true return-leg stops, corrupting `stop_sequence` order).
+  Fixed: `row.stops` is now used as-is whenever present; `parseFullTripStops` only runs as a
+  fallback when the client sends no structured stops at all. Also wired `validateTripStops`
+  (leg_index/sequence invariant checks — existed, but only in the separate, less-used
+  `createTrip` endpoint) into `bulkImportTrips` so this class of corruption fails loudly instead
+  of silently writing bad rows going forward. **Historical trips created before this fix (e.g.
+  TRP-0252) still have the corrupted stop rows in the DB — not retroactively cleaned up; needs a
+  data migration if the owner wants existing trips fixed.**
+- ✅ **Render-side consolidation** — three independent, disagreeing algorithms existed for
+  turning a trip's raw stops into a human timeline: a backend "mirror" of the mobile app's logic
+  (test-only, never used by any endpoint), the actual mobile app's `routeParser.ts`, and the web
+  dashboard's `VisualRouteProgress.tsx` (a third, city-name-matching approach). Promoted the
+  backend mirror (`services/mobileTripLogic.helper.ts`, already covered by 24 test cases in
+  `multiStopRoundTrip.test.ts`) to the single production source of truth, renamed
+  `services/tripRouteTimeline.ts`, fixed its `isRoundTrip()` to match all 5 signals the real
+  mobile logic checks (was missing 3). Both `getTripById` (web) and the mobile trip endpoints
+  (`formatMobileTrip` in `mobileTripController.ts`) now attach a computed `route_timeline` to
+  every trip API response. `VisualRouteProgress.tsx` renders it directly when present (falls
+  back to its old derivation only when absent — e.g. the handful of other pages that show a trip
+  preview from list data without the full detail payload). The mobile app's `routeParser.ts`
+  prefers `trip.route_timeline` from the API the same way, keeping its own 5-strategy local
+  parsing only as an offline/legacy fallback.
+- ✅ Fixed a related bug in `HomeScreen.tsx` (driver app home card + scheduled-trips list): it
+  picked "the" dropoff stop via `.find(stop_type === 'Dropoff')`, which returns the *first*
+  Dropoff — on a round trip that's the outbound delivery, not the true final destination. Now
+  takes the pickup from the front and the dropoff from the back of the sequence-sorted stops.
+
+`tsc --noEmit` clean on backend, web-dashboard, and mobile-app. Backend test suite (127 tests
+across `services/*.test.ts`, including all 24 round-trip architecture cases) passes.
 
 ---
 

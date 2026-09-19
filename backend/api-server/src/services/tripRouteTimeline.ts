@@ -1,8 +1,16 @@
 /**
- * Helper mirror of mobile trip and routeParser algorithms for backend testing.
- * Verbatim copies the pure logic from:
- * - frontend/mobile-app/mercon-app/src/lib/trips.ts
- * - frontend/mobile-app/mercon-app/src/lib/routeParser.ts
+ * Single source of truth for "what is this trip's route timeline" — used by
+ * the web trip-detail API response, the mobile trip API response, and this
+ * file's own test suite (multiStopRoundTrip.test.ts).
+ *
+ * This used to be a hand-copied "mirror" of the mobile app's
+ * frontend/mobile-app/mercon-app/src/lib/{trips,routeParser}.ts, kept only
+ * for backend unit tests, while the web dashboard and mobile app each
+ * independently re-derived a trip's timeline from raw TripStop rows with
+ * their own, disagreeing algorithms. That's what let the same trip show a
+ * different route on web vs. mobile. Now this module actually computes the
+ * timeline once, server-side, and the API attaches its output
+ * (`route_timeline`) to every trip response — web and mobile just render it.
  */
 
 export interface TripStop {
@@ -10,7 +18,7 @@ export interface TripStop {
   trip_id?: string;
   stop_sequence: number;
   leg_index?: number;
-  stop_type: 'Pickup' | 'Dropoff';
+  stop_type: 'Pickup' | 'Dropoff' | 'Rest' | 'Refuel';
   location_id?: string | null;
   location_name?: string | null;
   location_address?: string | null;
@@ -18,6 +26,7 @@ export interface TripStop {
   location_lng?: number | null;
   arrived_at?: string | null;
   departure_time?: string | null;
+  planned_arrival?: string | null;
   actual_arrival?: string | null;
   actual_departure?: string | null;
   status?: string;
@@ -39,6 +48,9 @@ export interface MobileTrip {
   destination?: string;
   line_type_name?: string;
   line_type?: { name?: string };
+  rate_category?: string | null;
+  quotation_line_type?: string | null;
+  trip_type?: string | null;
   stops?: TripStop[];
   planned_distance?: number;
   planned_end?: string | null;
@@ -55,15 +67,47 @@ export interface TimelineStop {
   isReturnStop?: boolean;
   legIndex?: number;
   stopSequence?: number;
+  // Matched back to the underlying TripStop row (same match used for
+  // `address`) so consumers can render progress/status without re-deriving
+  // it from a separate raw `stops` array.
+  stopId?: string | null;
+  plannedArrival?: string | null;
+  actualArrival?: string | null;
+  actualDeparture?: string | null;
 }
 
-export function isRoundTrip(trip?: { line_type_name?: string; line_type?: { name?: string }; stops?: TripStop[] } | null): boolean {
+export function isRoundTrip(trip?: Partial<MobileTrip> | null): boolean {
   if (!trip) return false;
-  const name = trip.line_type_name || trip.line_type?.name || '';
-  if (/round\s*trip/i.test(name)) return true;
-  if (Array.isArray(trip.stops) && trip.stops.some(s => s.leg_index === 1)) {
+
+  // Primary signal: an explicit return leg in structured stops.
+  if (Array.isArray(trip.stops) && trip.stops.some((s) => (s.leg_index ?? 0) === 1)) {
     return true;
   }
+
+  const lineType = (
+    trip.line_type_name ||
+    trip.line_type?.name ||
+    trip.quotation_line_type ||
+    trip.trip_type ||
+    trip.rate_category ||
+    ''
+  ).toLowerCase();
+  if (lineType.includes('round')) return true;
+
+  if (trip.destination?.includes('[RETURN:')) return true;
+  if (trip.stops?.some((s) => (s.location_name || '').includes('[RETURN:'))) return true;
+
+  const hasSecondPickup = (trip.stops ?? []).some((s, idx) => idx > 0 && s.stop_type === 'Pickup');
+  if (hasSecondPickup) return true;
+
+  // Circular round trip: first and last stop are the same place.
+  const stops = trip.stops ?? [];
+  if (stops.length >= 3) {
+    const first = (stops[0].location_name || stops[0].location?.name || '').toLowerCase().trim();
+    const last = (stops[stops.length - 1].location_name || stops[stops.length - 1].location?.name || '').toLowerCase().trim();
+    if (first && last && first === last) return true;
+  }
+
   return false;
 }
 
@@ -199,13 +243,24 @@ function buildTimeline(
   }
 
   if (dbStops && dbStops.length > 0) {
+    // Match name + leg_index, and never reuse the same DB row for two
+    // timeline nodes — plain name matching would collapse legitimately
+    // distinct stops that happen to share a city name (see Test Case #7/#8
+    // in multiStopRoundTrip.test.ts).
+    const usedStopIds = new Set<string>();
     result.forEach((r) => {
       const match = dbStops.find((s) => {
-        const label = rawStopName(s).toLowerCase().trim();
-        return label === r.name.toLowerCase().trim();
+        if (usedStopIds.has(s.id)) return false;
+        if ((s.leg_index ?? 0) !== (r.legIndex ?? 0)) return false;
+        return rawStopName(s).toLowerCase().trim() === r.name.toLowerCase().trim();
       });
       if (match) {
+        usedStopIds.add(match.id);
         r.address = stopAddress(match);
+        r.stopId = match.id;
+        r.plannedArrival = match.planned_arrival ?? null;
+        r.actualArrival = match.actual_arrival ?? null;
+        r.actualDeparture = match.actual_departure ?? null;
       }
     });
   }
@@ -293,6 +348,9 @@ export function parseTripRouteNodes(trip: MobileTrip | null): TimelineStop[] {
 
   return [];
 }
+
+/** Canonical name for API responses; same function as parseTripRouteNodes. */
+export const buildTripRouteTimeline = parseTripRouteNodes;
 
 export function getEffectiveWorkflowState(trip: MobileTrip | null | undefined): string {
   if (!trip) return 'ASSIGNED';

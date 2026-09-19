@@ -5,6 +5,7 @@ import { prisma } from '../db';
 import { logger } from '../utils/logger';
 import { TripStatus, DocType } from '@prisma/client';
 import { isValidTransition, completeTripAndInvoice, stampStopTransition, stampWorkflowTransition, resolveAuthoritativeActiveStop, type DelayDetection } from '../services/tripLifecycle';
+import { buildTripRouteTimeline } from '../services/tripRouteTimeline';
 import { notifyOperatorsOfDelay } from './notificationController';
 import { getDrivingRoute, RoutingUnavailableError } from '../services/routing/routeProvider';
 import { compressUploadedImage } from '../services/imageCompressor';
@@ -56,6 +57,10 @@ const formatMobileTrip = (trip: any) => {
     driver_payout: payout,
     driver_charge: payout,
     trip_charges: payout,
+    // Server-computed once, from the same function the web dashboard uses —
+    // the app should render this directly instead of re-deriving its own
+    // route timeline from raw stops.
+    route_timeline: buildTripRouteTimeline(trip),
   };
 };
 

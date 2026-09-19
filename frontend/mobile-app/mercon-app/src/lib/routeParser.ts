@@ -191,6 +191,14 @@ function buildTimeline(
 export function parseTripRouteNodes(trip: MobileTrip | null): TimelineStop[] {
   if (!trip) return [];
 
+  // Prefer the server-computed timeline — same function the web dashboard
+  // renders — over re-deriving one from raw stops here. Only fall through to
+  // the local strategies below for trips fetched without it (e.g. cached
+  // offline data from before this field existed).
+  if (Array.isArray(trip.route_timeline) && trip.route_timeline.length >= 2) {
+    return trip.route_timeline as TimelineStop[];
+  }
+
   const dbStops = trip.stops ?? [];
   const isRound = isRoundTrip(trip);
 

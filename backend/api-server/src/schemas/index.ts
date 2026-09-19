@@ -585,3 +585,14 @@ export const createScheduledReportBody = z.object({
 
 export const updateScheduledReportBody = createScheduledReportBody.partial();
 
+export const updateErrorEventBody = z.object({
+  status: z.enum(['New', 'Acknowledged', 'Resolved']),
+  notes: z.string().trim().max(2000).optional(),
+});
+
+export const clientErrorBody = z.object({
+  message: z.string().trim().min(1).max(2000),
+  stack: z.string().trim().max(8000).optional(),
+  route: z.string().trim().min(1).max(500),
+});
+
