@@ -668,7 +668,7 @@ export default function TripDetailsPage() {
 
         {/* ── 3. VISUAL ROUTE PROGRESS (Panorama Highway Banner) ── */}
         <div className="shrink-0">
-          <VisualRouteProgress stops={trip.stops || []} tz={tz} tripStatus={trip.status} />
+          <VisualRouteProgress stops={trip.stops || []} timeline={(trip as any).route_timeline} tz={tz} tripStatus={trip.status} />
         </div>
 
         {/* ── 4. BOTTOM ROW: TRIP PHOTO EVIDENCE (LEFT 9 COLS) + FINANCIALS (RIGHT 3 COLS) ── */}

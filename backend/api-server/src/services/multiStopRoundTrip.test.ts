@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import { validateTripStops } from './tripValidationService';
 import { stampWorkflowTransition, stampStopTransition, resolveAuthoritativeActiveStop } from './tripLifecycle';
-import { isRoundTrip, getEffectiveWorkflowState, type MobileTrip, type TripStop, parseTripRouteNodes } from './mobileTripLogic.helper';
+import { isRoundTrip, getEffectiveWorkflowState, type MobileTrip, type TripStop, parseTripRouteNodes } from './tripRouteTimeline';
 
 describe('DEEP CODE-LEVEL TEST SUITE — INDEPENDENT OUTBOUND + RETURN ARCHITECTURE', () => {
 

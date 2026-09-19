@@ -15,6 +15,8 @@ import { computeTripChargesTotal, calculateBackendTripFinancials, resolveDriverP
 import { resolveMonth, toDayKey } from '../utils/tripBoard';
 import { validateTripDrivers, TripDriverInput, validateTripSchedule, validateTripStops } from '../services/tripValidationService';
 import { recordAssignmentEvent } from '../services/fleetDispatchService';
+import { buildTripRouteTimeline } from '../services/tripRouteTimeline';
+import { parseFullTripStops } from '../services/legacyStopStringParser';
 import { whatsappService } from '../services/whatsappService';
 
 /** Fields the trip ledger search bar looks at. */
@@ -589,6 +591,7 @@ export const getTripById = async (req: Request, res: Response) => {
           }
         : null,
       rateCard: mappedRateCard,
+      route_timeline: buildTripRouteTimeline(trip as any),
     };
 
     res.json({ success: true, data: tripData });
@@ -1022,75 +1025,6 @@ export const createTrip = async (req: Request, res: Response) => {
   }
 };
 
-/** One trip per CSV row, matched to existing customers/drivers/vehicles by
- *  name/plate (the sheet can't know internal ids). Rows are independent —
- *  a bad row is reported and skipped rather than failing the whole import. */
-function parseFullTripStops(originStr: string, destinationStr: string) {
-  const stopsList: Array<{
-    stop_sequence: number;
-    leg_index: number;
-    stop_type: 'Pickup' | 'Dropoff';
-    location_name: string;
-    location_id?: string | null;
-    lat?: number | null;
-    lng?: number | null;
-  }> = [];
-  let seq = 1;
-
-  const originClean = originStr.trim();
-  if (originClean) {
-    stopsList.push({ stop_sequence: seq++, leg_index: 0, stop_type: 'Pickup', location_name: originClean });
-  }
-
-  let outboundStr = destinationStr.trim();
-  let returnStr = '';
-
-  if (destinationStr.includes('[RETURN:')) {
-    const parts = destinationStr.split(/\[RETURN:\s*/i);
-    outboundStr = parts[0].trim();
-    returnStr = parts[1].replace(']', '').trim();
-  }
-
-  const splitChain = (str: string) => {
-    if (!str) return [];
-    let s = str.trim().replace(/^(SHIPA|IMILE|JDL|AKS|GFS|RTL|HORIZON|ARKAN)\s+/i, '').trim();
-    let norm = s.replace(/→|->|-->/g, ' + ').replace(/\//g, ' + ').replace(/&/g, ' + ');
-    const chunks = norm.split('+').map(c => c.trim()).filter(Boolean);
-    const items: string[] = [];
-    const KNOWN_CODES = ['RUH','JED','DMM','BUR','UNZ','HAI','HAIL','KHA','ABH','TAI','TAIF','MAK','MAD','HOF','QUR','TAB','TABUK','ALB','JIZ','NAJ','WAD','TUB','SUD','DAM','AHSAR','AHSAN'];
-    for (const chunk of chunks) {
-      if (/\s+-\s+/.test(chunk) || /^[A-Z0-9]+-[A-Z0-9]+-[A-Z0-9]+/i.test(chunk)) {
-        items.push(...chunk.split('-').map(sp => sp.trim()).filter(Boolean));
-      } else {
-        const words = chunk.split(/\s+/).map(w => w.trim()).filter(Boolean);
-        if (words.length >= 2 && words.every(w => KNOWN_CODES.includes(w.toUpperCase()) || w.length <= 6)) {
-          items.push(...words);
-        } else {
-          items.push(chunk);
-        }
-      }
-    }
-    return items;
-  };
-
-  const outboundItems = splitChain(outboundStr);
-  outboundItems.forEach((item) => {
-    stopsList.push({ stop_sequence: seq++, leg_index: 0, stop_type: 'Dropoff', location_name: item });
-  });
-
-  if (returnStr) {
-    const returnItems = splitChain(returnStr);
-    if (returnItems.length > 0) {
-      stopsList.push({ stop_sequence: seq++, leg_index: 1, stop_type: 'Pickup', location_name: returnItems[0] });
-      returnItems.slice(1).forEach((item) => {
-        stopsList.push({ stop_sequence: seq++, leg_index: 1, stop_type: 'Dropoff', location_name: item });
-      });
-    }
-  }
-
-  return stopsList;
-}
-
 function parseDestinationAndStops(destinationStr: string): { destinationName: string; returnDestinationName: string | null } {
   if (destinationStr.includes('[RETURN:')) {
     const parts = destinationStr.split('[RETURN:');
@@ -1244,22 +1178,25 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
           });
         }
 
-        const baseStops = (row.origin || row.destination) ? parseFullTripStops(row.origin || '', row.destination || '') : [];
+        // Structured `row.stops` (leg_index-aware, built by the trip wizard) is the
+        // authoritative source whenever it's present. `parseFullTripStops` only
+        // exists to derive stops from the legacy origin/destination strings for
+        // rows that don't carry structured stops (true CSV imports). It used to
+        // run unconditionally and splice its own first/last stop onto the front
+        // and back of `row.stops` even when structured stops were already
+        // correct — silently duplicating the origin and destination on every
+        // trip created through the wizard (see TRP-0252 investigation).
         let parsedStops = Array.isArray(row.stops) && row.stops.length > 0
-          ? [
-              ...(baseStops[0] ? [baseStops[0]] : []),
-              ...row.stops.map((st, idx) => ({
-                stop_sequence: st.stop_sequence ?? (idx + 2), // Shift sequence
-                leg_index: st.leg_index !== undefined ? Number(st.leg_index) : 0,
-                stop_type: (st.stop_type || 'Rest') as 'Pickup' | 'Dropoff' | 'Rest',
-                location_name: String(st.location_name ?? '').trim(),
-                location_id: st.location_id || null,
-                lat: st.lat ?? null,
-                lng: st.lng ?? null,
-              })),
-              ...(baseStops[1] ? [{ ...baseStops[1], stop_sequence: (row.stops.length + (baseStops[0] ? 2 : 1)) }] : [])
-            ]
-          : baseStops;
+          ? row.stops.map((st, idx) => ({
+              stop_sequence: st.stop_sequence ?? (idx + 1),
+              leg_index: st.leg_index !== undefined ? Number(st.leg_index) : 0,
+              stop_type: (st.stop_type || 'Rest') as 'Pickup' | 'Dropoff' | 'Rest',
+              location_name: String(st.location_name ?? '').trim(),
+              location_id: st.location_id || null,
+              lat: st.lat ?? null,
+              lng: st.lng ?? null,
+            }))
+          : ((row.origin || row.destination) ? parseFullTripStops(row.origin || '', row.destination || '') : []);
 
         if (parsedStops.length === 0 && appliedQuotation?.stops && appliedQuotation.stops.length > 0) {
           const isQuoRound = (appliedQuotation.line_type || row.rate_category || '').toLowerCase().includes('round');
@@ -1272,6 +1209,13 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
             lat: qs.lat ?? qs.location?.lat ?? null,
             lng: qs.lng ?? qs.location?.lng ?? null,
           }));
+        }
+
+        if (parsedStops.length > 0) {
+          const stopValidation = validateTripStops(parsedStops);
+          if (!stopValidation.isValid) {
+            throw new Error(stopValidation.error || 'Invalid trip stops configuration.');
+          }
         }
 
         const resolvedImportStops = await Promise.all(

@@ -153,6 +153,14 @@ export interface MobileTrip {
   origin?: string | null;
   destination?: string | null;
   stops: TripStop[];
+  /**
+   * Server-computed route timeline from the same function the web dashboard
+   * renders (backend/api-server/src/services/tripRouteTimeline.ts). When
+   * present, parseTripRouteNodes() in routeParser.ts uses this directly
+   * instead of re-deriving one locally, so this app can't disagree with the
+   * web dashboard about a trip's route again.
+   */
+  route_timeline?: unknown[] | null;
   documents?: Array<{
     id: string;
     doc_type?: string;

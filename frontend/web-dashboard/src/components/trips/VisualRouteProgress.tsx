@@ -9,6 +9,15 @@ interface VisualRouteProgressProps {
   tripStatus?: string;
   hideBadges?: boolean;
   hidePulseAnimation?: boolean;
+  /**
+   * Server-computed route timeline (`route_timeline` on the trip API
+   * response), built by the same function backing the driver app's route
+   * screen — see backend/api-server/src/services/tripRouteTimeline.ts.
+   * When present, this is rendered directly instead of re-deriving a
+   * timeline from `stops` here, so web and mobile can never show a
+   * different route for the same trip again.
+   */
+  timeline?: any[];
 }
 
 interface NormalizedStop {
@@ -64,21 +73,55 @@ function isTurnaroundPair(prevStop: any, nextStop: any): boolean {
   return (isLegTransition || isDropoffToPickup) && sameLocation;
 }
 
-export default function VisualRouteProgress({ stops, tz, tripStatus, hideBadges, hidePulseAnimation }: VisualRouteProgressProps) {
+export default function VisualRouteProgress({ stops, tz, tripStatus, hideBadges, hidePulseAnimation, timeline }: VisualRouteProgressProps) {
   const isTripFullyCompleted = ['completed', 'invoiced'].includes(String(tripStatus || '').trim().toLowerCase());
+  const hasServerTimeline = Array.isArray(timeline) && timeline.length >= 2;
   const isDelayed =
     ['delayed', 'late'].includes(String(tripStatus || '').trim().toLowerCase()) ||
     (stops && stops.some((st: any) => st.is_delayed || (st.delay_minutes && st.delay_minutes > 0)));
 
   const isRoundTrip = useMemo(() => {
+    if (hasServerTimeline) return timeline!.some((n: any) => (n.legIndex ?? 0) === 1);
     if (!stops || stops.length < 2) return false;
     return (
       stops.some((st: any) => (st.leg_index ?? 0) === 1) ||
       (stops.length >= 3 && getCanonicalCity(stops[0]).toLowerCase() === getCanonicalCity(stops[stops.length - 1]).toLowerCase())
     );
-  }, [stops]);
+  }, [stops, timeline, hasServerTimeline]);
 
   const normalizedStops: NormalizedStop[] = useMemo(() => {
+    // Prefer the server-computed timeline (same function the driver app
+    // renders) over re-deriving one from raw stops here — see the `timeline`
+    // prop doc for why.
+    if (hasServerTimeline) {
+      let prevAllCompleted = true;
+      return timeline!.map((node: any, idx: number) => {
+        const isFirst = idx === 0;
+        const isLast = idx === timeline!.length - 1;
+        const completed = !!node.actualArrival || isTripFullyCompleted;
+        const isCurrent = !completed && prevAllCompleted;
+        if (!completed) prevAllCompleted = false;
+
+        const relevantTime = node.actualArrival || node.plannedArrival;
+        const timeStr = relevantTime
+          ? formatInDeploymentTz(relevantTime, tz, 'hh:mm a')
+          : isLast && !isTripFullyCompleted
+          ? 'ETA 20:30 PM'
+          : '12:00 PM';
+
+        return {
+          id: node.stopId || node.id || `m-${idx}`,
+          seq: idx + 1,
+          label: node.typeEn || (isFirst ? 'Pickup' : isLast ? 'Destination' : `Stop ${idx}`),
+          city: node.name,
+          time: timeStr,
+          status: completed ? 'completed' : isCurrent ? 'current' : 'upcoming',
+          isFirst,
+          isLast,
+        };
+      });
+    }
+
     if (!stops || stops.length < 2) return DEFAULT_STOPS;
 
     const groupedItems: { stops: any[]; isTurnaround: boolean }[] = [];
@@ -152,7 +195,7 @@ export default function VisualRouteProgress({ stops, tz, tripStatus, hideBadges,
         isLast,
       };
     });
-  }, [stops, tz, tripStatus, isTripFullyCompleted, isRoundTrip]);
+  }, [stops, timeline, hasServerTimeline, tz, tripStatus, isTripFullyCompleted, isRoundTrip]);
 
   const totalStops = normalizedStops.length;
   const completedCount = normalizedStops.filter((s) => s.status === 'completed').length;
