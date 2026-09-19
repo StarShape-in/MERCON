@@ -79,7 +79,6 @@ import { reportClientError } from './controllers/clientErrorController';
 import { validate } from './middlewares/validate';
 import { clientErrorBody } from './schemas';
 import { authenticateJWT } from './middlewares/auth';
-import publicRoutes from './routes/publicRoutes';
 import { initFleetTracking } from './services/icces/fleetPoller';
 import { normalizeMobileLocationUpdate } from './services/tracking/locationUpdate';
 import { initTripDelayMonitor } from './services/tracking/tripDelayMonitor';

@@ -35,11 +35,17 @@ export const getPublicTripEvidence = async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, error: { message: 'Trip evidence gallery not found or link expired.' } });
     }
 
-    // Query real documents attached to this trip
-    const documents = await prisma.document.findMany({
+    const stopIds = trip.stops.map(s => s.id);
+
+    // Query all real documents attached to this trip or any of its stops
+    const documentRecords = await prisma.document.findMany({
       where: {
-        entity_type: 'Trip',
-        entity_id: trip.id,
+        OR: [
+          { entity_type: 'Trip', entity_id: trip.id },
+          { entity_id: trip.id },
+          { entity_id: trip.ref_id || undefined },
+          { entity_type: 'TripStop', entity_id: { in: stopIds } }
+        ],
         deletedAt: null
       },
       select: {
@@ -64,23 +70,111 @@ export const getPublicTripEvidence = async (req: Request, res: Response) => {
     const pickupStop = trip.stops.find(s => s.stop_type === 'Pickup') || trip.stops[0];
     const dropoffStop = trip.stops.find(s => s.stop_type === 'Dropoff') || trip.stops[trip.stops.length - 1];
 
-    const formattedDocs = documents.map(doc => {
+    // Collect all documents, plus any direct pod_photo_url / delay_video_url directly on Trip or TripStops
+    const allDocItems: Array<{
+      id: string;
+      doc_type?: string | null;
+      file_url: string;
+      mime_type?: string | null;
+      ai_extracted_json?: any;
+      createdAt: Date;
+    }> = [...documentRecords];
+
+    const existingUrls = new Set(documentRecords.map(d => d.file_url?.toLowerCase()));
+
+    // Fallback direct trip files if not already in document list
+    const directPodUrl = (trip as any).pod_photo_url || (trip as any).pod_url;
+    if (directPodUrl && !existingUrls.has(String(directPodUrl).toLowerCase())) {
+      allDocItems.push({
+        id: `pod-${trip.id}`,
+        doc_type: 'POD',
+        file_url: directPodUrl,
+        mime_type: 'image/jpeg',
+        createdAt: trip.createdAt
+      });
+      existingUrls.add(String(directPodUrl).toLowerCase());
+    }
+
+    const directVideoUrl = (trip as any).delay_video_url || (trip as any).video_url;
+    if (directVideoUrl && !existingUrls.has(String(directVideoUrl).toLowerCase())) {
+      allDocItems.push({
+        id: `delay-${trip.id}`,
+        doc_type: 'Emergency',
+        file_url: directVideoUrl,
+        mime_type: 'video/mp4',
+        createdAt: trip.createdAt
+      });
+      existingUrls.add(String(directVideoUrl).toLowerCase());
+    }
+
+    // Stop direct evidence URLs
+    trip.stops.forEach((st: any) => {
+      if (st.delay_video_url && !existingUrls.has(String(st.delay_video_url).toLowerCase())) {
+        allDocItems.push({
+          id: `stop-video-${st.id}`,
+          doc_type: 'Emergency',
+          file_url: st.delay_video_url,
+          mime_type: 'video/mp4',
+          createdAt: st.createdAt || trip.createdAt
+        });
+        existingUrls.add(String(st.delay_video_url).toLowerCase());
+      }
+      if (st.pod_photo_url && !existingUrls.has(String(st.pod_photo_url).toLowerCase())) {
+        allDocItems.push({
+          id: `stop-pod-${st.id}`,
+          doc_type: 'POD',
+          file_url: st.pod_photo_url,
+          mime_type: 'image/jpeg',
+          createdAt: st.createdAt || trip.createdAt
+        });
+        existingUrls.add(String(st.pod_photo_url).toLowerCase());
+      }
+    });
+
+    const formattedDocs = allDocItems.map(doc => {
       const u = (doc.file_url || '').toLowerCase();
       const m = (doc.mime_type || '').toLowerCase();
       const isVideo = m.startsWith('video/') || /\.(mp4|mov|webm|avi|mkv|3gp)(\?.*)?$/i.test(u);
-      
-      const aiJson: any = doc.ai_extracted_json || {};
-      const isDelay = doc.doc_type === 'Emergency' || (aiJson.operation || '').toLowerCase() === 'delay';
+
+      let parsedJson: any = {};
+      if (typeof doc.ai_extracted_json === 'string') {
+        try {
+          parsedJson = JSON.parse(doc.ai_extracted_json);
+        } catch {
+          parsedJson = { notes: doc.ai_extracted_json };
+        }
+      } else if (typeof doc.ai_extracted_json === 'object' && doc.ai_extracted_json !== null) {
+        parsedJson = doc.ai_extracted_json;
+      }
+
+      const isDelay = doc.doc_type === 'Emergency' || doc.doc_type === 'DelayEvidence' || (parsedJson.operation || '').toLowerCase() === 'delay';
 
       let category = 'Trip Evidence';
       if (doc.doc_type === 'POD') category = 'POD Document';
-      else if (doc.doc_type === 'Emergency') category = 'Emergency Incident';
+      else if (doc.doc_type === 'Emergency' || doc.doc_type === 'DelayEvidence') category = 'Delay Evidence';
       else if (isDelay) category = 'Delay Evidence';
       else if (doc.doc_type === 'Waybill') category = 'Waybill Document';
 
+      let rawNotes = parsedJson.notes || parsedJson.reason || parsedJson.notes_text || '';
+      if (typeof rawNotes === 'string' && rawNotes.trim().startsWith('{')) {
+        try {
+          const inner = JSON.parse(rawNotes);
+          rawNotes = inner.notes || inner.reason || inner.message || '';
+        } catch {
+          rawNotes = '';
+        }
+      }
+      if (typeof rawNotes === 'string' && rawNotes.includes('[DELAY REPORT]')) {
+        rawNotes = rawNotes.replace(/^\[DELAY REPORT\]:\s*/i, '').trim();
+      }
+
+      const displayTitle = (typeof rawNotes === 'string' && rawNotes.trim())
+        ? rawNotes.trim()
+        : `${category} • ${new Date(doc.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+
       return {
         id: doc.id,
-        title: aiJson.notes || `${category} - ${new Date(doc.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+        title: displayTitle,
         url: doc.file_url,
         mime_type: doc.mime_type,
         isVideo,
@@ -88,9 +182,9 @@ export const getPublicTripEvidence = async (req: Request, res: Response) => {
         category,
         time: new Date(doc.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         date: new Date(doc.createdAt).toLocaleDateString(),
-        lat: aiJson.lat || pickupStop?.location_lat,
-        lng: aiJson.lng || pickupStop?.location_lng,
-        location: aiJson.locationName || pickupStop?.location_name || pickupStop?.location?.name || 'En Route Location'
+        lat: parsedJson.lat || pickupStop?.location_lat,
+        lng: parsedJson.lng || pickupStop?.location_lng,
+        location: parsedJson.locationName || pickupStop?.location_name || pickupStop?.location?.name || 'En Route Location'
       };
     });
 
