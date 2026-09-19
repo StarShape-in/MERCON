@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { DateFilterType } from '@/components/trips/TripDateFilterPicker';
 import KpiCard from '@/components/ui/KpiCard';
-import { Truck, MapPin, CheckCircle2, Calendar, AlertTriangle, Route } from 'lucide-react';
+import { Truck, MapPin, CheckCircle2, Calendar, AlertTriangle } from 'lucide-react';
 
 export interface TripKpiCardsProps {
   kpiTitle: string;
@@ -42,12 +42,12 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
   delayedCount,
 }) => {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 shrink-0">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 shrink-0">
       
       {/* ── CARD 1: TODAY'S TRIPS (Total Period) ────────────────────────── */}
       <KpiCard
         title={kpiTitle}
-        className="kpi-tint-trips cursor-pointer"
+        className="border-orange-300/80 hover:border-[#FA634E] dark:border-orange-500/40 cursor-pointer"
         value={
           <span>
             {periodCount}
@@ -112,7 +112,7 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
           </div>
         }
         customFooter={
-          <div className="relative h-9 mt-3 -mx-4 overflow-hidden rounded-b-lg bg-orange-50/40 dark:bg-orange-950/20 border-t border-orange-200/50">
+          <div className="relative h-9 mt-4 -mx-4 overflow-hidden rounded-b-lg bg-orange-50/40 dark:bg-orange-950/20 border-t border-orange-200/50">
             <style>{`
               @keyframes routeDashOrange {
                 to { stroke-dashoffset: -12; }
@@ -177,7 +177,7 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
       {/* ── CARD 2: IN TRANSIT ────────────────────────────────────────── */}
       <KpiCard
         title="IN TRANSIT"
-        className="kpi-tint-trips cursor-pointer"
+        className="border-emerald-300/80 hover:border-emerald-500 dark:border-emerald-500/40 cursor-pointer"
         value={
           <span>
             {inTransitCount}
@@ -193,7 +193,7 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
           setCurrentPage(1);
         }}
         customFooter={
-          <div className="relative h-9 mt-3 -mx-4 overflow-hidden rounded-b-lg bg-[#E8F5E9] dark:bg-[#1B5E20]/15 border-t border-emerald-500/10">
+          <div className="relative h-9 mt-4 -mx-4 overflow-hidden rounded-b-lg bg-[#E8F5E9] dark:bg-[#1B5E20]/15 border-t border-emerald-500/10">
             <style>{`
               @keyframes routeDashGreen {
                 to { stroke-dashoffset: -12; }
@@ -259,7 +259,7 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
       {/* ── CARD 3: DELIVERED & COMPLETED ─────────────────────────────── */}
       <KpiCard
         title="DELIVERED & COMPLETED"
-        className="kpi-tint-trips cursor-pointer"
+        className="border-blue-300/80 hover:border-blue-500 dark:border-blue-500/40 cursor-pointer"
         value={
           <span>
             {completedCount}
@@ -275,7 +275,7 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
           setCurrentPage(1);
         }}
         customFooter={
-          <div className="relative h-9 mt-3 -mx-4 overflow-hidden rounded-b-lg bg-[#EFF6FF] dark:bg-[#1E40AF]/15 border-t border-blue-500/10">
+          <div className="relative h-9 mt-4 -mx-4 overflow-hidden rounded-b-lg bg-[#EFF6FF] dark:bg-[#1E40AF]/15 border-t border-blue-500/10">
             <style>{`
               @keyframes routeDashBlue {
                 to { stroke-dashoffset: -12; }
@@ -348,7 +348,7 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
       {/* ── CARD 4: SCHEDULED TRIPS ───────────────────────────────────── */}
       <KpiCard
         title="SCHEDULED TRIPS"
-        className="kpi-tint-trips cursor-pointer"
+        className="border-slate-300/80 hover:border-slate-500 dark:border-slate-600/40 cursor-pointer"
         value={
           <span>
             {scheduledCount}
@@ -364,7 +364,7 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
           setCurrentPage(1);
         }}
         customFooter={
-          <div className="relative h-9 mt-3 -mx-4 overflow-hidden rounded-b-lg bg-slate-100/70 dark:bg-slate-800/40 border-t border-slate-200">
+          <div className="relative h-9 mt-4 -mx-4 overflow-hidden rounded-b-lg bg-slate-100/70 dark:bg-slate-800/40 border-t border-slate-200">
             <style>{`
               @keyframes routeDashSlate {
                 to { stroke-dashoffset: -12; }
@@ -422,7 +422,7 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
       {/* ── CARD 5: DELAYED TRIPS ─────────────────────────────────────── */}
       <KpiCard
         title="DELAYED TRIPS"
-        className="kpi-tint-trips cursor-pointer"
+        className="border-rose-300/80 hover:border-rose-500 dark:border-rose-500/40 cursor-pointer"
         value={
           <span>
             {delayedCount}
@@ -438,7 +438,7 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
           setCurrentPage(1);
         }}
         customFooter={
-          <div className="relative h-9 mt-3 -mx-4 overflow-hidden rounded-b-lg bg-[#FFF5F5] dark:bg-[#DC2626]/10 border-t border-red-500/10">
+          <div className="relative h-9 mt-4 -mx-4 overflow-hidden rounded-b-lg bg-[#FFF5F5] dark:bg-[#DC2626]/10 border-t border-red-500/10">
             <style>{`
               @keyframes routeDashRed {
                 to { stroke-dashoffset: -12; }
