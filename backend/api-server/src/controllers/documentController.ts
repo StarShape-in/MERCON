@@ -178,7 +178,7 @@ export const uploadDocument = async (req: Request, res: Response) => {
 /* ─── Update document status (verify / reject) ────────────────────────────── */
 export const updateDocumentStatus = async (req: Request, res: Response) => {
   try {
-    const { status, expiry_date } = req.body;
+    const { status, expiry_date, issue_date, file_url, mime_type } = req.body;
 
     const allowedStatuses = Object.values(DocStatus);
     if (!status || !allowedStatuses.includes(status as DocStatus)) {
@@ -196,14 +196,34 @@ export const updateDocumentStatus = async (req: Request, res: Response) => {
     if (status === DocStatus.Verified) {
       updateData.verified_by = (req as any).user?.id;
     }
-    if (expiry_date) {
-      updateData.expiry_date = new Date(expiry_date);
+    if (expiry_date !== undefined) {
+      updateData.expiry_date = expiry_date ? new Date(expiry_date) : null;
+    }
+    if (issue_date !== undefined) {
+      updateData.issue_date = issue_date ? new Date(issue_date) : null;
+    }
+    if (file_url !== undefined) {
+      updateData.file_url = file_url;
+    }
+    if (mime_type !== undefined) {
+      updateData.mime_type = mime_type;
     }
 
+    const docId = req.params.id as string;
     const updated = await prisma.document.update({
-      where: { id: req.params.id as string },
+      where: { id: docId },
       data: updateData
     });
+
+    if (file_url !== undefined || mime_type !== undefined) {
+      await prisma.documentFile.updateMany({
+        where: { documentId: docId },
+        data: {
+          ...(file_url ? { file_url } : {}),
+          ...(mime_type ? { mime_type } : {}),
+        }
+      });
+    }
 
     res.json({ success: true, data: updated });
   } catch (error) {

@@ -272,17 +272,31 @@ export const syncLocalDocumentRecords = async (req: Request, res: Response) => {
       }
 
       if (matchingDoc) {
+        const updateFields: any = {
+          doc_type: rec.doc_type || matchingDoc.doc_type,
+          status: DocStatus.Verified,
+          expiry_date: rec.expiry_date !== undefined ? (rec.expiry_date ? new Date(rec.expiry_date) : null) : matchingDoc.expiry_date,
+          issue_date: rec.issue_date !== undefined ? (rec.issue_date ? new Date(rec.issue_date) : null) : matchingDoc.issue_date,
+          ai_extracted_json: rec.ai_extracted_json || matchingDoc.ai_extracted_json,
+          ocr_raw_text: rec.ocr_raw_text || matchingDoc.ocr_raw_text,
+        };
+        if (rec.file_url) updateFields.file_url = rec.file_url;
+        if (rec.mime_type) updateFields.mime_type = rec.mime_type;
+
         await prisma.document.update({
           where: { id: matchingDoc.id },
-          data: {
-            doc_type: rec.doc_type || matchingDoc.doc_type,
-            status: DocStatus.Verified,
-            expiry_date: rec.expiry_date ? new Date(rec.expiry_date) : matchingDoc.expiry_date,
-            issue_date: rec.issue_date ? new Date(rec.issue_date) : matchingDoc.issue_date,
-            ai_extracted_json: rec.ai_extracted_json || matchingDoc.ai_extracted_json,
-            ocr_raw_text: rec.ocr_raw_text || matchingDoc.ocr_raw_text,
-          },
+          data: updateFields,
         });
+
+        if (rec.file_url || rec.mime_type) {
+          await prisma.documentFile.updateMany({
+            where: { documentId: matchingDoc.id },
+            data: {
+              ...(rec.file_url ? { file_url: rec.file_url } : {}),
+              ...(rec.mime_type ? { mime_type: rec.mime_type } : {}),
+            }
+          });
+        }
         updated++;
       }
     }
