@@ -139,7 +139,7 @@ export async function analyzeDocumentWithAI(
     };
   }
 
-  const apiKey = process.env.GEMINI_API_KEY || env.GEMINI_API_KEY || 'AQ.Ab8RN6J4D3senP8aDF8M8Az4RT6XlQkYieZ-7ApiU2x8jcRi0w';
+  const apiKey = env.GEMINI_API_KEY;
   if (!apiKey) {
     return fallback as OcrResult;
   }
