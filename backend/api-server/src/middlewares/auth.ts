@@ -3,6 +3,7 @@ import { env } from '../config/env';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../db';
 import { logger } from '../utils/logger';
+import { setRequestUserId } from './requestContext';
 
 export interface AuthenticatedRequest extends Request {
   user?: any;
@@ -30,6 +31,7 @@ export const authenticateJWT = async (req: AuthenticatedRequest, res: Response, 
         }
 
         req.user = freshUser;
+        setRequestUserId(freshUser.id);
         next();
       } catch (dbErr) {
         logger.error({ err: dbErr }, 'Error verifying user status in auth middleware:');

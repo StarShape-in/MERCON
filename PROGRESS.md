@@ -1,6 +1,6 @@
 # MERCON — Project Progress (Living Status)
 
-**This is the single source of truth for "where is the project."** Last updated: **2026-09-19** (**Backend error-handling audit Phase 1**: fixed the two client-facing stack-trace leaks and the hardcoded Gemini key fallback, added request-ID correlation + process crash handlers — see §7) · Previously (**Health-check/observability hardening**: a
+**This is the single source of truth for "where is the project."** Last updated: **2026-09-19** (**Error-handling audit Phase 2**: added error_events table + Admin Error Console (backend + web) — see §7) · Previously (**Backend error-handling audit Phase 1**: fixed the two client-facing stack-trace leaks and the hardcoded Gemini key fallback, added request-ID correlation + process crash handlers — see §7) · Previously (**Health-check/observability hardening**: a
 `cpus` default from the Docker-hardening pass earlier the same day (api 1.5)
 broke the next dev deploy — the VPS only has 1 CPU and Docker hard-rejects any
 single service's `cpus` above the host's core count; lowered defaults
@@ -528,13 +528,55 @@ Windows file-lock (`EPERM` renaming `query_engine-windows.dll.node`) unrelated t
 change — not something to chase for a backend-only TS change; `tsc --noEmit` is the
 meaningful check here and passed.
 
-**Not done yet (Phase 2/3 of the audit roadmap, not started)**: rewriting the other ~210
-generic `res.status(500)` call sites, an `AppError` class hierarchy, mapping Prisma `P2025`
-to 404, an `error_events` table + Admin-only Error Console page, Slack alerting on error
-spikes, and frontend/mobile error-capture wiring (web has an `ErrorBoundary` but no
-`window.onerror`/monitoring integration; mobile has neither an error boundary nor crash
-reporting, and silently swallows failed proof-of-delivery photo uploads via
-`console.warn`). See the full audit + roadmap from this session for details.
+**Phase 2 (backend + web dashboard) — done, same session.** Scope: an `error_events` table
+plus an Admin-only Error Console, built so the ~35 controllers' existing `logger.error({err},
+...)` calls populate it automatically with zero call-site rewrites:
+
+- ✅ `prisma/schema.prisma` — new additive `ErrorEvent` model (`error_events` table):
+  fingerprint (deduped), code, message, stack, route, source (`api`/`web`), count, status
+  (`New`/`Acknowledged`/`Resolved`), lastRequestId, firstUserId, notes. `npx prisma db push`
+  applied locally; production picks it up on next deploy via the existing
+  `prisma db push --accept-data-loss` step.
+- ✅ `middlewares/requestContext.ts` extended (route + userId, set from `middlewares/auth.ts`
+  once the caller is resolved) so error captures carry rich context with no call-site changes.
+- ✅ `services/errorCapture.ts` — dedup-by-fingerprint upsert into `error_events`; never logs
+  through `logger` itself (would recurse into the hook below), only `console.error` on its own
+  failure.
+- ✅ `utils/logger.ts` — added a pino `hooks.logMethod` that fires `captureError()` for every
+  `logger.error`/`.fatal({ err, ... })` call project-wide (level ≥ 50), automatically. Verified
+  live: identical errors from the same throw site collapse into one row with `count`
+  incrementing, not duplicate rows.
+- ✅ `utils/errors.ts` — `AppError`/`NotFoundError`/`ConflictError` + `mapPrismaError` (P2002→
+  Conflict, P2025→NotFound). Provided for new/touched code to adopt going forward — **not**
+  retrofitted across the other ~210 existing `res.status(500)` call sites this round.
+- ✅ New `GET/PATCH /api/error-events`, `GET /api/error-events/:id` (Admin-only via
+  `authorizeRoles('Admin')`, SuperAdmin passes through) and `POST /api/client-errors`
+  (authenticated, any role) — all verified live end-to-end (list/get/patch, and a 403 for an
+  Operator token).
+- ✅ Web dashboard: `/settings/error-console` (list, filterable by status/source) and
+  `/settings/error-console/:id` (detail: message, stack, occurrence count, first/last seen,
+  request id, status + notes editor), gated `RequireRole roles={['Admin']}`, linked from the
+  Sidebar's Account group. `ErrorBoundary.componentDidCatch` and a new global
+  `window.onerror`/`unhandledrejection` listener (`lib/errorReporting.ts`, installed once from
+  `main.tsx`) both report to it.
+- ✅ **The actual UX fix from the audit**: `lib/api.ts`'s `extractApiErrorMessage` no longer
+  forwards the backend's raw message for any `>= 500` response (that's what produced the
+  `"Database / Schema Error: ..."` leak) — now always a generic message + `(Ref: <X-Request-Id>)`
+  using the header Phase 1 already sets on every response. Client errors (4xx) are unchanged —
+  those are intentionally user-facing.
+
+Slack/webhook alerting intentionally deferred (needs a webhook URL from the owner). Mobile app
+changes (RN error boundary, crash reporting, upload-retry UX) deferred to a follow-up round —
+mobile still has neither an error boundary nor crash reporting, and still silently swallows
+failed proof-of-delivery photo uploads via `console.warn` (unchanged from Phase 1's note).
+Also still not done: retrofitting `AppError`/`mapPrismaError` across the other ~210 existing
+call sites, and fingerprint-based rate limiting of the capture path under a true error storm.
+
+**Note (unrelated to this change, found while working)**: at commit time,
+`frontend/web-dashboard/src/pages/customers/AddCustomerPage.tsx` and `EditCustomerPage.tsx`
+had unstaged local modifications (removing `trade_alias`/`industry`/`cr_number`/`vat_number`/
+`email`/`billing_address` fields, capping contacts at 2) that this session did not make and
+left untouched/uncommitted — flagged to the owner rather than bundled into this commit.
 
 ---
 
