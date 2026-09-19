@@ -9,6 +9,7 @@
  */
 import pino from 'pino';
 import { getRequestId } from '../middlewares/requestContext';
+import { captureError } from '../services/errorCapture';
 
 const isProd = process.env.NODE_ENV === 'production';
 
@@ -20,6 +21,21 @@ export const logger = pino({
   mixin() {
     const requestId = getRequestId();
     return requestId ? { requestId } : {};
+  },
+  hooks: {
+    // Every logger.error/fatal({ err, ... }) call anywhere in the codebase
+    // (there are ~35 of them, one per controller's catch block) starts
+    // populating the error_events table automatically — no call-site
+    // changes needed. Fire-and-forget: capture failures never affect
+    // logging or the request that triggered them (see errorCapture.ts).
+    logMethod(args, method, level) {
+      if (level >= 50) {
+        const first = args[0];
+        const err = first && typeof first === 'object' ? (first as Record<string, unknown>).err : undefined;
+        if (err) void captureError({ err, source: 'api' });
+      }
+      method.apply(this, args);
+    },
   },
   // Without this, passing a raw Error under the `err` key (the pattern every
   // controller's catch block uses: logger.error({ err: error }, '...')) prints

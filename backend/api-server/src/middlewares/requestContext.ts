@@ -13,6 +13,8 @@ import { Request, Response, NextFunction } from 'express';
 
 interface RequestStore {
   requestId: string;
+  route: string;
+  userId?: string;
 }
 
 const als = new AsyncLocalStorage<RequestStore>();
@@ -21,9 +23,25 @@ export function getRequestId(): string | undefined {
   return als.getStore()?.requestId;
 }
 
+export function getRequestRoute(): string | undefined {
+  return als.getStore()?.route;
+}
+
+export function getRequestUserId(): string | undefined {
+  return als.getStore()?.userId;
+}
+
+/** Called once auth middleware resolves the caller, so later error captures
+ *  for this request carry a user id even though this store was created
+ *  before authentication ran. */
+export function setRequestUserId(userId: string) {
+  const store = als.getStore();
+  if (store) store.userId = userId;
+}
+
 export function requestContext(req: Request, res: Response, next: NextFunction) {
   const requestId = randomUUID();
   (req as Request & { id: string }).id = requestId;
   res.setHeader('X-Request-Id', requestId);
-  als.run({ requestId }, next);
+  als.run({ requestId, route: `${req.method} ${req.path}` }, next);
 }

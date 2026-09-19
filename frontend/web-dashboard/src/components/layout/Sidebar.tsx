@@ -4,7 +4,7 @@ import {
   Home, Bell, Truck, Users, Car, Building2,
   CreditCard, ReceiptText, Calculator, Files, FileBarChart,
   Settings, User, LogOut, Wrench, X, MapPin, TrendingUp, Trash2,
-  CalendarRange, Wallet, SlidersHorizontal, ChevronsLeft, ChevronsRight, FolderArchive, Lock, ShieldCheck, GraduationCap
+  CalendarRange, Wallet, SlidersHorizontal, ChevronsLeft, ChevronsRight, FolderArchive, Lock, ShieldCheck, GraduationCap, AlertTriangle
 } from 'lucide-react';
 
 import { authStore } from '@/store/authStore';
@@ -130,6 +130,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         { icon: Trash2, label: 'Recycle Bin', path: '/settings/recycle-bin', moduleKey: 'recycle-bin' },
         ...(isSuperAdmin ? [{ icon: SlidersHorizontal, label: 'Module Governance', path: '/settings/module-governance', permissionKey: 'settings.deployment' }] : []),
         ...(can('users.view') ? [{ icon: Users, label: 'User Management', path: '/settings/users', permissionKey: 'users.view' }] : []),
+        ...(userRole === 'Admin' || isSuperAdmin ? [{ icon: AlertTriangle, label: 'Error Console', path: '/settings/error-console' }] : []),
         { icon: FolderArchive, label: 'Aprodac Vault', path: '/aprodac-documents', moduleKey: 'aprodac-documents' },
       ],
     },
