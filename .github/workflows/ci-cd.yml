@@ -125,11 +125,22 @@ jobs:
           docker image prune -f 2>/dev/null || true
           df -h / || true
 
-          # Build and start services in detached mode
-          docker compose -p mercon up -d --build
+          # Build first (running container untouched), migrate the database
+          # against the newly built image, then replace the container. This
+          # workflow previously ran `docker compose up -d --build` with no
+          # migration step at all — schema changes never reached this
+          # database on a direct push to main. Mirrors ci-cd-dev.yml, which
+          # has done this correctly since it was introduced.
+          echo "Building images..."
+          docker compose -p mercon build
 
-          # Give mercon-api a moment to run its startup chain (prisma db push
-          # && seed && node dist/index.js) before polling it.
+          echo "Executing Prisma database migrations against production database..."
+          docker compose -p mercon run --rm --no-deps mercon-api npx prisma migrate deploy
+
+          echo "Recreating and restarting containers..."
+          docker compose -p mercon up -d --no-build
+
+          # Give mercon-api a moment to finish starting before polling it.
           sleep 8
 
           # Health gate — ported from ci-cd-dev.yml, which already does this
