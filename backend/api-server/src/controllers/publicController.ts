@@ -214,6 +214,12 @@ export const getPublicTripEvidence = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     logger.error({ err: error }, 'getPublicTripEvidence error:');
-    res.status(500).json({ success: false, error: { message: 'Internal server error' } });
+    res.status(500).json({ 
+      success: false, 
+      error: { 
+        message: 'Internal server error',
+        debug: process.env.NODE_ENV !== 'production' ? (error?.message || String(error)) : undefined
+      } 
+    });
   }
 };
