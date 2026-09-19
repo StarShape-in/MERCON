@@ -1,6 +1,10 @@
 # MERCON — Project Progress (Living Status)
 
+<<<<<<< HEAD
 **This is the single source of truth for "where is the project."** Last updated: **2026-09-19** (**Round-trip stop data corruption fix + timeline consolidation**: found and fixed the real cause of a round trip showing a different route on web/mobile/wizard — a data-corruption bug in `bulkImportTrips` that duplicated the origin/destination stop on every trip created through the wizard, plus consolidated 3 disagreeing client-side route-timeline algorithms into one server-computed source — see §8) · Previously (**Error-handling audit Phase 2**: added error_events table + Admin Error Console (backend + web) — see §7) · Previously (**Backend error-handling audit Phase 1**: fixed the two client-facing stack-trace leaks and the hardcoded Gemini key fallback, added request-ID correlation + process crash handlers — see §7) · Previously (**Health-check/observability hardening**: a
+=======
+**This is the single source of truth for "where is the project."** Last updated: **2026-09-19** (**Health-check/observability hardening**: a
+>>>>>>> a5bb263c (feat(ops): add prod deploy health gate, frontend healthcheck, nightly DB backups)
 `cpus` default from the Docker-hardening pass earlier the same day (api 1.5)
 broke the next dev deploy — the VPS only has 1 CPU and Docker hard-rejects any
 single service's `cpus` above the host's core count; lowered defaults
