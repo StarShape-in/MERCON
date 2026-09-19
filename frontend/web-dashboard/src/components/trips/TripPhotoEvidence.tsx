@@ -414,12 +414,38 @@ export default function TripPhotoEvidence({
       return (isImg || isTripDoc) && !!d.file_url;
     });
 
+    // Photos tagged with an exact `stop_id` (every upload since the leg_index
+    // migration carries one — see uploadTripPhoto in mobileTripController.ts)
+    // are matched to their stop unambiguously, with no operation/leg_index
+    // guessing involved. Only docs without a stop_id (legacy uploads from
+    // before that field existed) fall through to the heuristic matching
+    // below. This must run before per-stop assignment so a stop_id-tagged
+    // doc is never also picked up by the fuzzy fallback for a neighboring
+    // stop.
+    const docsByStopId = new Map<string, any[]>();
+    const legacyPhotoDocs: any[] = [];
+    photoDocs.forEach((d: any) => {
+      const sid = d.ai_extracted_json?.stop_id;
+      if (sid) {
+        if (!docsByStopId.has(sid)) docsByStopId.set(sid, []);
+        docsByStopId.get(sid)!.push(d);
+      } else {
+        legacyPhotoDocs.push(d);
+      }
+    });
+
     const buildLocation = (
       st: any,
       overallIdx: number,
       role: 'pickup' | 'stop' | 'delivery' | 'return_loading' | 'return_stop' | 'return_delivery',
       isReturn: boolean
     ): LocationGroup => {
+      // `photoDocs` inside this function's heuristics below is scoped to only
+      // the legacy (no stop_id) pool, plus this stop's own exact matches —
+      // so a fuzzy operation/leg_index guess can never poach a photo that's
+      // unambiguously tagged for a different, specific stop.
+      const exactStopDocs: any[] = (st?.id && docsByStopId.get(st.id)) || [];
+      const photoDocs = [...exactStopDocs, ...legacyPhotoDocs];
       const city = cleanCityName(st, isReturn ? (role === 'return_delivery' ? firstCity : 'Stop') : (role === 'pickup' ? firstCity : 'Stop'));
       const seqStr = String(overallIdx + 1).padStart(2, '0');
       const stopArrivalTime = st.actual_arrival
@@ -678,9 +704,17 @@ export default function TripPhotoEvidence({
     };
 
     if (isRoundTrip) {
-      const mid = Math.ceil(stops.length / 2);
-      const outboundStops = stops.slice(0, mid);
-      const returnStops = stops.slice(mid);
+      // Split by leg_index, the actual source of truth, whenever it's
+      // present — NOT by cutting the stops array in half. A half-split
+      // silently misassigns stops on any round trip where the outbound and
+      // return legs don't have the same number of stops (e.g. 4 outbound +
+      // 2 return): the last outbound stop would land in the "RETURN LEG"
+      // section with the wrong role/badge and its photos matched against
+      // return-leg heuristics. Only fall back to the half-split for legacy
+      // trips with no leg_index data at all.
+      const hasLegIndex = stops.some((s: any) => s.leg_index === 1);
+      const outboundStops = hasLegIndex ? stops.filter((s: any) => (s.leg_index ?? 0) === 0) : stops.slice(0, Math.ceil(stops.length / 2));
+      const returnStops = hasLegIndex ? stops.filter((s: any) => (s.leg_index ?? 0) === 1) : stops.slice(Math.ceil(stops.length / 2));
 
       const outboundLocations = outboundStops.map((st: any, idx: number) => {
         const isFirst = idx === 0;
@@ -693,7 +727,7 @@ export default function TripPhotoEvidence({
         const isFirst = idx === 0;
         const isLast = idx === returnStops.length - 1;
         const role = isFirst ? 'return_loading' : (isLast ? 'return_delivery' : 'return_stop');
-        return buildLocation(st, mid + idx, role, true);
+        return buildLocation(st, outboundStops.length + idx, role, true);
       });
 
       return [

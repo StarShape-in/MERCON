@@ -89,7 +89,20 @@ const DeliveryVerificationScreen = () => {
   const { trip, loading, refetch, setTrip } = useCurrentTrip();
   const ws = getEffectiveWorkflowState(trip);
   const isRound = isRoundTrip(trip);
-  const isReturnDelivery = isRound && (ws === 'ARRIVED_AT_FINAL_DELIVERY' || ws === 'FINAL_DELIVERY_VERIFICATION' || ws === 'IN_TRANSIT_RETURN');
+  // Once the return-leg dropoff's actual_departure is stamped,
+  // getEffectiveWorkflowState() immediately jumps to 'COMPLETED' — it never
+  // lingers on ARRIVED_AT_FINAL_DELIVERY/FINAL_DELIVERY_VERIFICATION/
+  // IN_TRANSIT_RETURN once that happens. Omitting 'COMPLETED' here used to
+  // make this flag flip back to false at that exact moment (a round trip
+  // can only reach COMPLETED via the return leg — the outbound delivery's
+  // departure transitions to RETURN_LOADING, never COMPLETED), which made
+  // the auto-redirect effect below treat a just-finished RETURN delivery as
+  // an outbound delivery needing a return-loading prompt — racing the
+  // explicit `/trip/completed` navigation in handleSubmit and sometimes
+  // winning, sending the driver back to /trip/pickup (showing the King
+  // Khalid Airport placeholder, since there's no real next pickup) in a
+  // loop instead of landing on the completed screen.
+  const isReturnDelivery = isRound && (ws === 'ARRIVED_AT_FINAL_DELIVERY' || ws === 'FINAL_DELIVERY_VERIFICATION' || ws === 'IN_TRANSIT_RETURN' || ws === 'COMPLETED');
 
   const legIndex = isReturnDelivery ? 1 : 0;
   const legStops = (trip?.stops ?? []).filter((s) => (s.leg_index ?? 0) === legIndex);
