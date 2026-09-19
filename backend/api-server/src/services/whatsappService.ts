@@ -38,7 +38,7 @@ export class WhatsAppService {
     if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
       return filePath;
     }
-    const publicBase = (this.config.publicBaseUrl || 'https://dev.mercon.com').replace(/\/+$/, '');
+    const publicBase = (this.config.publicBaseUrl || 'https://dev.mercon.tech').replace(/\/+$/, '');
     const cleanPath = filePath.startsWith('/') ? filePath : `/uploads/${filePath}`;
     return `${publicBase}${cleanPath}`;
   }
