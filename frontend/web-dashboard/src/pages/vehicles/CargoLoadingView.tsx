@@ -2114,8 +2114,8 @@ export default function CargoLoadingView() {
           )}
         </div>
 
-        {/* Right Column: Documents & Validity (Fixed default height matching middle column, inner scrollable) */}
-        <div className="xl:col-span-3 flex flex-col h-[520px] max-h-[520px] min-h-0 overflow-hidden">
+        {/* Right Column: Documents & Validity (Matches Trips box height, locked, inner scrollable) */}
+        <div className="xl:col-span-3 flex flex-col h-full min-h-0 overflow-hidden">
           <DocumentsValidityFolder 
             vehicleId={vehicle?.id || id} 
             onSelectDocument={(docId) => {

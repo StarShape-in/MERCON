@@ -24,20 +24,37 @@ export interface TripKpiCardsProps {
   delayedCount: number;
 }
 
-/** 2D Vector Box Truck Icon with Dynamic Theme Color */
-export const Vector2DTruck = ({ className = "w-7 h-5" }: { className?: string }) => (
-  <svg viewBox="0 0 28 18" fill="currentColor" className={cn("shrink-0 drop-shadow-2xs", className)}>
-    {/* Main Freight Box Container */}
-    <rect x="0" y="2" width="18" height="11" rx="1.5" />
-    {/* Driver Cabin */}
-    <path d="M19 6h5a2 2 0 0 1 2 2v5h-7V6z" />
-    {/* Cabin Window */}
-    <path d="M21 7.5h3.5v3H21v-3z" fill="white" fillOpacity="0.55" />
-    {/* Wheels */}
-    <circle cx="5" cy="14.5" r="2.2" fill="#1E293B" stroke="white" strokeWidth="0.8" />
-    <circle cx="21.5" cy="14.5" r="2.2" fill="#1E293B" stroke="white" strokeWidth="0.8" />
-  </svg>
-);
+/** 3D MERCON Route Line Truck Icon with Dynamic Theme Color Filter */
+export const RouteLineTruck3D: React.FC<{ className?: string; color?: string }> = ({
+  className = "h-7 w-auto",
+  color = "#FA634E",
+}) => {
+  let filterStyle = "";
+
+  const c = (color || "").toLowerCase();
+  if (c.includes("emerald") || c.includes("green") || c === "#10b981" || c === "#16a34a" || c === "#22c55e") {
+    filterStyle = "hue-rotate(115deg) saturate(1.3) brightness(0.95)";
+  } else if (c.includes("blue") || c === "#2563eb" || c === "#3b82f6" || c === "#1e40af") {
+    filterStyle = "hue-rotate(190deg) saturate(1.4) brightness(0.95)";
+  } else if (c.includes("red") || c.includes("rose") || c === "#dc2626" || c === "#ef4444" || c === "#f43f5e") {
+    filterStyle = "hue-rotate(-25deg) saturate(1.6) brightness(0.9)";
+  } else if (c.includes("slate") || c.includes("gray") || c === "#64748b" || c === "#475569" || c === "#3e3c3d") {
+    filterStyle = "grayscale(1) brightness(0.9)";
+  } else if (c.includes("purple") || c === "#9333ea" || c === "#7c3aed") {
+    filterStyle = "hue-rotate(240deg) saturate(1.4)";
+  } else {
+    filterStyle = "none";
+  }
+
+  return (
+    <img
+      src="/mercon_truck_3d.png"
+      alt="MERCON Logistics Truck"
+      className={cn("object-contain select-none pointer-events-none drop-shadow-2xs transition-all duration-200", className)}
+      style={{ filter: filterStyle }}
+    />
+  );
+};
 
 export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
   kpiTitle,
@@ -154,7 +171,7 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
               <div className="h-2 w-2 rounded-full bg-[#FA634E] ring-4 ring-[#FA634E]/20" />
             </div>
 
-            {/* 2D Orange Vector Truck */}
+            {/* 3D Visual Route Line Orange Truck */}
             <div
               className="absolute"
               style={{
@@ -164,7 +181,7 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
                 zIndex: 10
               }}
             >
-              <Vector2DTruck className="w-7 h-5 text-[#FA634E]" />
+              <RouteLineTruck3D className="h-7 w-auto" color="#FA634E" />
             </div>
           </div>
         }
@@ -231,7 +248,7 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
               <div className="h-2 w-2 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" />
             </div>
 
-            {/* 2D Green Vector Truck */}
+            {/* 3D Visual Route Line Green Truck */}
             <div
               className="absolute"
               style={{
@@ -241,7 +258,7 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
                 zIndex: 10
               }}
             >
-              <Vector2DTruck className="w-7 h-5 text-[#10B981]" />
+              <RouteLineTruck3D className="h-7 w-auto" color="#10B981" />
             </div>
           </div>
         }
@@ -308,7 +325,7 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
               <div className="h-2 w-2 rounded-full bg-blue-500 ring-4 ring-blue-500/20" />
             </div>
 
-            {/* 2D Blue Vector Truck at Finish Line */}
+            {/* 3D Visual Route Line Blue Truck at Finish Line */}
             <div
               className="absolute"
               style={{
@@ -318,7 +335,7 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
                 zIndex: 10
               }}
             >
-              <Vector2DTruck className="w-7 h-5 text-[#2563EB]" />
+              <RouteLineTruck3D className="h-7 w-auto" color="#2563EB" />
             </div>
 
             {/* Checkered Flag at End */}
@@ -385,7 +402,7 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
               <div className="h-2 w-2 rounded-full bg-slate-500 ring-4 ring-slate-400/20" />
             </div>
 
-            {/* 2D Slate Vector Truck */}
+            {/* 3D Visual Route Line Slate Truck */}
             <div
               className="absolute"
               style={{
@@ -395,7 +412,7 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
                 zIndex: 10
               }}
             >
-              <Vector2DTruck className="w-7 h-5 text-[#64748B]" />
+              <RouteLineTruck3D className="h-7 w-auto" color="#64748B" />
             </div>
           </div>
         }
@@ -462,7 +479,7 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
               <div className="h-2 w-2 rounded-full bg-red-500 ring-4 ring-red-500/20" />
             </div>
 
-            {/* 2D Red Vector Truck with Floating Overdue Badge */}
+            {/* 3D Visual Route Line Red Truck with Floating Overdue Badge */}
             <div
               className="absolute"
               style={{
@@ -482,7 +499,7 @@ export const TripKpiCards: React.FC<TripKpiCardsProps> = ({
                   <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-t-[4px] border-t-red-600" />
                 </div>
 
-                <Vector2DTruck className="w-7 h-5 text-[#DC2626]" />
+                <RouteLineTruck3D className="h-7 w-auto" color="#DC2626" />
               </div>
             </div>
           </div>

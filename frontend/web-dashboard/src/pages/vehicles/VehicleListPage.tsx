@@ -25,7 +25,7 @@ import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import ExportModal, { ExportColumn, ExportFilter } from '@/components/ui/ExportModal';
 import { SortDropdown, SortOption } from '@/components/ui/SortDropdown';
 import { GpsHealthBadge } from '@/components/fleet/GpsHealthBadge';
-import { Vector2DTruck } from '@/components/trips/TripKpiCards';
+import { RouteLineTruck3D } from '@/components/trips/TripKpiCards';
 
 const VEHICLE_EXPORT_COLUMNS: ExportColumn<Vehicle>[] = [
   { id: 'ref_id', label: 'Vehicle ID', accessor: (v) => v.ref_id || `TRK-${v.id.slice(0, 5).toUpperCase()}` },
@@ -1410,7 +1410,7 @@ export default function VehicleListPage() {
                     }}
                   >
                     <div className="relative flex items-center justify-center">
-                      <Vector2DTruck className="w-7 h-5 text-[#FA634E]" />
+                      <RouteLineTruck3D className="h-7 w-auto" color="#FA634E" />
                     </div>
                   </div>
 
@@ -1424,7 +1424,7 @@ export default function VehicleListPage() {
                     }}
                   >
                     <div className="relative flex items-center justify-center">
-                      <Vector2DTruck className="w-7 h-5 text-[#10B981]" />
+                      <RouteLineTruck3D className="h-7 w-auto" color="#10B981" />
                     </div>
                   </div>
                 </div>
@@ -1504,7 +1504,7 @@ export default function VehicleListPage() {
                     }}
                   >
                     <div className="relative flex items-center justify-center">
-                      <Vector2DTruck className="w-7 h-5 text-[#2563EB]" />
+                      <RouteLineTruck3D className="h-7 w-auto" color="#2563EB" />
                     </div>
                   </div>
                 </div>
@@ -1593,7 +1593,7 @@ export default function VehicleListPage() {
                         <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-t-[4px] border-t-red-600" />
                       </div>
 
-                      <Vector2DTruck className="w-7 h-5 text-[#DC2626]" />
+                      <RouteLineTruck3D className="h-7 w-auto" color="#DC2626" />
                     </div>
                   </div>
                 </div>
@@ -1627,17 +1627,17 @@ export default function VehicleListPage() {
                       }
                     }
                   `}</style>
-                  <svg className="absolute inset-0 h-full w-full opacity-[0.08]" stroke="currentColor" fill="none">
-                    <pattern id="card-map-grid-full" width="12" height="12" patternUnits="userSpaceOnUse">
+                  <svg className="absolute inset-0 h-full w-full opacity-[0.06]" stroke="currentColor" fill="none">
+                    <pattern id="card-map-grid" width="12" height="12" patternUnits="userSpaceOnUse">
                       <path d="M 12 0 L 0 0 0 12" strokeWidth="0.5" />
                     </pattern>
-                    <rect width="100%" height="100%" fill="url(#card-map-grid-full)" />
+                    <rect width="100%" height="100%" fill="url(#card-map-grid)" />
                   </svg>
                   
-                  <svg className="absolute inset-0 h-full w-full opacity-[0.4]" viewBox="0 0 280 48" preserveAspectRatio="none">
-                    <path d="M 60 -5 C 65 15, 55 35, 60 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
-                    <path d="M 140 -5 C 135 15, 145 35, 138 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
-                    <path d="M 210 -5 C 220 15, 205 35, 215 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
+                  <svg className="absolute inset-0 h-full w-full opacity-[0.3]" viewBox="0 0 280 48" preserveAspectRatio="none">
+                    <path d="M 45 -5 C 50 15, 40 35, 45 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
+                    <path d="M 115 -5 C 110 15, 120 35, 113 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
+                    <path d="M 180 -5 C 190 15, 175 35, 185 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
                   </svg>
 
                   <svg className="absolute inset-0 h-full w-full" viewBox="0 0 280 48" preserveAspectRatio="none">
@@ -1673,7 +1673,7 @@ export default function VehicleListPage() {
                     }}
                   >
                     <div className="relative flex items-center justify-center">
-                      <Vector2DTruck className="w-7 h-5 text-[#10B981]" />
+                      <RouteLineTruck3D className="h-7 w-auto" color="#10B981" />
                     </div>
                   </div>
                 </div>

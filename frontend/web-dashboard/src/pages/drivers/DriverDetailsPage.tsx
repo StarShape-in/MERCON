@@ -1693,9 +1693,9 @@ export default function DriverDetailsPage() {
 
           {/* ════════════════════════════════════════════════
               COLUMN 3 (RIGHT): Documents Box (xl:col-span-3)
-              Stacked Folder Pocket style with default fixed height & internal scroll
+              Matches Trips box height, locked, inner scrollable
              ════════════════════════════════════════════════ */}
-          <div className="xl:col-span-3 flex flex-col h-[520px] max-h-[520px] min-h-0 overflow-hidden">
+          <div className="xl:col-span-3 flex flex-col h-full min-h-0 overflow-hidden">
             <DriverDocumentsValidityFolder
               driverId={driver.id}
               selectedDocumentId={selectedDocIdForPreview}
