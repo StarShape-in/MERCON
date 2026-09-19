@@ -129,13 +129,57 @@ jobs:
           docker compose -p mercon up -d --build
 
           # Give mercon-api a moment to run its startup chain (prisma db push
-          # && seed && node dist/index.js), then print its logs so a crash in
-          # that chain is visible in the Actions run instead of just a 502.
+          # && seed && node dist/index.js) before polling it.
           sleep 8
-          echo "--- mercon-api logs (last 100 lines) ---"
-          docker compose -p mercon logs --no-color --tail=100 mercon-api || true
-          echo "--- mercon-api container status ---"
+
+          # Health gate — ported from ci-cd-dev.yml, which already does this
+          # for the dev stack. Without this, `docker compose up -d --build`
+          # exiting 0 was being treated as "deploy succeeded" even when the
+          # container was crash-looping or misconfigured (e.g. the cpus-limit
+          # regression that broke dev and went unnoticed until someone
+          # happened to read the raw logs).
+          echo "Waiting for mercon-api service container to achieve healthy status (bounded 60s timeout)..."
+          HEALTH_STATUS="unknown"
+          TIMEOUT=60
+          ELAPSED=0
+
+          while [ $ELAPSED -lt $TIMEOUT ]; do
+            CONTAINER_ID=$(docker compose -p mercon ps -q mercon-api 2>/dev/null || echo "")
+            if [ -n "$CONTAINER_ID" ]; then
+              HEALTH_STATUS=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "$CONTAINER_ID" 2>/dev/null || echo "container-not-found")
+            else
+              HEALTH_STATUS="container-not-found"
+            fi
+
+            if [ "$HEALTH_STATUS" = "healthy" ]; then
+              echo "✓ Service mercon-api container (ID: ${CONTAINER_ID:0:12}) reported healthy state after ${ELAPSED}s."
+              break
+            elif [ "$HEALTH_STATUS" = "unhealthy" ]; then
+              echo "::error::Service mercon-api container reported UNHEALTHY state." >&2
+              break
+            fi
+            sleep 2
+            ELAPSED=$((ELAPSED + 2))
+          done
+
+          echo "--- mercon-api service container status ---"
           docker compose -p mercon ps mercon-api || true
+
+          if [ "$HEALTH_STATUS" != "healthy" ]; then
+            echo "::error::Deployment failed! Service mercon-api container did not achieve healthy status (Status: '$HEALTH_STATUS'). Printing logs..." >&2
+            echo "--- mercon-api logs (last 100 lines) ---"
+            docker compose -p mercon logs --no-color --tail=100 mercon-api || true
+            exit 1
+          fi
+
+          echo "--- Verifying external health endpoint ---"
+          if ! curl -fsS http://127.0.0.1:3050/health; then
+            echo "::error::Deployment failed! External health probe GET http://127.0.0.1:3050/health failed or returned non-200. Printing logs..." >&2
+            echo "--- mercon-api logs (last 100 lines) ---"
+            docker compose -p mercon logs --no-color --tail=100 mercon-api || true
+            exit 1
+          fi
+          echo "✓ External health probe GET http://127.0.0.1:3050/health verified successfully."
 
       - name: Deploy Nginx Config & Reload
         run: |
