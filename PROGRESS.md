@@ -1,6 +1,6 @@
 # MERCON — Project Progress (Living Status)
 
-**This is the single source of truth for "where is the project."** Last updated: **2026-09-19** (**Error-handling audit Phase 2**: added error_events table + Admin Error Console (backend + web) — see §7) · Previously (**Backend error-handling audit Phase 1**: fixed the two client-facing stack-trace leaks and the hardcoded Gemini key fallback, added request-ID correlation + process crash handlers — see §7) · Previously (**Health-check/observability hardening**: a
+**This is the single source of truth for "where is the project."** Last updated: **2026-09-19** (**Round-trip stop data corruption fix + timeline consolidation**: found and fixed the real cause of a round trip showing a different route on web/mobile/wizard — a data-corruption bug in `bulkImportTrips` that duplicated the origin/destination stop on every trip created through the wizard, plus consolidated 3 disagreeing client-side route-timeline algorithms into one server-computed source — see §8) · Previously (**Error-handling audit Phase 2**: added error_events table + Admin Error Console (backend + web) — see §7) · Previously (**Backend error-handling audit Phase 1**: fixed the two client-facing stack-trace leaks and the hardcoded Gemini key fallback, added request-ID correlation + process crash handlers — see §7) · Previously (**Health-check/observability hardening**: a
 `cpus` default from the Docker-hardening pass earlier the same day (api 1.5)
 broke the next dev deploy — the VPS only has 1 CPU and Docker hard-rejects any
 single service's `cpus` above the host's core count; lowered defaults
@@ -577,6 +577,54 @@ call sites, and fingerprint-based rate limiting of the capture path under a true
 had unstaged local modifications (removing `trade_alias`/`industry`/`cr_number`/`vat_number`/
 `email`/`billing_address` fields, capping contacts at 2) that this session did not make and
 left untouched/uncommitted — flagged to the owner rather than bundled into this commit.
+
+---
+
+## 8. Round-trip stop data corruption + timeline consolidation (2026-09-19)
+
+Investigated a user-reported round trip (TRP-0252) that showed a different, wrong route on
+three surfaces: web Trip Details ended at "Medina" instead of the real return destination
+"Riyadh"; the driver app showed a phantom extra "Intermediate Stop" that was never configured;
+the trip creation wizard showed the correct 4-point route. Root-caused to two separate bugs,
+both fixed on branch `ilan`:
+
+- ✅ **Data corruption at creation (the actual root cause)** — `tripController.ts`
+  `bulkImportTrips` (the endpoint the wizard's "Review & Confirm" step and CSV import both call
+  via `POST /api/trips/bulk-import`) unconditionally re-parsed the legacy `origin`/`destination`
+  display strings via `parseFullTripStops()` even when the request already carried a correct,
+  structured `stops[]` array (leg_index/stop_type-aware, built by
+  `useTripSubmission.ts`) — then spliced that re-parsed function's first and last stops onto the
+  front and back of the real array. Every trip created through the wizard got a duplicate origin
+  stop prepended and a duplicate destination stop appended (worse on round trips: the duplicate
+  destination stop lands *after* the true return-leg stops, corrupting `stop_sequence` order).
+  Fixed: `row.stops` is now used as-is whenever present; `parseFullTripStops` only runs as a
+  fallback when the client sends no structured stops at all. Also wired `validateTripStops`
+  (leg_index/sequence invariant checks — existed, but only in the separate, less-used
+  `createTrip` endpoint) into `bulkImportTrips` so this class of corruption fails loudly instead
+  of silently writing bad rows going forward. **Historical trips created before this fix (e.g.
+  TRP-0252) still have the corrupted stop rows in the DB — not retroactively cleaned up; needs a
+  data migration if the owner wants existing trips fixed.**
+- ✅ **Render-side consolidation** — three independent, disagreeing algorithms existed for
+  turning a trip's raw stops into a human timeline: a backend "mirror" of the mobile app's logic
+  (test-only, never used by any endpoint), the actual mobile app's `routeParser.ts`, and the web
+  dashboard's `VisualRouteProgress.tsx` (a third, city-name-matching approach). Promoted the
+  backend mirror (`services/mobileTripLogic.helper.ts`, already covered by 24 test cases in
+  `multiStopRoundTrip.test.ts`) to the single production source of truth, renamed
+  `services/tripRouteTimeline.ts`, fixed its `isRoundTrip()` to match all 5 signals the real
+  mobile logic checks (was missing 3). Both `getTripById` (web) and the mobile trip endpoints
+  (`formatMobileTrip` in `mobileTripController.ts`) now attach a computed `route_timeline` to
+  every trip API response. `VisualRouteProgress.tsx` renders it directly when present (falls
+  back to its old derivation only when absent — e.g. the handful of other pages that show a trip
+  preview from list data without the full detail payload). The mobile app's `routeParser.ts`
+  prefers `trip.route_timeline` from the API the same way, keeping its own 5-strategy local
+  parsing only as an offline/legacy fallback.
+- ✅ Fixed a related bug in `HomeScreen.tsx` (driver app home card + scheduled-trips list): it
+  picked "the" dropoff stop via `.find(stop_type === 'Dropoff')`, which returns the *first*
+  Dropoff — on a round trip that's the outbound delivery, not the true final destination. Now
+  takes the pickup from the front and the dropoff from the back of the sequence-sorted stops.
+
+`tsc --noEmit` clean on backend, web-dashboard, and mobile-app. Backend test suite (127 tests
+across `services/*.test.ts`, including all 24 round-trip architecture cases) passes.
 
 ---
 
