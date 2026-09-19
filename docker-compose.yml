@@ -16,6 +16,11 @@ services:
     image: postgres:15-alpine
     container_name: "${CLIENT_NAME:-mercon}-postgres"
     restart: unless-stopped
+    # Caps so one container can't starve the others on a shared VPS (this host
+    # also runs unrelated non-Mercon containers). Override per-host via env if
+    # a client's VPS has more/less RAM to spare.
+    mem_limit: "${POSTGRES_MEM_LIMIT:-512m}"
+    cpus: "${POSTGRES_CPU_LIMIT:-1}"
     environment:
       POSTGRES_USER: "${POSTGRES_USER:?POSTGRES_USER must be provided (set it as a GitHub Actions secret / env var)}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be provided (set it as a GitHub Actions secret / env var)}"
@@ -37,6 +42,8 @@ services:
       dockerfile: backend/api-server/Dockerfile
     container_name: "${CLIENT_NAME:-mercon}-api"
     restart: unless-stopped
+    mem_limit: "${API_MEM_LIMIT:-768m}"
+    cpus: "${API_CPU_LIMIT:-1.5}"
     ports:
       - "${API_PORT:-3050}:3000" # Exposed for Nginx proxy on a safe port
     environment:
@@ -90,6 +97,8 @@ services:
         VITE_GOOGLE_MAPS_API_KEY: "${VITE_GOOGLE_MAPS_API_KEY:-}"
     container_name: "${CLIENT_NAME:-mercon}-frontend"
     restart: unless-stopped
+    mem_limit: "${FRONTEND_MEM_LIMIT:-256m}"
+    cpus: "${FRONTEND_CPU_LIMIT:-0.5}"
     ports:
       - "${FRONTEND_PORT:-3060}:80" # Exposed for Nginx proxy on a safe port
 
