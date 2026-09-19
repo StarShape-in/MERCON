@@ -11,7 +11,8 @@ import { resolveVehicleLocation, resolveVehicleLocationsForTrips } from '../serv
 import { parseOptionalFloat, getValidUuid } from '../utils/uuid';
 import { buildSearchAnd } from '../utils/search';
 import { getCompanyLegalName } from './settingsController';
-import { computeTripChargesTotal, calculateBackendTripFinancials, resolveDriverPayout } from '../utils/tripFinancials';
+import { computeTripChargesTotal, calculateBackendTripFinancials, resolveDriverPayout, resolveInitialTripStatus, splitCoDriverPayout } from '../utils/tripFinancials';
+import { resolveMonth, toDayKey } from '../utils/tripBoard';
 import { validateTripDrivers, TripDriverInput, validateTripSchedule, validateTripStops } from '../services/tripValidationService';
 import { recordAssignmentEvent } from '../services/fleetDispatchService';
 import { whatsappService } from '../services/whatsappService';
@@ -673,18 +674,7 @@ export const createTrip = async (req: Request, res: Response) => {
     //   without locking driver/vehicle to OnTrip until actively dispatched.
     const isDispatchingNow = false;
     let targetStatus = requestedStatus || TripStatus.Scheduled;
-
-    // Past-time trips can NEVER be Scheduled:
-    // If planned_start is past current time, initial status must be Delayed
-    if (parsedPlannedStart) {
-      const now = new Date();
-      const diffMs = now.getTime() - parsedPlannedStart.getTime();
-      if (diffMs >= 0) {
-        if (!requestedStatus || requestedStatus === TripStatus.Scheduled || requestedStatus === TripStatus.Draft || (requestedStatus as string) === 'Scheduled') {
-          targetStatus = TripStatus.Delayed;
-        }
-      }
-    }
+    targetStatus = resolveInitialTripStatus(targetStatus, requestedStatus, parsedPlannedStart);
 
     const carrierName = await getCompanyLegalName();
 
@@ -862,13 +852,11 @@ export const createTrip = async (req: Request, res: Response) => {
             ? Number(rawTripCharges)
             : (appliedQuotation?.driver_payout ? Number(appliedQuotation.driver_payout) : 0);
 
-          let finalDriverPayout = totalPayout;
-          let finalCoDriverPayout = co_driver_payout !== undefined && co_driver_payout !== null ? Number(co_driver_payout) : 0;
-
-          if (co_driver_id && (co_driver_payout === undefined || co_driver_payout === null) && totalPayout > 0) {
-            finalDriverPayout = Math.round((totalPayout / 2) * 100) / 100;
-            finalCoDriverPayout = Math.round((totalPayout / 2) * 100) / 100;
-          }
+          const { driverPayout: finalDriverPayout, coDriverPayout: finalCoDriverPayout } = splitCoDriverPayout({
+            totalPayout,
+            hasCoDriver: Boolean(co_driver_id),
+            explicitCoDriverPayout: co_driver_payout,
+          });
 
           const updateQuotationPayout = req.body.update_quotation_driver_payout === true || req.body.update_quotation_payout === true;
           if (updateQuotationPayout && appliedQuotation) {
@@ -1232,18 +1220,7 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
         let targetStatus: TripStatus = row.status && Object.values(TripStatus).includes(row.status)
           ? row.status
           : TripStatus.Scheduled;
-
-        // Past-time trips can NEVER be Scheduled:
-        // If planned_start is past current time, initial status must be Delayed
-        if (parsedPlannedStart) {
-          const now = new Date();
-          const diffMs = now.getTime() - parsedPlannedStart.getTime();
-          if (diffMs >= 0) {
-            if (!row.status || row.status === TripStatus.Scheduled || row.status === TripStatus.Draft) {
-              targetStatus = TripStatus.Delayed;
-            }
-          }
-        }
+        targetStatus = resolveInitialTripStatus(targetStatus, row.status, parsedPlannedStart);
 
 
         const ref_id = await generateRefId('TRP', () =>
@@ -1345,15 +1322,11 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
           ? Number(rawRowPayout)
           : (thirdPartyCostVal !== undefined ? thirdPartyCostVal : (appliedQuotation?.driver_payout != null ? Number(appliedQuotation.driver_payout) : 0));
 
-        let finalRowDriverPayout = totalRowPayout;
-        let finalRowCoDriverPayout = (row.co_driver_payout !== undefined && row.co_driver_payout !== null && !isNaN(Number(row.co_driver_payout)))
-          ? Number(row.co_driver_payout)
-          : 0;
-
-        if (row.co_driver_id && (row.co_driver_payout === undefined || row.co_driver_payout === null) && totalRowPayout > 0) {
-          finalRowDriverPayout = Math.round((totalRowPayout / 2) * 100) / 100;
-          finalRowCoDriverPayout = Math.round((totalRowPayout / 2) * 100) / 100;
-        }
+        const { driverPayout: finalRowDriverPayout, coDriverPayout: finalRowCoDriverPayout } = splitCoDriverPayout({
+          totalPayout: totalRowPayout,
+          hasCoDriver: Boolean(row.co_driver_id),
+          explicitCoDriverPayout: row.co_driver_payout,
+        });
 
         const trip = await prisma.$transaction(async (tx) => {
           return tx.trip.create({
@@ -2484,43 +2457,6 @@ export const updateTripFinancials = async (req: Request, res: Response) => {
 
 /** A month of trips is bounded work; this only guards against a runaway query. */
 const MONTHLY_BOARD_TRIP_CAP = 5000;
-
-/** Local YYYY-MM-DD — never toISOString(), which shifts the date across UTC. */
-const toDayKey = (d: Date | string | null | undefined): string => {
-  if (!d) return '1970-01-01';
-  const dateObj = d instanceof Date ? d : new Date(d);
-  if (isNaN(dateObj.getTime())) return '1970-01-01';
-  return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
-};
-
-/**
- * The month the board is showing. Accepts `YYYY-MM`; anything else (including
- * a missing param) falls back to the current month rather than erroring, since
- * the page opens with no month chosen.
- */
-function resolveMonth(raw: unknown): { month: string; start: Date; end: Date } {
-  const now = new Date();
-  let year = now.getFullYear();
-  let monthIndex = now.getMonth();
-
-  if (typeof raw === 'string') {
-    const match = /^(\d{4})-(\d{2})$/.exec(raw.trim());
-    if (match) {
-      const parsedYear = Number(match[1]);
-      const parsedMonth = Number(match[2]);
-      if (parsedYear >= 2000 && parsedYear <= 2100 && parsedMonth >= 1 && parsedMonth <= 12) {
-        year = parsedYear;
-        monthIndex = parsedMonth - 1;
-      }
-    }
-  }
-
-  return {
-    month: `${year}-${String(monthIndex + 1).padStart(2, '0')}`,
-    start: new Date(year, monthIndex, 1, 0, 0, 0, 0),
-    end: new Date(year, monthIndex + 1, 0, 23, 59, 59, 999),
-  };
-}
 
 export const getMonthlyTripBoard = async (req: Request, res: Response) => {
   try {
