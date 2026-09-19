@@ -18,7 +18,7 @@ export class WhatsAppService {
       apiToken: process.env.WHATSAPP_API_TOKEN,
       phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID,
       graphApiVersion: process.env.WHATSAPP_GRAPH_API_VERSION || 'v19.0',
-      publicBaseUrl: process.env.PUBLIC_BASE_URL || process.env.BASE_URL || 'https://dev.mercon.com',
+      publicBaseUrl: process.env.PUBLIC_BASE_URL || process.env.BASE_URL || 'https://dev.mercon.tech',
     };
   }
 
@@ -205,12 +205,15 @@ export class WhatsAppService {
       }
 
       const publicMediaUrl = this.toPublicHttpsUrl(relativeFilePath);
+      const publicBase = (this.config.publicBaseUrl || 'https://dev.mercon.tech').replace(/\/+$/, '');
+      const galleryUrl = `${publicBase}/trips/evidence-gallery?ref=${encodeURIComponent(tripRef)}`;
+      
       const tripNotes = (trip as any).notes;
       const delayReason = (tripNotes && typeof tripNotes === 'string' && tripNotes.includes('[DELAY REPORT]'))
         ? tripNotes.replace(/^\[DELAY REPORT\]:\s*/i, '').trim()
         : 'Traffic congestion / Operational delay';
 
-      shareText = `🚨 *MERCON DELAY REPORT*\nTrip: *${tripRef}*\nCustomer: *${customerName}*\nDriver: *${driverName}*\nReason: ${delayReason}\nWatch Video: ${publicMediaUrl}`;
+      shareText = `🚨 *MERCON DELAY REPORT*\nTrip: *${tripRef}*\nCustomer: *${customerName}*\nDriver: *${driverName}*\nReason: ${delayReason}\n\n🔗 *Secured Evidence Gallery*:\n${galleryUrl}\n📹 *Direct Video File*:\n${publicMediaUrl}`;
 
       const cleanPhone = targetPhone.replace(/[^0-9]/g, '');
       const whatsappWebUrl = cleanPhone
@@ -238,7 +241,10 @@ export class WhatsAppService {
       }
 
       const publicMediaUrl = this.toPublicHttpsUrl(relativeFilePath);
-      shareText = `📸 *MERCON POD REPORT*\nTrip: *${tripRef}*\nCustomer: *${customerName}*\nDriver: *${driverName}*\nStatus: Verified Proof of Delivery\nView POD: ${publicMediaUrl}`;
+      const publicBase = (this.config.publicBaseUrl || 'https://dev.mercon.tech').replace(/\/+$/, '');
+      const galleryUrl = `${publicBase}/trips/evidence-gallery?ref=${encodeURIComponent(tripRef)}`;
+
+      shareText = `📸 *MERCON POD REPORT*\nTrip: *${tripRef}*\nCustomer: *${customerName}*\nDriver: *${driverName}*\nStatus: Verified Proof of Delivery\n\n🔗 *Secured Evidence Gallery*:\n${galleryUrl}\n🖼️ *Direct Image File*:\n${publicMediaUrl}`;
 
       const cleanPhone = targetPhone.replace(/[^0-9]/g, '');
       const whatsappWebUrl = cleanPhone
