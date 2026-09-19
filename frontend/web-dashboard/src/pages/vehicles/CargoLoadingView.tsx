@@ -2116,13 +2116,13 @@ export default function CargoLoadingView() {
         <div className="xl:col-span-3 flex flex-col h-full min-h-[460px] overflow-hidden">
           <DocumentsValidityFolder 
             vehicleId={vehicle?.id || id} 
-            onSelectDocument={(docId) => {
+            onSelectDocument={(docId: string) => {
               setSelectedTripIdForPreview(null);
               setSelectedDocId(docId);
             }}
             selectedDocumentId={selectedDocId}
             deletedDocIds={deletedDocIds}
-            onDeleteDocument={(delId) => setDeletedDocIds((prev) => [...prev, delId])}
+            onDeleteDocument={(delId: string) => setDeletedDocIds((prev) => [...prev, delId])}
           />
         </div>
 
