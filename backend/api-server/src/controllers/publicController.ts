@@ -14,11 +14,13 @@ export const getPublicTripEvidence = async (req: Request, res: Response) => {
     const rawNumber = cleanRef.replace(/^TRP-?/i, '').trim();
     const mode = 'insensitive' as Prisma.QueryMode;
 
+    const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(cleanRef);
+
     // Query trip by ref_id (case-insensitive & variant tolerant) or ID
     const trip = await prisma.trip.findFirst({
       where: {
         OR: [
-          { id: cleanRef },
+          ...(isUuid ? [{ id: cleanRef }] : []),
           { ref_id: { equals: cleanRef, mode } },
           { ref_id: { contains: cleanRef, mode } },
           ...(rawNumber ? [
